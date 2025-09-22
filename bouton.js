@@ -30,7 +30,6 @@ function openBackgroundMenu(e){
   contentDiv.innerHTML = '';
 
   const bgMenu = document.createElement('div');
-  bgMenu.style.marginTop = '20px';
 
   const label = document.createElement('div');
   label.className = 'label';
@@ -46,10 +45,7 @@ function openBackgroundMenu(e){
   options.forEach(opt => {
     const div = document.createElement('div');
     div.className = 'bg-option';
-    div.style.marginTop = '10px';
 
-
-    
     const preview = document.createElement('div');
     preview.style.backgroundImage = `url('${opt.bg}')`;
 
@@ -89,3 +85,4 @@ document.addEventListener("click", (e) => {
     if (wasExpanded && inBackgroundMenu) showMainMenu();
   }
 });
+ 

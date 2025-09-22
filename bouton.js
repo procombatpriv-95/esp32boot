@@ -1,37 +1,12 @@
-const boutoncycle = document.getElementById("boutoncycle");
-const contentDiv  = document.getElementById('content');
-const parametre   = document.getElementById('parametre');
-let selectedBackground = null;
-let inBackgroundMenu = false;
-
-// 🔑 Charger le background déjà enregistré (localStorage)
-const savedBg = localStorage.getItem('savedBackground');
-if (savedBg) {
-  selectedBackground = savedBg;
-  document.body.style.backgroundImage = `url('${savedBg}')`;
-}
-
-// Fonction pour revenir au menu principal
-function showMainMenu(){
-  contentDiv.classList.remove('background-top');
-  contentDiv.innerHTML = `
-    <a href="http://detector.local">Detector</a>
-    <a href="http://camera.local">Camera</a>
-    <a href="/note">Note</a>
-    <div class="separator-wide"></div>
-    <div class="parametre" id="parametre">Parametre</div>
-  `;
-  contentDiv.querySelector('#parametre').addEventListener('click', openBackgroundMenu);
-  inBackgroundMenu = false;
-}
-
-// Fonction pour ouvrir le menu Background
 function openBackgroundMenu(e){
   e.stopPropagation();
   contentDiv.classList.add('background-top');
   contentDiv.innerHTML = '';
 
   const bgMenu = document.createElement('div');
+  bgMenu.style.display = 'flex';
+  bgMenu.style.flexDirection = 'column';
+  bgMenu.style.alignItems = 'flex-start'; // titre collé à gauche
 
   // Titre
   const label = document.createElement('div');
@@ -39,24 +14,24 @@ function openBackgroundMenu(e){
   label.textContent = 'Background Change';
   bgMenu.appendChild(label);
 
-  // Conteneur séparé pour les options
+  // Conteneur pour les options (séparé du titre)
   const optionsContainer = document.createElement('div');
   optionsContainer.id = 'options-container';
-  optionsContainer.style.marginTop = '12px'; // décaler toutes les options vers le bas
+  optionsContainer.style.display = 'flex';
+  optionsContainer.style.flexDirection = 'column';
+  optionsContainer.style.marginTop = '20px'; // espace entre titre et liste
   bgMenu.appendChild(optionsContainer);
 
-  // Options disponibles
   const options = [
     {name: 'Paysage', bg: 'https://cdn.pixabay.com/photo/2020/06/11/01/28/landscape-5284806_1280.jpg'},
     {name: 'Sombre',  bg: 'https://wallpapers.com/images/hd/dark-nature-ecoszxkcqcayo73x.jpg'},
     {name: 'Mode Chill', bg: 'https://img.tastelife.tv/assets/uploads/2022/01/New_Zealand_-_AMAZING_Beautiful_Nature_with_Relaxing_Music__Soundscapes_16x9.jpg'}
   ];
 
-  // Création de chaque option
   options.forEach(opt => {
     const div = document.createElement('div');
     div.className = 'bg-option';
-    div.style.marginTop = '10px'; // espace entre titre et chaque option
+    div.style.marginTop = '10px'; // espace entre chaque option
 
     const preview = document.createElement('div');
     preview.style.backgroundImage = `url('${opt.bg}')`;
@@ -67,12 +42,10 @@ function openBackgroundMenu(e){
     div.appendChild(preview);
     div.appendChild(text);
 
-    // Quand on clique sur une option
     div.addEventListener('click', () => {
       selectedBackground = opt.bg;
       document.body.style.backgroundImage = `url('${opt.bg}')`;
-      localStorage.setItem('savedBackground', opt.bg); // 🔑 mémoriser le choix
-      console.log('Background enregistré :', opt.bg);
+      localStorage.setItem('savedBackground', opt.bg);
     });
 
     optionsContainer.appendChild(div);
@@ -81,23 +54,3 @@ function openBackgroundMenu(e){
   contentDiv.appendChild(bgMenu);
   inBackgroundMenu = true;
 }
-
-// Ouvrir le menu Background quand on clique sur Parametre
-parametre.addEventListener('click', openBackgroundMenu);
-
-// Gestion du clic sur le bouton pour zoomer/dézoomer
-boutoncycle.addEventListener("click", (e) => {
-  e.stopPropagation();
-  const wasExpanded = boutoncycle.classList.contains("expanded");
-  boutoncycle.classList.toggle("expanded");
-  if (wasExpanded && inBackgroundMenu) showMainMenu();
-});
-
-// Fermer le menu si on clique en dehors
-document.addEventListener("click", (e) => {
-  if (!boutoncycle.contains(e.target)) {
-    const wasExpanded = boutoncycle.classList.contains("expanded");
-    boutoncycle.classList.remove("expanded");
-    if (wasExpanded && inBackgroundMenu) showMainMenu();
-  }
-});

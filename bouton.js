@@ -30,6 +30,7 @@ function openBackgroundMenu(e){
   contentDiv.innerHTML = '';
 
   const bgMenu = document.createElement('div');
+  bgMenu.style.marginTop = '20px';
 
   const label = document.createElement('div');
   label.className = 'label';

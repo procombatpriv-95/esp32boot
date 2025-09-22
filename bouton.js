@@ -11,6 +11,7 @@ if (savedBg) {
   document.body.style.backgroundImage = `url('${savedBg}')`;
 }
 
+// Fonction pour revenir au menu principal
 function showMainMenu(){
   contentDiv.classList.remove('background-top');
   contentDiv.innerHTML = `
@@ -24,32 +25,39 @@ function showMainMenu(){
   inBackgroundMenu = false;
 }
 
+// Fonction pour ouvrir le menu Background
 function openBackgroundMenu(e){
   e.stopPropagation();
   contentDiv.classList.add('background-top');
   contentDiv.innerHTML = '';
 
   const bgMenu = document.createElement('div');
-  bgMenu.style.marginTop = '20px';
 
+  // Titre
   const label = document.createElement('div');
   label.className = 'label';
   label.textContent = 'Background Change';
   bgMenu.appendChild(label);
 
+  // Conteneur séparé pour les options
+  const optionsContainer = document.createElement('div');
+  optionsContainer.id = 'options-container';
+  optionsContainer.style.marginTop = '12px'; // décaler toutes les options vers le bas
+  bgMenu.appendChild(optionsContainer);
+
+  // Options disponibles
   const options = [
     {name: 'Paysage', bg: 'https://cdn.pixabay.com/photo/2020/06/11/01/28/landscape-5284806_1280.jpg'},
     {name: 'Sombre',  bg: 'https://wallpapers.com/images/hd/dark-nature-ecoszxkcqcayo73x.jpg'},
     {name: 'Mode Chill', bg: 'https://img.tastelife.tv/assets/uploads/2022/01/New_Zealand_-_AMAZING_Beautiful_Nature_with_Relaxing_Music__Soundscapes_16x9.jpg'}
   ];
 
+  // Création de chaque option
   options.forEach(opt => {
     const div = document.createElement('div');
     div.className = 'bg-option';
-    div.style.marginTop = '10px';
+    div.style.marginTop = '10px'; // espace entre titre et chaque option
 
-
-    
     const preview = document.createElement('div');
     preview.style.backgroundImage = `url('${opt.bg}')`;
 
@@ -58,23 +66,26 @@ function openBackgroundMenu(e){
 
     div.appendChild(preview);
     div.appendChild(text);
-    bgMenu.appendChild(div);
 
+    // Quand on clique sur une option
     div.addEventListener('click', () => {
       selectedBackground = opt.bg;
       document.body.style.backgroundImage = `url('${opt.bg}')`;
-      // ✅ Enregistrer dans localStorage
-      localStorage.setItem('savedBackground', opt.bg);
+      localStorage.setItem('savedBackground', opt.bg); // 🔑 mémoriser le choix
       console.log('Background enregistré :', opt.bg);
     });
+
+    optionsContainer.appendChild(div);
   });
 
   contentDiv.appendChild(bgMenu);
   inBackgroundMenu = true;
 }
 
+// Ouvrir le menu Background quand on clique sur Parametre
 parametre.addEventListener('click', openBackgroundMenu);
 
+// Gestion du clic sur le bouton pour zoomer/dézoomer
 boutoncycle.addEventListener("click", (e) => {
   e.stopPropagation();
   const wasExpanded = boutoncycle.classList.contains("expanded");
@@ -82,6 +93,7 @@ boutoncycle.addEventListener("click", (e) => {
   if (wasExpanded && inBackgroundMenu) showMainMenu();
 });
 
+// Fermer le menu si on clique en dehors
 document.addEventListener("click", (e) => {
   if (!boutoncycle.contains(e.target)) {
     const wasExpanded = boutoncycle.classList.contains("expanded");

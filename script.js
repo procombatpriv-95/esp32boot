@@ -1,4 +1,3 @@
-
 const editor = document.getElementById('editor');
 const textEditor = document.getElementById('text-editor');
 const bleft = document.getElementById('bleft');
@@ -71,15 +70,30 @@ fontColor.addEventListener('change', ()=>{
   applyStyleToSelection();
 });
 
+// ===== Nouveau comportement du bouton : Télécharger en DOCX =====
 bleft.addEventListener('click', ()=>{
-  if(inTextMode) {
-    localStorage.setItem('text', textEditor.innerHTML);
-    localStorage.setItem('text-font-size', currentFontSize);
-    localStorage.setItem('text-font-color', currentFontColor);
-  } else {
-    localStorage.setItem('code', editor.innerText);
-  }
-  alert('Sauvegardé !');
+  const isText = inTextMode;
+  const content = isText ? textEditor.innerHTML : editor.innerText;
+
+  // Crée un blob au format Word (HTML encapsulé)
+  const html =
+    '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+    'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
+    'xmlns="http://www.w3.org/TR/REC-html40">' +
+    '<head><meta charset="utf-8"></head><body>' +
+    (isText ? content : `<pre>${content}</pre>`) +
+    '</body></html>';
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = isText ? 'text.docx' : 'code.docx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 });
 
 bright.addEventListener('click', ()=>{

@@ -37,6 +37,7 @@ function openBackgroundMenu(e){
   const label = document.createElement('div');
   label.className = 'label';
   label.textContent = 'Background Change';
+  label.style.marginTop = '-8px'; 
   bgMenu.appendChild(label);
 
   // Conteneur séparé pour les options

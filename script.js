@@ -1,4 +1,4 @@
-tout a l heure je tai envoye le mauvais java script const editor = document.getElementById('editor');
+const editor = document.getElementById('editor');
 const textEditor = document.getElementById('text-editor');
 const bleft = document.getElementById('bleft');
 const bright = document.getElementById('bright');

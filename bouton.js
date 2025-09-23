@@ -40,10 +40,10 @@ function openBackgroundMenu(e){
 
   // Options disponibles (avec les 2 nouveaux)
   const options = [
-    {name: 'Paysage', bg: 'https://wallpapers.com/images/hd/dark-nature-ecoszxkcqcayo73x.jpg'},
+    {name: 'Paysage', bg: 'https://cdn.pixabay.com/photo/2020/06/11/01/28/landscape-5284806_1280.jpg'},
     {name: 'Sombre',  bg: 'https://wallpapers.com/images/hd/dark-nature-ecoszxkcqcayo73x.jpg'},
     {name: 'Mode Chill', bg: 'https://img.tastelife.tv/assets/uploads/2022/01/New_Zealand_-_AMAZING_Beautiful_Nature_with_Relaxing_Music__Soundscapes_16x9.jpg'},
-    {name: 'Plage', bg: 'https://i.pinimg.com/originals/d2/e4/33/d2e433a119194661db9909a4162bcd36.gif'},
+    {name: 'Plage', bg: 'https://izitour.com/media/blog/nha-trang-beaches.webp'},
     {name: 'Lunaire', bg: 'https://static.vecteezy.com/ti/vecteur-libre/p1/37043037-magnifique-plage-paysage-avec-plein-lune-mer-nuit-paysage-vectoriel.jpg'}
   ];
 

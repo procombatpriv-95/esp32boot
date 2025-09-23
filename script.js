@@ -118,4 +118,4 @@ textEditor.style.overflowX = 'auto';
 setInterval(() => {
   localStorage.setItem('code', editor.innerText);
   localStorage.setItem('text', textEditor.innerHTML);
-}, 4000);
+}, 3000);

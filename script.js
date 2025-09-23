@@ -6,7 +6,7 @@ const controlBar = document.getElementById('control-bar');
 const fontSize = document.getElementById('font-size');
 const fontColor = document.getElementById('font-color');
 const lineNumbers = document.getElementById('line-numbers'); 
-const editorContainer = document.getElementById('editor-container'); // Conteneur pour le code + numéros
+const editorContainer = document.getElementById('editor-container');
 
 let inTextMode = false;
 let currentFontSize = localStorage.getItem('text-font-size') || '14px';
@@ -49,12 +49,6 @@ function updateLineNumbers() {
   lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
 }
 
-// Mettre à jour le style du curseur immédiatement
-function updateCursorStyle() {
-  textEditor.style.color = currentFontColor;
-  textEditor.style.fontSize = currentFontSize;
-}
-
 // ===================== Événements =====================
 
 // Gestion de la frappe dans textEditor
@@ -66,9 +60,10 @@ textEditor.addEventListener('keydown', (e) => {
   if(sel.rangeCount > 0){
     const range = sel.getRangeAt(0);
     const span = document.createElement('span');
-    span.style.color = currentFontColor;
-    span.style.fontSize = currentFontSize;
+    span.style.color = currentFontColor;  // ✅ couleur actuelle
+    span.style.fontSize = currentFontSize; // ✅ taille actuelle
     span.textContent = e.key;
+
     range.deleteContents();
     range.insertNode(span);
 
@@ -85,16 +80,12 @@ textEditor.addEventListener('keydown', (e) => {
 fontSize.addEventListener('change', ()=>{
   currentFontSize = fontSize.value;
   localStorage.setItem('text-font-size', currentFontSize);
-  applyStyleToSelection();
-  updateCursorStyle();
 });
 
 // Changement de style (couleur)
 fontColor.addEventListener('change', ()=>{
   currentFontColor = fontColor.value;
   localStorage.setItem('text-font-color', currentFontColor);
-  applyStyleToSelection();
-  updateCursorStyle();
 });
 
 // Sauvegarde
@@ -112,14 +103,12 @@ bleft.addEventListener('click', ()=>{
 // Switch Code / Text
 bright.addEventListener('click', ()=>{
   if(!inTextMode){
-    // Passer en mode code (affiche editor + numéros)
     editorContainer.style.transform = 'rotateY(0deg)';
     textEditor.style.transform = 'rotateY(-180deg)';
     controlBar.style.display = 'none';
     inTextMode = false;
     bright.textContent = 'Text';
   } else {
-    // Passer en mode text
     editorContainer.style.transform = 'rotateY(-180deg)';
     textEditor.style.transform = 'rotateY(0deg)';
     controlBar.style.display = 'flex';
@@ -140,6 +129,6 @@ editor.addEventListener('scroll', () => {
 
 // Initialisation
 updateLineNumbers();
-updateCursorStyle();
+
 
 

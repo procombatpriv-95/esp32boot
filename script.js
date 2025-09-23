@@ -70,32 +70,25 @@ fontColor.addEventListener('change', ()=>{
   applyStyleToSelection();
 });
 
-// ===== Nouveau comportement du bouton : Télécharger en DOCX =====
+// ========= Téléchargement TXT =========
 bleft.addEventListener('click', ()=>{
   const isText = inTextMode;
-  const content = isText ? textEditor.innerHTML : editor.innerText;
+  // Pour le texte, on enlève les balises pour avoir du pur texte
+  const content = isText ? textEditor.innerText : editor.innerText;
 
-  // Crée un blob au format Word (HTML encapsulé)
-  const html =
-    '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
-    'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
-    'xmlns="http://www.w3.org/TR/REC-html40">' +
-    '<head><meta charset="utf-8"></head><body>' +
-    (isText ? content : `<pre>${content}</pre>`) +
-    '</body></html>';
-
-  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement('a');
   a.href = url;
-  a.download = isText ? 'text.docx' : 'code.docx';
+  a.download = isText ? 'text.txt' : 'code.txt';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 });
 
+// ========= Bascule éditeur =========
 bright.addEventListener('click', ()=>{
   if(!inTextMode){
     editor.style.transform='rotateY(-180deg)';
@@ -115,9 +108,9 @@ bright.addEventListener('click', ()=>{
 editor.style.overflowX = 'auto';
 textEditor.style.overflowX = 'auto';
 
-// ===================== Auto-save toutes les 4 secondes =====================
+// ========= Auto-save 4s =========
 setInterval(() => {
   localStorage.setItem('code', editor.innerText);
   localStorage.setItem('text', textEditor.innerHTML);
-  console.log('Auto-save effectué à', new Date().toLocaleTimeString());
 }, 4000);
+

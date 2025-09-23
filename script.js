@@ -125,5 +125,5 @@ updateLineNumbers();
 
 
 // Initialisation
-updateLineNumbers();
+
 

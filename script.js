@@ -1,4 +1,5 @@
 
+const editor = document.getElementById('editor');
 const textEditor = document.getElementById('text-editor');
 const bleft = document.getElementById('bleft');
 const bright = document.getElementById('bright');
@@ -98,6 +99,11 @@ bright.addEventListener('click', ()=>{
 });
 
 editor.style.overflowX = 'auto';
-
 textEditor.style.overflowX = 'auto';
 
+// ===================== Auto-save toutes les 4 secondes =====================
+setInterval(() => {
+  localStorage.setItem('code', editor.innerText);
+  localStorage.setItem('text', textEditor.innerHTML);
+  console.log('Auto-save effectué à', new Date().toLocaleTimeString());
+}, 4000);

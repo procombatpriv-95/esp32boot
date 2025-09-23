@@ -33,17 +33,17 @@ function openBackgroundMenu(e){
 
   const bgMenu = document.createElement('div');
 
-  // Titre
+  // 🔹 Titre légèrement remonté
   const label = document.createElement('div');
   label.className = 'label';
   label.textContent = 'Background Change';
-  label.style.marginTop = '-8px'; 
+  label.style.marginTop = '-8px'; // remonter le titre
   bgMenu.appendChild(label);
 
   // Conteneur séparé pour les options
   const optionsContainer = document.createElement('div');
   optionsContainer.id = 'options-container';
-  optionsContainer.style.marginTop = '12px'; // décaler toutes les options vers le bas
+  optionsContainer.style.marginTop = '12px'; // descendre les options
   bgMenu.appendChild(optionsContainer);
 
   // Options disponibles
@@ -57,7 +57,10 @@ function openBackgroundMenu(e){
   options.forEach(opt => {
     const div = document.createElement('div');
     div.className = 'bg-option';
-    div.style.marginTop = '10px'; // espace entre titre et chaque option
+
+    // 🔹 réduire légèrement et descendre chaque option
+    div.style.transform = 'scale(0.9)';
+    div.style.marginTop = '12px'; // 2px de plus que l'original
 
     const preview = document.createElement('div');
     preview.style.backgroundImage = `url('${opt.bg}')`;
@@ -102,4 +105,4 @@ document.addEventListener("click", (e) => {
     if (wasExpanded && inBackgroundMenu) showMainMenu();
   }
 });
-
+</script>

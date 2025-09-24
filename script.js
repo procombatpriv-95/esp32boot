@@ -23,13 +23,13 @@ function saveCaretPosition(containerEl) {
 
 function restoreCaretPosition(containerEl, charIndex) {
   const nodeStack = [containerEl];
-  let node, foundStart = false, stop = false;
+  let node, stop = false;
   let chars = 0;
 
   while (!stop && (node = nodeStack.pop())) {
     if (node.nodeType === 3) { // Text node
       const nextChars = chars + node.length;
-      if (!foundStart && charIndex <= nextChars) {
+      if (charIndex <= nextChars) {
         const range = document.createRange();
         const sel = window.getSelection();
         range.setStart(node, charIndex - chars);
@@ -76,7 +76,7 @@ editor.addEventListener('input', () => {
   setTimeout(() => {
     checkEditorContent();
     colorVoidInEditor();
-  }, 100);
+  }, 50);
 });
 
 // ---------- Initialisation ----------
@@ -85,5 +85,24 @@ window.addEventListener('load', () => {
     insertColoredTemplate();
   }
   colorVoidInEditor();
+});
+
+// ---------- Boutons ----------
+bleft.addEventListener('click', () => {
+  const content = editor.innerText;
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'code.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+bright.addEventListener('click', () => {
+  // Ici tu peux gérer la bascule Code/Text si nécessaire
 });
 

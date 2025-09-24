@@ -14,7 +14,7 @@ let currentFontFamily = localStorage.getItem('text-font-family') || 'Arial';
 
 // 🔹 Restauration du code avec couleurs
 if (localStorage.getItem('code')) {
-  editor.innerHTML = localStorage.getItem('code'); // ✅ on utilise innerHTML
+  editor.innerHTML = localStorage.getItem('code'); 
 }
 if (localStorage.getItem('text')) {
   textEditor.innerHTML = localStorage.getItem('text');
@@ -87,7 +87,6 @@ fontFamily.addEventListener('change', () => {
 
 bleft.addEventListener('click', () => {
   const isText = inTextMode;
-  // ✅ Pour la sauvegarde du code, on récupère le texte brut, pas le HTML
   const content = isText ? textEditor.innerText : editor.innerText;
 
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -121,13 +120,13 @@ bright.addEventListener('click', () => {
 editor.style.overflowX = 'auto';
 textEditor.style.overflowX = 'auto';
 
-// ✅ Sauvegarde régulière du contenu HTML (pour garder les couleurs)
+// ✅ Sauvegarde régulière du contenu HTML
 setInterval(() => {
   localStorage.setItem('code', editor.innerHTML);
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
 
-/* ---------- AJOUT AUTOMATIQUE DU TEXTE COLORÉ ---------- */
+/* ---------- AJOUT AUTOMATIQUE DU TEMPLATE COLORÉ ---------- */
 function insertColoredTemplate() {
   editor.innerHTML =
     '<span style="color:blue;">void</span> ' +
@@ -136,24 +135,35 @@ function insertColoredTemplate() {
     '<span style="color:orange;">loop</span>() {<br><br>}';
 }
 
+/* ---------- COLORATION DYNAMIQUE DE "void" ---------- */
+function colorVoidInEditor() {
+  let html = editor.innerHTML;
+  html = html.replace(/\bvoid\b/g, '<span style="color:blue;">void</span>');
+  if (editor.innerHTML !== html) {
+    editor.innerHTML = html;
+  }
+}
+
+/* ---------- GESTION DU CONTENU ---------- */
 function checkEditorContent() {
   if (editor.innerText.trim() === '') {
     insertColoredTemplate();
   }
 }
 
-// Vérification à chaque saisie
+// Déclenche à chaque saisie
 editor.addEventListener('input', () => {
-  setTimeout(checkEditorContent, 100);
+  setTimeout(() => {
+    checkEditorContent();
+    colorVoidInEditor();
+  }, 100);
 });
 
-// Vérification au chargement initial
+// Au chargement initial
 window.addEventListener('load', () => {
-  if (
-    !localStorage.getItem('code') ||
-    localStorage.getItem('code').trim() === ''
-  ) {
+  if (!localStorage.getItem('code') || localStorage.getItem('code').trim() === '') {
     insertColoredTemplate();
   }
+  colorVoidInEditor();
 });
 

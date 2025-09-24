@@ -44,7 +44,7 @@ function openBackgroundMenu(e){
     {name: 'Sombre',  bg: 'https://wallpapers.com/images/hd/dark-nature-ecoszxkcqcayo73x.jpg'},
     {name: 'Mode Chill', bg: 'https://img.tastelife.tv/assets/uploads/2022/01/New_Zealand_-_AMAZING_Beautiful_Nature_with_Relaxing_Music__Soundscapes_16x9.jpg'},
     {name: 'Plage', bg: 'https://eurolines.fr/wp-content/uploads/2022/07/plus-belles-plages.jpg'},
-    {name: 'Lunaire', bg: 'https://nativetransmission.wordpress.com/wp-content/uploads/2015/04/bloody-red-moon_p.jpg'}
+    {name: 'Lunaire', bg: 'https://cdn.pixabay.com/photo/2024/01/25/13/40/ai-generated-8531975_1280.png'}
   ];
 
   // Création de chaque option

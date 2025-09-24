@@ -1,4 +1,4 @@
-const textEditor = document.getElementById('text-editor');
+
 const editor = document.getElementById('editor');
 const bleft = document.getElementById('bleft');
 const bright = document.getElementById('bright');
@@ -12,68 +12,75 @@ let currentFontSize = localStorage.getItem('text-font-size') || '14px';
 let currentFontColor = localStorage.getItem('text-font-color') || 'black';
 let currentFontFamily = localStorage.getItem('text-font-family') || 'Arial';
 
-// 🔹 Restauration du code et du texte
-if (localStorage.getItem('code')) editor.innerHTML = localStorage.getItem('code');
-if (localStorage.getItem('text')) textEditor.innerHTML = localStorage.getItem('text');
+if(localStorage.getItem('code')) editor.innerText = localStorage.getItem('code');
+if(localStorage.getItem('text')) textEditor.innerHTML = localStorage.getItem('text');
 
 fontSize.value = currentFontSize;
 fontColor.value = currentFontColor;
 fontFamily.value = currentFontFamily;
 controlBar.style.display = 'none';
 
-// Mise à jour initiale du caret et style du texte
-textEditor.style.caretColor = currentFontColor;
-textEditor.style.fontSize = currentFontSize;
-textEditor.style.fontFamily = currentFontFamily;
-
-// Appliquer les styles sélectionnés (pour textEditor)
 function applyStyleToSelection() {
-  document.execCommand('foreColor', false, currentFontColor);
-  document.execCommand('fontName', false, currentFontFamily);
-  document.execCommand('fontSize', false, parseInt(currentFontSize));
+  const sel = window.getSelection();
+  if(sel.rangeCount > 0 && sel.toString() !== ''){
+    const range = sel.getRangeAt(0);
+    const span = document.createElement('span');
+    span.style.color = currentFontColor;
+    span.style.fontSize = currentFontSize;
+    span.style.fontFamily = currentFontFamily;
+    span.textContent = sel.toString();
+    range.deleteContents();
+    range.insertNode(span);
+
+    const newRange = document.createRange();
+    newRange.setStartAfter(span);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+  }
 }
 
-// Gestion de la saisie dans textEditor
 textEditor.addEventListener('keydown', (e) => {
-  if (!inTextMode) return;
+  const isPrintable = e.key.length === 1;
+  if(!inTextMode || !isPrintable) return;
 
-  if (e.key === 'Enter') {
-    document.execCommand('insertHTML', false, '<br>');
-    e.preventDefault();
-    return;
-  }
+  const sel = window.getSelection();
+  if(sel.rangeCount > 0){
+    const range = sel.getRangeAt(0);
+    const span = document.createElement('span');
+    span.style.color = currentFontColor;
+    span.style.fontSize = currentFontSize;
+    span.style.fontFamily = currentFontFamily;
+    span.textContent = e.key;
+    range.deleteContents();
+    range.insertNode(span);
 
-  if (e.key.length === 1) {
-    document.execCommand('insertText', false, e.key);
-    applyStyleToSelection();
+    const newRange = document.createRange();
+    newRange.setStartAfter(span);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
     e.preventDefault();
   }
 });
 
-// 🔹 Mise à jour des styles en direct
-fontSize.addEventListener('change', () => {
+fontSize.addEventListener('change', ()=>{
   currentFontSize = fontSize.value;
   localStorage.setItem('text-font-size', currentFontSize);
   applyStyleToSelection();
-  textEditor.style.fontSize = currentFontSize;
 });
-
-fontColor.addEventListener('change', () => {
+fontColor.addEventListener('change', ()=>{
   currentFontColor = fontColor.value;
   localStorage.setItem('text-font-color', currentFontColor);
   applyStyleToSelection();
-  textEditor.style.caretColor = currentFontColor;
 });
-
-fontFamily.addEventListener('change', () => {
+fontFamily.addEventListener('change', ()=>{
   currentFontFamily = fontFamily.value;
   localStorage.setItem('text-font-family', currentFontFamily);
   applyStyleToSelection();
-  textEditor.style.fontFamily = currentFontFamily;
 });
 
-// Gestion des boutons de téléchargement
-bleft.addEventListener('click', () => {
+bleft.addEventListener('click', ()=>{
   const isText = inTextMode;
   const content = isText ? textEditor.innerText : editor.innerText;
 
@@ -89,83 +96,27 @@ bleft.addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-// Bascule texte / code
-bright.addEventListener('click', () => {
-  if (!inTextMode) {
-    editor.style.transform = 'rotateY(-180deg)';
-    textEditor.style.transform = 'rotateY(0deg)';
-    controlBar.style.display = 'flex';
+bright.addEventListener('click', ()=>{
+  if(!inTextMode){
+    editor.style.transform='rotateY(-180deg)';
+    textEditor.style.transform='rotateY(0deg)';
+    controlBar.style.display='flex';
     inTextMode = true;
-    bright.textContent = 'Code';
+    bright.textContent='Code';
   } else {
-    editor.style.transform = 'rotateY(0deg)';
-    textEditor.style.transform = 'rotateY(-180deg)';
-    controlBar.style.display = 'none';
+    editor.style.transform='rotateY(0deg)';
+    textEditor.style.transform='rotateY(-180deg)';
+    controlBar.style.display='none';
     inTextMode = false;
-    bright.textContent = 'Text';
+    bright.textContent='Text';
   }
 });
 
 editor.style.overflowX = 'auto';
 textEditor.style.overflowX = 'auto';
 
-// ✅ Sauvegarde régulière du contenu HTML
 setInterval(() => {
-  localStorage.setItem('code', editor.innerHTML);
+  localStorage.setItem('code', editor.innerText);
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
-
-// ---------- Template par défaut ----------
-function insertColoredTemplate() {
-  editor.innerHTML =
-    '<span style="color:blue;">void</span> ' +
-    '<span style="color:orange;">setup</span>() {<br><br>}<br><br><br>' +
-    '<span style="color:blue;">void</span> ' +
-    '<span style="color:orange;">loop</span>() {<br><br>}';
-}
-
-// ---------- Coloration dynamique de "void" sans casser le caret ----------
-function colorVoidInEditor() {
-  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
-
-  while (walker.nextNode()) {
-    const node = walker.currentNode;
-    if (node.nodeValue.includes("void")) {
-      const span = document.createElement("span");
-      span.style.color = "blue";
-      span.textContent = "void";
-
-      const parts = node.nodeValue.split("void");
-      const parent = node.parentNode;
-
-      for (let i = 0; i < parts.length; i++) {
-        if (parts[i]) parent.insertBefore(document.createTextNode(parts[i]), node);
-        if (i < parts.length - 1) parent.insertBefore(span.cloneNode(true), node);
-      }
-
-      parent.removeChild(node);
-    }
-  }
-}
-
-// ---------- Gestion du contenu ----------
-function checkEditorContent() {
-  if (editor.innerText.trim() === '') insertColoredTemplate();
-}
-
-// Déclenche à chaque saisie
-editor.addEventListener('input', () => {
-  setTimeout(() => {
-    checkEditorContent();
-    colorVoidInEditor();
-  }, 50);
-});
-
-// Au chargement initial
-window.addEventListener('load', () => {
-  if (!localStorage.getItem('code') || localStorage.getItem('code').trim() === '') {
-    insertColoredTemplate();
-  }
-  colorVoidInEditor();
-});
 

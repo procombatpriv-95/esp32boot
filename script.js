@@ -135,12 +135,21 @@ function insertColoredTemplate() {
     '<span style="color:orange;">loop</span>() {<br><br>}';
 }
 
-/* ---------- COLORATION DYNAMIQUE DE "void" ---------- */
+/* ---------- COLORATION DYNAMIQUE DE "void" AVEC CURSEUR ---------- */
 function colorVoidInEditor() {
+  const sel = window.getSelection();
+  const range = sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+
   let html = editor.innerHTML;
   html = html.replace(/\bvoid\b/g, '<span style="color:blue;">void</span>');
+
   if (editor.innerHTML !== html) {
     editor.innerHTML = html;
+    // Restaurer la sélection/cursor
+    if (range) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
   }
 }
 

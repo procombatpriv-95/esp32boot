@@ -12,8 +12,9 @@ let currentFontSize = localStorage.getItem('text-font-size') || '14px';
 let currentFontColor = localStorage.getItem('text-font-color') || 'black';
 let currentFontFamily = localStorage.getItem('text-font-family') || 'Arial';
 
+// 🔹 Restauration du code avec couleurs
 if (localStorage.getItem('code')) {
-  editor.innerHTML = localStorage.getItem('code');
+  editor.innerHTML = localStorage.getItem('code'); // ✅ on utilise innerHTML
 }
 if (localStorage.getItem('text')) {
   textEditor.innerHTML = localStorage.getItem('text');
@@ -32,7 +33,7 @@ function applyStyleToSelection() {
     span.style.color = currentFontColor;
     span.style.fontSize = currentFontSize;
     span.style.fontFamily = currentFontFamily;
-    span.textContent = sel.toString();
+    span.innerText = sel.toString();
     range.deleteContents();
     range.insertNode(span);
 
@@ -55,7 +56,7 @@ textEditor.addEventListener('keydown', (e) => {
     span.style.color = currentFontColor;
     span.style.fontSize = currentFontSize;
     span.style.fontFamily = currentFontFamily;
-    span.textContent = e.key;
+    span.innerText = e.key;
     range.deleteContents();
     range.insertNode(span);
 
@@ -86,6 +87,7 @@ fontFamily.addEventListener('change', () => {
 
 bleft.addEventListener('click', () => {
   const isText = inTextMode;
+  // ✅ Pour la sauvegarde du code, on récupère le texte brut, pas le HTML
   const content = isText ? textEditor.innerText : editor.innerText;
 
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -119,40 +121,39 @@ bright.addEventListener('click', () => {
 editor.style.overflowX = 'auto';
 textEditor.style.overflowX = 'auto';
 
+// ✅ Sauvegarde régulière du contenu HTML (pour garder les couleurs)
 setInterval(() => {
   localStorage.setItem('code', editor.innerHTML);
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
 
-/* ---------- AJOUT AUTOMATIQUE DU TEXTE PAR DÉFAUT AVEC COULEURS ---------- */
+/* ---------- AJOUT AUTOMATIQUE DU TEXTE COLORÉ ---------- */
+function insertColoredTemplate() {
+  editor.innerHTML =
+    '<span style="color:blue;">void</span> ' +
+    '<span style="color:orange;">setup</span>() {<br><br>}<br><br><br>' +
+    '<span style="color:blue;">void</span> ' +
+    '<span style="color:orange;">loop</span>() {<br><br>}';
+}
+
 function checkEditorContent() {
-  // Vérifie si le contenu est vide ou seulement des espaces
   if (editor.innerText.trim() === '') {
-    // HTML coloré : void = bleu, setup/loop = orange
-    editor.innerHTML =
-      '<span style="color:blue;">void</span> ' +
-      '<span style="color:orange;">setup</span>() {<br><br>}<br><br><br>' +
-      '<span style="color:blue;">void</span> ' +
-      '<span style="color:orange;">loop</span>() {<br><br>}';
+    insertColoredTemplate();
   }
 }
 
-// Déclenche à chaque modification du contenu
+// Vérification à chaque saisie
 editor.addEventListener('input', () => {
   setTimeout(checkEditorContent, 100);
 });
 
-// Vérifie aussi au chargement initial
+// Vérification au chargement initial
 window.addEventListener('load', () => {
   if (
     !localStorage.getItem('code') ||
     localStorage.getItem('code').trim() === ''
   ) {
-    editor.innerHTML =
-      '<span style="color:blue;">void</span> ' +
-      '<span style="color:orange;">setup</span>() {<br><br>}<br><br><br>' +
-      '<span style="color:blue;">void</span> ' +
-      '<span style="color:orange;">loop</span>() {<br><br>}';
+    insertColoredTemplate();
   }
 });
 

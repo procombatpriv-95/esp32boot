@@ -12,7 +12,7 @@ let currentFontSize = localStorage.getItem('text-font-size') || '14px';
 let currentFontColor = localStorage.getItem('text-font-color') || 'black';
 let currentFontFamily = localStorage.getItem('text-font-family') || 'Arial';
 
-// 🔹 Restauration du code avec couleurs
+// 🔹 Restauration du contenu
 if (localStorage.getItem('code')) {
   editor.innerHTML = localStorage.getItem('code'); 
 }
@@ -24,6 +24,11 @@ fontSize.value = currentFontSize;
 fontColor.value = currentFontColor;
 fontFamily.value = currentFontFamily;
 controlBar.style.display = 'none';
+
+// Mise à jour initiale du caret
+textEditor.style.caretColor = currentFontColor;
+textEditor.style.fontSize = currentFontSize;
+textEditor.style.fontFamily = currentFontFamily;
 
 function applyStyleToSelection() {
   const sel = window.getSelection();
@@ -45,6 +50,7 @@ function applyStyleToSelection() {
   }
 }
 
+// Gestion de la saisie dans textEditor
 textEditor.addEventListener('keydown', (e) => {
   const isPrintable = e.key.length === 1;
   if (!inTextMode || !isPrintable) return;
@@ -69,22 +75,32 @@ textEditor.addEventListener('keydown', (e) => {
   }
 });
 
+// 🔹 Mise à jour des styles en direct
 fontSize.addEventListener('change', () => {
   currentFontSize = fontSize.value;
   localStorage.setItem('text-font-size', currentFontSize);
   applyStyleToSelection();
+
+  textEditor.style.fontSize = currentFontSize; // mise à jour immédiate du texte et curseur
 });
+
 fontColor.addEventListener('change', () => {
   currentFontColor = fontColor.value;
   localStorage.setItem('text-font-color', currentFontColor);
   applyStyleToSelection();
+
+  textEditor.style.caretColor = currentFontColor; // curseur change immédiatement
 });
+
 fontFamily.addEventListener('change', () => {
   currentFontFamily = fontFamily.value;
   localStorage.setItem('text-font-family', currentFontFamily);
   applyStyleToSelection();
+
+  textEditor.style.fontFamily = currentFontFamily;
 });
 
+// Gestion des boutons
 bleft.addEventListener('click', () => {
   const isText = inTextMode;
   const content = isText ? textEditor.innerText : editor.innerText;

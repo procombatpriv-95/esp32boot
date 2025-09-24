@@ -1,4 +1,4 @@
-
+const textEditor = document.getElementById('text-editor');
 const editor = document.getElementById('editor');
 const bleft = document.getElementById('bleft');
 const bright = document.getElementById('bright');
@@ -12,8 +12,12 @@ let currentFontSize = localStorage.getItem('text-font-size') || '14px';
 let currentFontColor = localStorage.getItem('text-font-color') || 'black';
 let currentFontFamily = localStorage.getItem('text-font-family') || 'Arial';
 
-if(localStorage.getItem('code')) editor.innerText = localStorage.getItem('code');
-if(localStorage.getItem('text')) textEditor.innerHTML = localStorage.getItem('text');
+if (localStorage.getItem('code')) {
+  editor.innerText = localStorage.getItem('code');
+}
+if (localStorage.getItem('text')) {
+  textEditor.innerHTML = localStorage.getItem('text');
+}
 
 fontSize.value = currentFontSize;
 fontColor.value = currentFontColor;
@@ -22,7 +26,7 @@ controlBar.style.display = 'none';
 
 function applyStyleToSelection() {
   const sel = window.getSelection();
-  if(sel.rangeCount > 0 && sel.toString() !== ''){
+  if (sel.rangeCount > 0 && sel.toString() !== '') {
     const range = sel.getRangeAt(0);
     const span = document.createElement('span');
     span.style.color = currentFontColor;
@@ -42,10 +46,10 @@ function applyStyleToSelection() {
 
 textEditor.addEventListener('keydown', (e) => {
   const isPrintable = e.key.length === 1;
-  if(!inTextMode || !isPrintable) return;
+  if (!inTextMode || !isPrintable) return;
 
   const sel = window.getSelection();
-  if(sel.rangeCount > 0){
+  if (sel.rangeCount > 0) {
     const range = sel.getRangeAt(0);
     const span = document.createElement('span');
     span.style.color = currentFontColor;
@@ -64,23 +68,23 @@ textEditor.addEventListener('keydown', (e) => {
   }
 });
 
-fontSize.addEventListener('change', ()=>{
+fontSize.addEventListener('change', () => {
   currentFontSize = fontSize.value;
   localStorage.setItem('text-font-size', currentFontSize);
   applyStyleToSelection();
 });
-fontColor.addEventListener('change', ()=>{
+fontColor.addEventListener('change', () => {
   currentFontColor = fontColor.value;
   localStorage.setItem('text-font-color', currentFontColor);
   applyStyleToSelection();
 });
-fontFamily.addEventListener('change', ()=>{
+fontFamily.addEventListener('change', () => {
   currentFontFamily = fontFamily.value;
   localStorage.setItem('text-font-family', currentFontFamily);
   applyStyleToSelection();
 });
 
-bleft.addEventListener('click', ()=>{
+bleft.addEventListener('click', () => {
   const isText = inTextMode;
   const content = isText ? textEditor.innerText : editor.innerText;
 
@@ -96,19 +100,19 @@ bleft.addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
-bright.addEventListener('click', ()=>{
-  if(!inTextMode){
-    editor.style.transform='rotateY(-180deg)';
-    textEditor.style.transform='rotateY(0deg)';
-    controlBar.style.display='flex';
+bright.addEventListener('click', () => {
+  if (!inTextMode) {
+    editor.style.transform = 'rotateY(-180deg)';
+    textEditor.style.transform = 'rotateY(0deg)';
+    controlBar.style.display = 'flex';
     inTextMode = true;
-    bright.textContent='Code';
+    bright.textContent = 'Code';
   } else {
-    editor.style.transform='rotateY(0deg)';
-    textEditor.style.transform='rotateY(-180deg)';
-    controlBar.style.display='none';
+    editor.style.transform = 'rotateY(0deg)';
+    textEditor.style.transform = 'rotateY(-180deg)';
+    controlBar.style.display = 'none';
     inTextMode = false;
-    bright.textContent='Text';
+    bright.textContent = 'Text';
   }
 });
 
@@ -119,4 +123,27 @@ setInterval(() => {
   localStorage.setItem('code', editor.innerText);
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
+
+/* ---------- AJOUT AUTOMATIQUE DU TEXTE PAR DÉFAUT ---------- */
+function checkEditorContent() {
+  // Vérifie si le contenu est vide ou seulement des espaces
+  if (editor.innerText.trim() === '') {
+    editor.innerText = "void setup() {\n\n}";
+  }
+}
+
+// Déclenche à chaque modification du contenu
+editor.addEventListener('input', () => {
+  setTimeout(checkEditorContent, 100);
+});
+
+// Vérifie aussi au chargement initial
+window.addEventListener('load', () => {
+  if (
+    !localStorage.getItem('code') ||
+    localStorage.getItem('code').trim() === ''
+  ) {
+    editor.innerText = "void setup() {\n\n}";
+  }
+});
 

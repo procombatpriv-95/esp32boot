@@ -26,7 +26,7 @@ textEditor.style.caretColor = currentFontColor;
 textEditor.style.fontSize = currentFontSize;
 textEditor.style.fontFamily = currentFontFamily;
 
-// Appliquer les styles sélectionnés (pour le texte)
+// Appliquer les styles sélectionnés (pour textEditor)
 function applyStyleToSelection() {
   document.execCommand('foreColor', false, currentFontColor);
   document.execCommand('fontName', false, currentFontFamily);
@@ -115,45 +115,7 @@ setInterval(() => {
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
 
-// ---------- Gestion du caret pour editor ----------
-function saveCaretPosition(containerEl) {
-  const sel = window.getSelection();
-  if (sel.rangeCount > 0) {
-    const range = sel.getRangeAt(0);
-    const preSelectionRange = range.cloneRange();
-    preSelectionRange.selectNodeContents(containerEl);
-    preSelectionRange.setEnd(range.startContainer, range.startOffset);
-    return preSelectionRange.toString().length;
-  }
-  return 0;
-}
-
-function restoreCaretPosition(containerEl, charIndex) {
-  const nodeStack = [containerEl];
-  let node, stop = false;
-  let chars = 0;
-
-  while (!stop && (node = nodeStack.pop())) {
-    if (node.nodeType === 3) { // Text node
-      const nextChars = chars + node.length;
-      if (charIndex <= nextChars) {
-        const range = document.createRange();
-        const sel = window.getSelection();
-        range.setStart(node, charIndex - chars);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        stop = true;
-      }
-      chars = nextChars;
-    } else {
-      let i = node.childNodes.length;
-      while (i--) nodeStack.push(node.childNodes[i]);
-    }
-  }
-}
-
-// ---------- AJOUT AUTOMATIQUE DU TEMPLATE COLORÉ ----------
+// ---------- Template par défaut ----------
 function insertColoredTemplate() {
   editor.innerHTML =
     '<span style="color:blue;">void</span> ' +
@@ -162,16 +124,31 @@ function insertColoredTemplate() {
     '<span style="color:orange;">loop</span>() {<br><br>}';
 }
 
-// ---------- COLORATION DYNAMIQUE DE "void" ----------
+// ---------- Coloration dynamique de "void" sans casser le caret ----------
 function colorVoidInEditor() {
-  const caretPos = saveCaretPosition(editor);
-  let html = editor.innerHTML;
-  html = html.replace(/\bvoid\b/g, '<span style="color:blue;">void</span>');
-  editor.innerHTML = html;
-  restoreCaretPosition(editor, caretPos);
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node.nodeValue.includes("void")) {
+      const span = document.createElement("span");
+      span.style.color = "blue";
+      span.textContent = "void";
+
+      const parts = node.nodeValue.split("void");
+      const parent = node.parentNode;
+
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i]) parent.insertBefore(document.createTextNode(parts[i]), node);
+        if (i < parts.length - 1) parent.insertBefore(span.cloneNode(true), node);
+      }
+
+      parent.removeChild(node);
+    }
+  }
 }
 
-// ---------- GESTION DU CONTENU ----------
+// ---------- Gestion du contenu ----------
 function checkEditorContent() {
   if (editor.innerText.trim() === '') insertColoredTemplate();
 }

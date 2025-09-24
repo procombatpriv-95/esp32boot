@@ -25,6 +25,11 @@ fontColor.value = currentFontColor;
 fontFamily.value = currentFontFamily;
 controlBar.style.display = 'none';
 
+// Mise à jour initiale du caret
+textEditor.style.caretColor = currentFontColor;
+textEditor.style.fontSize = currentFontSize;
+textEditor.style.fontFamily = currentFontFamily;
+
 function applyStyleToSelection() {
   const sel = window.getSelection();
   if (sel.rangeCount > 0 && sel.toString() !== '') {
@@ -45,13 +50,34 @@ function applyStyleToSelection() {
   }
 }
 
+// Gestion de la saisie dans textEditor
 textEditor.addEventListener('keydown', (e) => {
-  const isPrintable = e.key.length === 1;
-  if (!inTextMode || !isPrintable) return;
+  if (!inTextMode) return;
 
   const sel = window.getSelection();
-  if (sel.rangeCount > 0) {
-    const range = sel.getRangeAt(0);
+  if (!sel.rangeCount) return;
+
+  const range = sel.getRangeAt(0);
+
+  if (e.key === 'Enter') {
+    // Crée un saut de ligne avec un caractère invisible pour placer le curseur
+    const br = document.createElement('br');
+    range.insertNode(br);
+
+    const emptyNode = document.createTextNode('\u200B'); // caractère invisible
+    range.insertNode(emptyNode);
+
+    const newRange = document.createRange();
+    newRange.setStartAfter(emptyNode);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    e.preventDefault();
+    return;
+  }
+
+  // Pour les touches imprimables
+  if (e.key.length === 1) {
     const span = document.createElement('span');
     span.style.color = currentFontColor;
     span.style.fontSize = currentFontSize;
@@ -69,22 +95,29 @@ textEditor.addEventListener('keydown', (e) => {
   }
 });
 
+// 🔹 Mise à jour des styles en direct
 fontSize.addEventListener('change', () => {
   currentFontSize = fontSize.value;
   localStorage.setItem('text-font-size', currentFontSize);
   applyStyleToSelection();
+  textEditor.style.fontSize = currentFontSize;
 });
+
 fontColor.addEventListener('change', () => {
   currentFontColor = fontColor.value;
   localStorage.setItem('text-font-color', currentFontColor);
   applyStyleToSelection();
+  textEditor.style.caretColor = currentFontColor;
 });
+
 fontFamily.addEventListener('change', () => {
   currentFontFamily = fontFamily.value;
   localStorage.setItem('text-font-family', currentFontFamily);
   applyStyleToSelection();
+  textEditor.style.fontFamily = currentFontFamily;
 });
 
+// Gestion des boutons
 bleft.addEventListener('click', () => {
   const isText = inTextMode;
   const content = isText ? textEditor.innerText : editor.innerText;

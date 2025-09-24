@@ -13,7 +13,7 @@ let currentFontColor = localStorage.getItem('text-font-color') || 'black';
 let currentFontFamily = localStorage.getItem('text-font-family') || 'Arial';
 
 if (localStorage.getItem('code')) {
-  editor.innerText = localStorage.getItem('code');
+  editor.innerHTML = localStorage.getItem('code');
 }
 if (localStorage.getItem('text')) {
   textEditor.innerHTML = localStorage.getItem('text');
@@ -120,15 +120,20 @@ editor.style.overflowX = 'auto';
 textEditor.style.overflowX = 'auto';
 
 setInterval(() => {
-  localStorage.setItem('code', editor.innerText);
+  localStorage.setItem('code', editor.innerHTML);
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
 
-/* ---------- AJOUT AUTOMATIQUE DU TEXTE PAR DÉFAUT ---------- */
+/* ---------- AJOUT AUTOMATIQUE DU TEXTE PAR DÉFAUT AVEC COULEURS ---------- */
 function checkEditorContent() {
   // Vérifie si le contenu est vide ou seulement des espaces
   if (editor.innerText.trim() === '') {
-    editor.innerText = "void setup() {\n\n}";
+    // HTML coloré : void = bleu, setup/loop = orange
+    editor.innerHTML =
+      '<span style="color:blue;">void</span> ' +
+      '<span style="color:orange;">setup</span>() {<br><br>}<br><br><br>' +
+      '<span style="color:blue;">void</span> ' +
+      '<span style="color:orange;">loop</span>() {<br><br>}';
   }
 }
 
@@ -143,7 +148,11 @@ window.addEventListener('load', () => {
     !localStorage.getItem('code') ||
     localStorage.getItem('code').trim() === ''
   ) {
-    editor.innerText = "void setup() {\n\n}";
+    editor.innerHTML =
+      '<span style="color:blue;">void</span> ' +
+      '<span style="color:orange;">setup</span>() {<br><br>}<br><br><br>' +
+      '<span style="color:blue;">void</span> ' +
+      '<span style="color:orange;">loop</span>() {<br><br>}';
   }
 });
 

@@ -1,7 +1,5 @@
 const textEditor = document.getElementById('text-editor');
 const editor = document.getElementById('editor');
-const bleft = document.getElementById('bleft');
-const bright = document.getElementById('bright');
 const controlBar = document.getElementById('control-bar');
 const fontSize = document.getElementById('font-size');
 const fontColor = document.getElementById('font-color');
@@ -24,126 +22,55 @@ fontColor.value = currentFontColor;
 fontFamily.value = currentFontFamily;
 controlBar.style.display = 'none';
 
-function applyStyleToSelection() {
-  const sel = window.getSelection();
-  if (sel.rangeCount > 0 && sel.toString() !== '') {
-    const range = sel.getRangeAt(0);
-    const span = document.createElement('span');
-    span.style.color = currentFontColor;
-    span.style.fontSize = currentFontSize;
-    span.style.fontFamily = currentFontFamily;
-    span.textContent = sel.toString();
-    range.deleteContents();
-    range.insertNode(span);
-
-    const newRange = document.createRange();
-    newRange.setStartAfter(span);
-    newRange.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
-  }
+/* ---------- COLORATION SYNTAXIQUE JS ---------- */
+function colorizeCode(text) {
+  return text
+    // parenthèses () → rose
+    .replace(/(\(|\))/g, '<span style="color:#ff66cc;">$1</span>')
+    // setup ou loop → orange
+    .replace(/\b(setup|loop)\b/g, '<span style="color:orange;">$1</span>')
+    // void → bleu
+    .replace(/\bvoid\b/g, '<span style="color:#4da6ff;">void</span>');
 }
 
-textEditor.addEventListener('keydown', (e) => {
-  const isPrintable = e.key.length === 1;
-  if (!inTextMode || !isPrintable) return;
+function updateHighlight() {
+  const raw = editor.innerText
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+  editor.innerHTML = colorizeCode(raw);
+  placeCaretAtEnd(editor);
+}
 
+function placeCaretAtEnd(el) {
+  const range = document.createRange();
   const sel = window.getSelection();
-  if (sel.rangeCount > 0) {
-    const range = sel.getRangeAt(0);
-    const span = document.createElement('span');
-    span.style.color = currentFontColor;
-    span.style.fontSize = currentFontSize;
-    span.style.fontFamily = currentFontFamily;
-    span.textContent = e.key;
-    range.deleteContents();
-    range.insertNode(span);
+  range.selectNodeContents(el);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
 
-    const newRange = document.createRange();
-    newRange.setStartAfter(span);
-    newRange.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
-    e.preventDefault();
+// déclenche la coloration à chaque saisie
+editor.addEventListener('input', updateHighlight);
+
+// ---------- CONTENU PAR DÉFAUT ----------
+function checkEditorContent() {
+  if (editor.innerText.trim() === '') {
+    editor.innerText = "void setup() {\n\n}\n\nvoid loop() {\n\n}";
+    updateHighlight();
   }
-});
-
-fontSize.addEventListener('change', () => {
-  currentFontSize = fontSize.value;
-  localStorage.setItem('text-font-size', currentFontSize);
-  applyStyleToSelection();
-});
-fontColor.addEventListener('change', () => {
-  currentFontColor = fontColor.value;
-  localStorage.setItem('text-font-color', currentFontColor);
-  applyStyleToSelection();
-});
-fontFamily.addEventListener('change', () => {
-  currentFontFamily = fontFamily.value;
-  localStorage.setItem('text-font-family', currentFontFamily);
-  applyStyleToSelection();
-});
-
-bleft.addEventListener('click', () => {
-  const isText = inTextMode;
-  const content = isText ? textEditor.innerText : editor.innerText;
-
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = isText ? 'text.txt' : 'code.txt';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
-
-bright.addEventListener('click', () => {
-  if (!inTextMode) {
-    editor.style.transform = 'rotateY(-180deg)';
-    textEditor.style.transform = 'rotateY(0deg)';
-    controlBar.style.display = 'flex';
-    inTextMode = true;
-    bright.textContent = 'Code';
-  } else {
-    editor.style.transform = 'rotateY(0deg)';
-    textEditor.style.transform = 'rotateY(-180deg)';
-    controlBar.style.display = 'none';
-    inTextMode = false;
-    bright.textContent = 'Text';
+}
+window.addEventListener('load', () => {
+  if (!localStorage.getItem('code') || localStorage.getItem('code').trim() === '') {
+    editor.innerText = "void setup() {\n\n}\n\nvoid loop() {\n\n}";
   }
+  updateHighlight();
 });
+editor.addEventListener('input', () => setTimeout(checkEditorContent, 100));
 
-editor.style.overflowX = 'auto';
-textEditor.style.overflowX = 'auto';
-
+// ---------- SAUVEGARDE ----------
 setInterval(() => {
   localStorage.setItem('code', editor.innerText);
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
-
-/* ---------- AJOUT AUTOMATIQUE DU TEXTE PAR DÉFAUT ---------- */
-function checkEditorContent() {
-  // Vérifie si le contenu est vide ou seulement des espaces
-  if (editor.innerText.trim() === '') {
-    editor.innerText = "void setup() {\n\n}";
-  }
-}
-
-// Déclenche à chaque modification du contenu
-editor.addEventListener('input', () => {
-  setTimeout(checkEditorContent, 100);
-});
-
-// Vérifie aussi au chargement initial
-window.addEventListener('load', () => {
-  if (
-    !localStorage.getItem('code') ||
-    localStorage.getItem('code').trim() === ''
-  ) {
-    editor.innerText = "void setup() {\n\n}";
-  }
-});
-

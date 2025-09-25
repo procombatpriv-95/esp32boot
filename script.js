@@ -24,7 +24,7 @@ fontColor.value = currentFontColor;
 fontFamily.value = currentFontFamily;
 controlBar.style.display = 'none';
 
-/* ---------- COLORATION SYNTAXIQUE JS ---------- */
+/* ---------- COLORATION ---------- */
 function colorizeCode(text) {
   return text
     .replace(/(\(|\))/g, '<span style="color:#ff66cc;">$1</span>')
@@ -32,69 +32,47 @@ function colorizeCode(text) {
     .replace(/\bvoid\b/g, '<span style="color:#4da6ff;">void</span>');
 }
 
-/* ---------- FONCTIONS DE SAUVEGARDE/RESTAURATION DU CURSEUR ---------- */
-function getSelectionCharacterOffsetsWithin(element) {
+/* ---------- CURSEUR ---------- */
+function getCaretCharacterOffsetWithin(element) {
   const sel = window.getSelection();
-  if (!sel.rangeCount) return { start: 0, end: 0, collapsed: true };
+  if (!sel.rangeCount) return 0;
   const range = sel.getRangeAt(0);
-
-  const preStart = range.cloneRange();
-  preStart.selectNodeContents(element);
-  preStart.setEnd(range.startContainer, range.startOffset);
-  const start = preStart.toString().length;
-
-  const preEnd = range.cloneRange();
-  preEnd.selectNodeContents(element);
-  preEnd.setEnd(range.endContainer, range.endOffset);
-  const end = preEnd.toString().length;
-
-  return { start, end, collapsed: sel.isCollapsed };
+  const preRange = range.cloneRange();
+  preRange.selectNodeContents(element);
+  preRange.setEnd(range.endContainer, range.endOffset);
+  return preRange.toString().length;
 }
 
-function setSelectionCharacterOffsets(element, offsets) {
+function setCaretCharacterOffsetWithin(element, offset) {
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
   let node = walker.nextNode();
-  let accumulated = 0;
-  let startNode = null, endNode = null;
-  let startOffset = 0, endOffset = 0;
+  let count = 0;
 
   while (node) {
-    const nodeEnd = accumulated + node.length;
-    if (startNode === null && offsets.start <= nodeEnd) {
-      startNode = node;
-      startOffset = Math.max(0, offsets.start - accumulated);
+    const len = node.textContent.length;
+    if (count + len >= offset) {
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.setStart(node, offset - count);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
     }
-    if (endNode === null && offsets.end <= nodeEnd) {
-      endNode = node;
-      endOffset = Math.max(0, offsets.end - accumulated);
-      break;
-    }
-    accumulated = nodeEnd;
+    count += len;
     node = walker.nextNode();
   }
 
-  const range = document.createRange();
-  if (startNode) range.setStart(startNode, Math.min(startNode.length, startOffset));
-  else range.setStart(element, element.childNodes.length);
-
-  if (endNode) range.setEnd(endNode, Math.min(endNode.length, endOffset));
-  else range.setEnd(element, element.childNodes.length);
-
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-function placeCaretAtEnd(el) {
+  // fallback si plus court
   const range = document.createRange();
   const sel = window.getSelection();
-  range.selectNodeContents(el);
+  range.selectNodeContents(element);
   range.collapse(false);
   sel.removeAllRanges();
   sel.addRange(range);
 }
 
-/* ---------- MISE À JOUR AVEC PRÉSERVATION DU CURSEUR ---------- */
+/* ---------- COLORATION + CURSEUR ---------- */
 let lastRaw = '';
 function updateHighlight() {
   const raw = editor.innerText
@@ -104,14 +82,13 @@ function updateHighlight() {
 
   if (raw === lastRaw) return;
 
-  const offsets = getSelectionCharacterOffsetsWithin(editor);
+  // position du curseur avant la recoloration
+  const caretOffset = getCaretCharacterOffsetWithin(editor);
+
   editor.innerHTML = colorizeCode(raw);
 
-  try {
-    setSelectionCharacterOffsets(editor, offsets);
-  } catch (e) {
-    placeCaretAtEnd(editor);
-  }
+  // restaurer le curseur exactement au même caractère
+  setCaretCharacterOffsetWithin(editor, caretOffset);
 
   lastRaw = raw;
 }
@@ -132,13 +109,13 @@ window.addEventListener('load', () => {
 });
 
 /* ---------- ÉVÉNEMENTS ---------- */
-// Recoloration + caret après chaque saisie (Enter inclus)
+// !!! Correction : utilise la position de caret en caractères
 editor.addEventListener('input', () => {
   setTimeout(updateHighlight, 0);
   setTimeout(checkEditorContent, 100);
 });
 
-// Style texte dans textEditor
+// saisie texte (mode Text)
 textEditor.addEventListener('keydown', (e) => {
   const isPrintable = e.key.length === 1 && !e.ctrlKey && !e.metaKey;
   if (!inTextMode || !isPrintable) return;
@@ -163,7 +140,7 @@ textEditor.addEventListener('keydown', (e) => {
   }
 });
 
-/* ---------- SELECTS (font) ---------- */
+/* ---------- SELECTS ---------- */
 fontSize.addEventListener('change', () => {
   currentFontSize = fontSize.value;
   localStorage.setItem('text-font-size', currentFontSize);
@@ -210,9 +187,10 @@ bright.addEventListener('click', () => {
   }
 });
 
-/* ---------- SAUVEGARDE AUTOMATIQUE ---------- */
+/* ---------- SAUVEGARDE ---------- */
 setInterval(() => {
   localStorage.setItem('code', editor.innerText);
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
+
 

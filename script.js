@@ -4,6 +4,8 @@ const controlBar = document.getElementById('control-bar');
 const fontSize = document.getElementById('font-size');
 const fontColor = document.getElementById('font-color');
 const fontFamily = document.getElementById('font-family');
+const bleft = document.getElementById('bleft');
+const bright = document.getElementById('bright');
 
 let inTextMode = false;
 let currentFontSize = localStorage.getItem('text-font-size') || '14px';
@@ -25,11 +27,8 @@ controlBar.style.display = 'none';
 /* ---------- COLORATION SYNTAXIQUE JS ---------- */
 function colorizeCode(text) {
   return text
-    // parenthèses () → rose
     .replace(/(\(|\))/g, '<span style="color:#ff66cc;">$1</span>')
-    // setup ou loop → orange
     .replace(/\b(setup|loop)\b/g, '<span style="color:orange;">$1</span>')
-    // void → bleu
     .replace(/\bvoid\b/g, '<span style="color:#4da6ff;">void</span>');
 }
 
@@ -53,7 +52,6 @@ function getSelectionCharacterOffsetsWithin(element) {
 }
 
 function setSelectionCharacterOffsets(element, offsets) {
-  // parcourt les noeuds texte et localise start/end
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
   let node = walker.nextNode();
   let accumulated = 0;
@@ -98,24 +96,17 @@ function placeCaretAtEnd(el) {
 
 /* ---------- MISE À JOUR AVEC PRÉSERVATION DU CURSEUR ---------- */
 let lastRaw = '';
-
 function updateHighlight() {
-  // échappe le HTML (pour éviter injection) puis recolore
   const raw = editor.innerText
     .replace(/&/g,'&amp;')
     .replace(/</g,'&lt;')
     .replace(/>/g,'&gt;');
 
-  // si rien n'a changé, on ne touche pas au DOM (évite de casser la sélection)
   if (raw === lastRaw) return;
 
-  // sauvegarde position/offset du curseur
   const offsets = getSelectionCharacterOffsetsWithin(editor);
-
-  // remplace le HTML par le texte coloré
   editor.innerHTML = colorizeCode(raw);
 
-  // restaure la sélection au même offset (ou met à la fin en fallback)
   try {
     setSelectionCharacterOffsets(editor, offsets);
   } catch (e) {
@@ -124,9 +115,6 @@ function updateHighlight() {
 
   lastRaw = raw;
 }
-
-/* déclenche la coloration à chaque saisie */
-editor.addEventListener('input', updateHighlight);
 
 /* ---------- CONTENU PAR DÉFAUT ---------- */
 function checkEditorContent() {
@@ -142,10 +130,89 @@ window.addEventListener('load', () => {
   }
   updateHighlight();
 });
-editor.addEventListener('input', () => setTimeout(checkEditorContent, 100));
 
-/* ---------- SAUVEGARDE ---------- */
+/* ---------- ÉVÉNEMENTS ---------- */
+// Recoloration + caret après chaque saisie (Enter inclus)
+editor.addEventListener('input', () => {
+  setTimeout(updateHighlight, 0);
+  setTimeout(checkEditorContent, 100);
+});
+
+// Style texte dans textEditor
+textEditor.addEventListener('keydown', (e) => {
+  const isPrintable = e.key.length === 1 && !e.ctrlKey && !e.metaKey;
+  if (!inTextMode || !isPrintable) return;
+
+  const sel = window.getSelection();
+  if (sel.rangeCount > 0) {
+    const range = sel.getRangeAt(0);
+    const span = document.createElement('span');
+    span.style.color = currentFontColor;
+    span.style.fontSize = currentFontSize;
+    span.style.fontFamily = currentFontFamily;
+    span.textContent = e.key;
+    range.deleteContents();
+    range.insertNode(span);
+
+    const newRange = document.createRange();
+    newRange.setStartAfter(span);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    e.preventDefault();
+  }
+});
+
+/* ---------- SELECTS (font) ---------- */
+fontSize.addEventListener('change', () => {
+  currentFontSize = fontSize.value;
+  localStorage.setItem('text-font-size', currentFontSize);
+});
+fontColor.addEventListener('change', () => {
+  currentFontColor = fontColor.value;
+  localStorage.setItem('text-font-color', currentFontColor);
+});
+fontFamily.addEventListener('change', () => {
+  currentFontFamily = fontFamily.value;
+  localStorage.setItem('text-font-family', currentFontFamily);
+});
+
+/* ---------- BOUTONS ---------- */
+bleft.addEventListener('click', () => {
+  const content = inTextMode ? textEditor.innerText : editor.innerText;
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = inTextMode ? 'text.txt' : 'code.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+bright.addEventListener('click', () => {
+  if (!inTextMode) {
+    editor.style.transform = 'rotateY(-180deg)';
+    textEditor.style.transform = 'rotateY(0deg)';
+    controlBar.style.display = 'flex';
+    inTextMode = true;
+    bright.textContent = 'Code';
+    textEditor.focus();
+  } else {
+    editor.style.transform = 'rotateY(0deg)';
+    textEditor.style.transform = 'rotateY(-180deg)';
+    controlBar.style.display = 'none';
+    inTextMode = false;
+    bright.textContent = 'Text';
+    editor.focus();
+    setTimeout(updateHighlight, 0);
+  }
+});
+
+/* ---------- SAUVEGARDE AUTOMATIQUE ---------- */
 setInterval(() => {
   localStorage.setItem('code', editor.innerText);
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
+

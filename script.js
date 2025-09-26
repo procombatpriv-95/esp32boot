@@ -1,89 +1,63 @@
+// === RÉFÉRENCES DES ÉLÉMENTS ===
 const textEditor = document.getElementById('text-editor');
 const editor = document.getElementById('editor');
-const bleft = document.getElementById('bleft');
-const bright = document.getElementById('bright');
+const bleft = document.getElementById('bleft');      // bouton gauche (save)
+const bright = document.getElementById('bright');    // bouton droit (switch)
 const controlBar = document.getElementById('control-bar');
 const fontSize = document.getElementById('font-size');
 const fontColor = document.getElementById('font-color');
 const fontFamily = document.getElementById('font-family');
 
+// === VARIABLES ===
 let inTextMode = false;
 let currentFontSize = localStorage.getItem('text-font-size') || '14px';
 let currentFontColor = localStorage.getItem('text-font-color') || 'black';
 let currentFontFamily = localStorage.getItem('text-font-family') || 'Arial';
 
-if (localStorage.getItem('code')) {
-  editor.innerText = localStorage.getItem('code');
-}
-if (localStorage.getItem('text')) {
-  textEditor.innerHTML = localStorage.getItem('text');
-}
+// === RESTAURATION LOCALSTORAGE ===
+if (localStorage.getItem('code')) editor.innerText = localStorage.getItem('code');
+if (localStorage.getItem('text')) textEditor.innerHTML = localStorage.getItem('text');
 
 fontSize.value = currentFontSize;
 fontColor.value = currentFontColor;
 fontFamily.value = currentFontFamily;
 controlBar.style.display = 'none';
 
-/* ---------- COLORATION SYNTAXIQUE JS ---------- */
+// === COLORATION SYNTAXIQUE ===
 function colorizeCode(text) {
   return text
-    // parenthèses () → rose
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // parenthèses
     .replace(/(\(|\))/g, '<span style="color:#ff66cc;">$1</span>')
-    // setup ou loop → orange
+    // setup / loop
     .replace(/\b(setup|loop)\b/g, '<span style="color:orange;">$1</span>')
-    // void → bleu
+    // void
     .replace(/\bvoid\b/g, '<span style="color:#4da6ff;">void</span>');
 }
 
-/* ---------- MISE À JOUR AVEC COLORATION ---------- */
-let lastRaw = '';
-function updateHighlight() {
-  const raw = editor.innerText
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  if (raw === lastRaw) return; // rien n'a changé
-
-  // sauvegarde position du curseur
-  const sel = window.getSelection();
-  const range = sel.rangeCount ? sel.getRangeAt(0) : null;
-  const offsets = range ? getSelectionCharacterOffsetsWithin(editor) : null;
-
-  // applique la coloration
-  editor.innerHTML = colorizeCode(raw);
-
-  // restaure le curseur
-  if (offsets) {
-    try {
-      setSelectionCharacterOffsets(editor, offsets);
-    } catch {
-      placeCaretAtEnd(editor);
-    }
-  }
-  lastRaw = raw;
-}
-
-/* ---------- UTILITAIRES DE CURSEUR ---------- */
-function getSelectionCharacterOffsetsWithin(element) {
+// === OUTILS CURSEUR ===
+function getSelectionOffsets(el) {
   const sel = window.getSelection();
   if (!sel.rangeCount) return { start: 0, end: 0 };
   const range = sel.getRangeAt(0);
-  const preRange = range.cloneRange();
-  preRange.selectNodeContents(element);
-  preRange.setEnd(range.startContainer, range.startOffset);
-  const start = preRange.toString().length;
 
-  const preRangeEnd = range.cloneRange();
-  preRangeEnd.selectNodeContents(element);
-  preRangeEnd.setEnd(range.endContainer, range.endOffset);
-  const end = preRangeEnd.toString().length;
+  const pre = range.cloneRange();
+  pre.selectNodeContents(el);
+  pre.setEnd(range.startContainer, range.startOffset);
+  const start = pre.toString().length;
+
+  const preEnd = range.cloneRange();
+  preEnd.selectNodeContents(el);
+  preEnd.setEnd(range.endContainer, range.endOffset);
+  const end = preEnd.toString().length;
 
   return { start, end };
 }
 
-function setSelectionCharacterOffsets(element, offsets) {
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+function setSelectionOffsets(el, offsets) {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
   let node, startNode, endNode;
   let accumulated = 0;
   let startOffset = 0, endOffset = 0;
@@ -103,30 +77,49 @@ function setSelectionCharacterOffsets(element, offsets) {
   }
 
   const range = document.createRange();
-  range.setStart(startNode || element, startNode ? startOffset : element.childNodes.length);
-  range.setEnd(endNode || element, endNode ? endOffset : element.childNodes.length);
+  range.setStart(startNode || el, startNode ? startOffset : el.childNodes.length);
+  range.setEnd(endNode || el, endNode ? endOffset : el.childNodes.length);
   const sel = window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
 }
 
-function placeCaretAtEnd(el) {
-  const range = document.createRange();
-  range.selectNodeContents(el);
-  range.collapse(false);
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
+// === COLORATION + RESTAURATION CURSEUR ===
+let lastRaw = '';
+
+function updateHighlight() {
+  const raw = editor.innerText.replace(/\r/g, '');
+  if (raw === lastRaw) return;
+
+  const offsets = getSelectionOffsets(editor);
+  editor.innerHTML = colorizeCode(raw);
+
+  try {
+    setSelectionOffsets(editor, offsets);
+  } catch {
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  lastRaw = raw;
 }
 
-/* ---------- COLORATION RETARDÉE POUR NE PAS CASSER ENTER ---------- */
-let typingTimer;
+// === GESTION SAISIE ===
+editor.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    // attendre que le navigateur crée la nouvelle ligne
+    setTimeout(updateHighlight, 0);
+  }
+});
 editor.addEventListener('input', () => {
-  clearTimeout(typingTimer);
-  typingTimer = setTimeout(updateHighlight, 500); // coloration après 0,5s d'inactivité
+  setTimeout(updateHighlight, 0);
 });
 
-/* ---------- CONTENU PAR DÉFAUT ---------- */
+// === CONTENU PAR DÉFAUT ===
 function checkEditorContent() {
   if (editor.innerText.trim() === '') {
     editor.innerText = "void setup() {\n\n}\n\nvoid loop() {\n\n}";
@@ -141,13 +134,13 @@ window.addEventListener('load', () => {
 });
 editor.addEventListener('input', () => setTimeout(checkEditorContent, 100));
 
-/* ---------- SAUVEGARDE ---------- */
+// === SAUVEGARDE AUTOMATIQUE ===
 setInterval(() => {
   localStorage.setItem('code', editor.innerText);
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
 
-/* ---------- CONTRÔLES TEXTE ---------- */
+// === MODE TEXTE : STYLE SUR LA SÉLECTION ===
 function applyStyleToSelection() {
   const sel = window.getSelection();
   if (sel.rangeCount > 0 && sel.toString() !== '') {
@@ -184,14 +177,12 @@ fontFamily.addEventListener('change', () => {
   applyStyleToSelection();
 });
 
-/* ---------- BOUTONS ---------- */
+// === BOUTON SAVE (gauche) ===
 bleft.addEventListener('click', () => {
   const isText = inTextMode;
   const content = isText ? textEditor.innerText : editor.innerText;
-
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement('a');
   a.href = url;
   a.download = isText ? 'text.txt' : 'code.txt';
@@ -201,14 +192,17 @@ bleft.addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
+// === BOUTON SWITCH (droit) ===
 bright.addEventListener('click', () => {
   if (!inTextMode) {
+    // passage en mode Texte
     editor.style.transform = 'rotateY(-180deg)';
     textEditor.style.transform = 'rotateY(0deg)';
     controlBar.style.display = 'flex';
     inTextMode = true;
     bright.textContent = 'Code';
   } else {
+    // retour au mode Code
     editor.style.transform = 'rotateY(0deg)';
     textEditor.style.transform = 'rotateY(-180deg)';
     controlBar.style.display = 'none';
@@ -217,6 +211,7 @@ bright.addEventListener('click', () => {
   }
 });
 
+// === SCROLL HORIZONTAL ===
 editor.style.overflowX = 'auto';
 textEditor.style.overflowX = 'auto';
 

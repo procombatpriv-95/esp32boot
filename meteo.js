@@ -56,7 +56,7 @@ window.addEventListener("load", () => {
 
     // --- Description plus grosse ---
     ctx.font = "16px Arial";
-    ctx.fillText(label.join(" "), 50, 32);
+    ctx.fillText(label.join(" "), 50, 30);
 
     // --- Température plus grosse ---
     ctx.font = "36px Arial";

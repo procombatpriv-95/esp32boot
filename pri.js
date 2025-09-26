@@ -1,32 +1,30 @@
 const weatherEmojis = {
-  "clearsky_day": { emoji: "☀️", text: "Ensoleillé" },
-  "clearsky_night": { emoji: "🌙", text: "Nuit claire" },
-  "fair_day": { emoji: "🌤️", text: "Beau temps" },
-  "fair_night": { emoji: "🌙✨", text: "Beau temps nuit" },
-  "partlycloudy_day": { emoji: "⛅", text: "Partiellement nuageux" },
-  "partlycloudy_night": { emoji: "☁️🌙", text: "Nuageux nuit" },
-  "cloudy": { emoji: "☁️", text: "Nuageux" },
-  "lightrain": { emoji: "🌦️", text: "Pluie légère" },
-  "rain": { emoji: "🌧️", text: "Pluie" },
-  "heavyrain": { emoji: "🌧️🌧️", text: "Forte pluie" },
-  "snow": { emoji: "❄️", text: "Neige" },
-  "thunderstorm": { emoji: "⛈️", text: "Orage" },
-  "fog": { emoji: "🌫️", text: "Brouillard" },
-  "N/A": { emoji: "☁️", text: "Indisponible" }
+  "clearsky_day": "☀️ Soleil",
+  "clearsky_night": "🌙 Nuit claire",
+  "fair_day": "🌤️ Beau",
+  "fair_night": "🌙✨ Doux",
+  "partlycloudy_day": "⛅ Nuageux",
+  "partlycloudy_night": "☁️🌙 Nuit nuageuse",
+  "cloudy": "☁️ Couvert",
+  "lightrain": "🌦️ Pluie fine",
+  "rain": "🌧️ Pluie",
+  "heavyrain": "🌧️🌧️ Forte pluie",
+  "snow": "❄️ Neige",
+  "thunderstorm": "⛈️ Orage",
+  "fog": "🌫️ Brouillard",
+  "N/A": "❓ Inconnu"
 };
 
-function getWeather(symbol) {
+function getWeatherDescription(symbol) {
   return weatherEmojis[symbol] || weatherEmojis["N/A"];
 }
 
 async function loadWeather() {
-  const response = await fetch("https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=51.509865&lon=-0.118092");
-  const data = await response.json();
-
   const canvas = document.getElementById("weather-canvas");
   const ctx = canvas.getContext("2d");
-  canvas.width = 300;
-  canvas.height = 180;
+
+  // Nettoyer
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Fond dégradé
   const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
@@ -35,82 +33,92 @@ async function loadWeather() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Données actuelles
+  // Données météo
+  const response = await fetch(
+    "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=51.509865&lon=-0.118092"
+  );
+  const data = await response.json();
+
   const current = data.properties.timeseries[0];
-  const temp = Math.round(current.data.instant.details.air_temperature);
-  const humidity = Math.round(current.data.instant.details.relative_humidity);
+  const temp = current.data.instant.details.air_temperature;
+  const humidity = current.data.instant.details.relative_humidity;
   const symbol = current.data.next_1_hours?.summary?.symbol_code || "N/A";
-  const { emoji, text } = getWeather(symbol);
+  const desc = getWeatherDescription(symbol);
 
-  // Emoji météo actuel
-  ctx.font = "28px Arial";
+  const [emoji, ...label] = desc.split(" ");
+
+  // --- Haut gauche : météo ---
   ctx.fillStyle = "white";
-  ctx.fillText(emoji, 10, 30);
-
-  // Texte météo défini par toi
+  ctx.font = "22px Arial";
+  ctx.textAlign = "left";
+  ctx.fillText(emoji, 15, 30);
   ctx.font = "14px Arial";
-  ctx.fillText(text, 45, 30);
+  ctx.fillText(label.join(" "), 45, 30);
 
-  // Température en gros
-  ctx.font = "40px Arial";
-  ctx.fillText(`${temp}°`, 10, 90);
+  // --- Température + humidité ---
+  ctx.font = "32px Arial";
+  ctx.textAlign = "left";
+  ctx.fillText(`${Math.round(temp)}°`, 15, 90);
 
-  // Humidité
   ctx.font = "14px Arial";
-  ctx.fillText(`💧 ${humidity}%`, 10, 110);
+  ctx.fillText(`💧 ${humidity}%`, 15, 110);
 
-  // Ville à droite
+  // --- Ville (droite) ---
   ctx.font = "18px Arial";
   ctx.textAlign = "right";
-  ctx.fillText("London", canvas.width - 10, 40);
-  ctx.textAlign = "left";
+  ctx.fillText("London", canvas.width - 15, 40);
 
-  // Prévisions 3 prochains jours
-  const days = {};
+  // --- Prévisions 3 prochains jours ---
+  const forecast = [];
+  const seenDays = new Set();
   const today = new Date().toLocaleDateString("fr-FR", { weekday: "short" });
 
   for (let item of data.properties.timeseries) {
     const d = new Date(item.time);
     const day = d.toLocaleDateString("fr-FR", { weekday: "short" });
+    const hour = d.getHours();
 
     if (day === today) continue;
 
-    if (!days[day] && d.getHours() === 12) {
+    if (!seenDays.has(day) && hour >= 9 && hour <= 15) {
       const symbolDay = item.data.next_6_hours?.summary?.symbol_code || "N/A";
-      days[day] = getWeather(symbolDay).emoji;
+      const [emojiDay] = getWeatherDescription(symbolDay).split(" ");
+      forecast.push({ day, emoji: emojiDay });
+      seenDays.add(day);
     }
 
-    if (Object.keys(days).length >= 3) break;
+    if (forecast.length >= 3) break;
   }
 
-  // Barre arrondie
-  const barHeight = 50;
+  // --- Dessiner la barre arrondie ---
+  const barHeight = 45;
   const radius = 25;
-  ctx.fillStyle = "#974859";
+  const barY = canvas.height - barHeight;
+
+  ctx.fillStyle = "rgba(151, 72, 89, 0.95)";
   ctx.beginPath();
-  ctx.moveTo(0, canvas.height - barHeight);
-  ctx.lineTo(canvas.width, canvas.height - barHeight);
-  ctx.arcTo(canvas.width, canvas.height, canvas.width - radius, canvas.height, radius);
+  ctx.moveTo(0, barY);
+  ctx.lineTo(canvas.width, barY);
+  ctx.lineTo(canvas.width, canvas.height - radius);
+  ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
   ctx.lineTo(radius, canvas.height);
-  ctx.arcTo(0, canvas.height, 0, canvas.height - radius, radius);
+  ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
   ctx.closePath();
   ctx.fill();
 
-  // Affichage jours
-  const keys = Object.keys(days);
-  const sectionWidth = canvas.width / 3;
-  ctx.fillStyle = "white";
-  ctx.font = "12px Arial";
-  ctx.textAlign = "center";
+  // --- Ajouter les 3 jours ---
+  const boxWidth = canvas.width / 3;
+  forecast.forEach((val, i) => {
+    const centerX = boxWidth * i + boxWidth / 2;
 
-  keys.forEach((day, i) => {
-    const x = sectionWidth * i + sectionWidth / 2;
-    const y = canvas.height - barHeight / 2;
-    ctx.fillText(day.toUpperCase(), x, y - 8);
-    ctx.fillText(days[day], x, y + 12);
+    ctx.fillStyle = "white";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(val.day.toUpperCase(), centerX, barY + 18);
+
+    ctx.font = "16px Arial";
+    ctx.fillText(val.emoji, centerX, barY + 36);
   });
-
-  ctx.textAlign = "left";
 }
 
 loadWeather();

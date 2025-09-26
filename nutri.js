@@ -1,286 +1,129 @@
-let foods=[];
-let overlay=document.getElementById("overlay");
-let chartCalories,bigPie,chartProtein,chartSugar,chartFat,chartVitC;
-let suggestIdx=0;
-let totalCalories=0,totalProt=0,totalSucre=0,totalGras=0,totalVitC=0;
-let currentFood=null; // sera assigné quand on ouvre le prompt
 
-// --- Limites journalières ---
-const maxProt=220, maxSucre=600, maxGras=120, maxVitC=300, maxCal=3600;
-const maxMeal=1200; // max par repas
+window.addEventListener("load", () => {
 
-// Plugin texte au centre (pour Chart.js)
-const centerText = {
-  id:'centerText',
-  beforeDraw(chart,args,options){
-    const {ctx,chartArea:{width,height}} = chart;
-    ctx.save();
-    ctx.font = (options.fontSize||14)+'px Arial';
-    ctx.fillStyle = options.color || '#000';
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    ctx.fillText(options.text || '', width/2, height/2);
+  const weatherEmojis = {
+    "clearsky_day": "☀️ Clear sky",
+    "clearsky_night": "🌙 Clear night",
+    "fair_day": "🌤️ Sunny",
+    "fair_night": "🌙✨ Bright night",
+    "partlycloudy_day": "⛅ Light rain",
+    "partlycloudy_night": "☁️🌙 Cloudy night",
+    "cloudy": "☁️ Cloudy",
+    "lightrain": "🌦️ Light rain",
+    "rain": "🌧️ Rain",
+    "heavyrain": "🌧️🌧️ Heavy rain",
+    "snow": "❄️ Snow",
+    "thunderstorm": "⛈️ Thunderstorm",
+    "fog": "🌫️ Fog",
+    "N/A": "❓ Inconnu"
+  };
+
+  function getWeatherDescription(symbol) {
+    return weatherEmojis[symbol] || weatherEmojis["N/A"];
   }
-};
-)rawliteral";
-html += R"rawliteral(
 
-// Charger aliments depuis l'ESP32
-async function loadFoods(){
-  try{
-    let res=await fetch("/foods");
-    foods=await res.json();
-  }catch(e){
-    console.error("Erreur fetch /foods",e);
-  }
-  restoreState();
-  startSuggestion();
-}
-)rawliteral";
-html += R"rawliteral(
-// Ouvre la liste d'une catégorie
-function openCategory(cat,btn){
-  let list=foods.filter(f=>f.category===cat && f.parent==="");
-  overlay.innerHTML="";
-  list.forEach(f=>{
-    let div=document.createElement("div");
-    div.className="foodItem";
-    div.innerHTML=`<img src="${f.photo}"><span>${f.name} (${f.kcal100} kcal/100g)</span>`;
-    div.onclick=()=>{ 
-      let subs=foods.filter(sub=>sub.parent===f.id);
-      if(subs.length>0){
-        // afficher sous-éléments (remplace la liste)
-        overlay.innerHTML="";
-        subs.forEach(sf=>{
-          let sdiv=document.createElement("div");
-          sdiv.className="foodItem";
-          sdiv.innerHTML=`<img src="${sf.photo}"><span>${sf.name} (${sf.kcal100} kcal/100g)</span>`;
-          sdiv.onclick=()=>{ openPromptForFood(sf); };
-          overlay.appendChild(sdiv);
-        });
-      } else {
-        openPromptForFood(f);
+  async function loadWeather() {
+    const canvas = document.getElementById("weather-canvas");
+    const ctx = canvas.getContext("2d");
+
+    // Nettoyer et remplir le fond
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    grad.addColorStop(0, "#ec7263");
+    grad.addColorStop(1, "#974859");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Données météo
+    const response = await fetch(
+      "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=51.509865&lon=-0.118092"
+    );
+    const data = await response.json();
+
+    const current = data.properties.timeseries[0];
+    const temp = current.data.instant.details.air_temperature;
+    const humidity = current.data.instant.details.relative_humidity;
+    const symbol = current.data.next_1_hours?.summary?.symbol_code || "N/A";
+    const desc = getWeatherDescription(symbol);
+
+    const [emoji, ...label] = desc.split(" ");
+
+    // --- Emoji en haut à gauche ---
+    ctx.fillStyle = "white";
+    ctx.font = "28px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(emoji, 10, 30);
+
+    // --- Description plus grosse ---
+    ctx.font = "16px Arial";
+    ctx.fillText(label.join(" "), 50, 32);
+
+    // --- Température plus grosse ---
+    ctx.font = "36px Arial";
+    ctx.fillText(`${Math.round(temp)}°`, 10, 80);
+
+    // --- Humidité ---
+    ctx.font = "14px Arial";
+    ctx.fillText(`💧 ${humidity}%`, 10, 100);
+
+    // --- Ville à droite ---
+    ctx.font = "16px Arial";
+    ctx.textAlign = "right";
+    ctx.fillText("London", canvas.width - 10, 30);
+
+    // --- Prévisions 3 prochains jours ---
+    const forecast = [];
+    const seenDays = new Set();
+    const today = new Date().toLocaleDateString("fr-FR", { weekday: "short" });
+
+    for (let item of data.properties.timeseries) {
+      const d = new Date(item.time);
+      const day = d.toLocaleDateString("fr-FR", { weekday: "short" });
+      const hour = d.getHours();
+
+      if (day === today) continue;
+
+      if (!seenDays.has(day) && hour >= 9 && hour <= 15) {
+        const symbolDay = item.data.next_6_hours?.summary?.symbol_code || "N/A";
+        const [emojiDay] = getWeatherDescription(symbolDay).split(" ");
+        forecast.push({ day, emoji: emojiDay });
+        seenDays.add(day);
       }
-    };
-    overlay.appendChild(div);
-  });
-  // positionner overlay sous le bouton
-  let rect=btn.getBoundingClientRect();
-  overlay.style.left=(rect.left+rect.width/2-200)+"px";
-  overlay.style.top=(rect.bottom+10+window.scrollY)+"px";
-  overlay.style.display="block";
-}
-)rawliteral";
-html += R"rawliteral(
-function closeOverlay(){ overlay.style.display="none"; }
-)rawliteral";
-html += R"rawliteral(
-// Ouvre la boîte stylisée pour saisir le poids pour cet aliment
-function openPromptForFood(food){
-  currentFood = food;
-  document.getElementById('promptText').textContent = "Combien de grammes de " + food.name + " ?";
-  document.getElementById('promptInput').value = "";
-  document.getElementById('promptBox').style.display = "block";
-  closeOverlay();
-  // focus input
-  setTimeout(()=>{ document.getElementById('promptInput').focus(); },100);
-}
-)rawliteral";
-html += R"rawliteral(
-function hidePrompt(){
-  currentFood = null;
-  document.getElementById('promptBox').style.display = "none";
-}
 
-// Confirm / Cancel handlers
-document.getElementById('promptOk').addEventListener('click', ()=>{ confirmPrompt(); });
-document.getElementById('promptCancel').addEventListener('click', ()=>{ cancelPrompt(); });
-document.getElementById('promptInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') confirmPrompt(); });
-)rawliteral";
-html += R"rawliteral(
-function cancelPrompt(){
-  hidePrompt();
-}
-
-)rawliteral";
-html += R"rawliteral(
-function confirmPrompt(){
-  const v = parseFloat(document.getElementById('promptInput').value);
-  if(!currentFood){ hidePrompt(); return; }
-  if(!v || v <= 0){ alert("Entrez un poids valide en grammes."); return; }
-
-  const grams = Math.round(v);
-  // calculs
-  let kcal = (currentFood.kcal100 * grams) / 100.0;
-  let prot = (currentFood.prot100 * grams) / 100.0;
-  let sucre = (currentFood.sucre100 * grams) / 100.0;
-  let gras = (currentFood.gras100 * grams) / 100.0;
-  let vitc = (currentFood.vitc100 * grams) / 100.0;
-
-  // additionner totaux
-  totalCalories += kcal;
-  totalProt += prot;
-  totalSucre += sucre;
-  totalGras += gras;
-  totalVitC += vitc;
-
-  // mettre à jour graphiques et stockage
-  addToMealChart(kcal);
-  updateBigPie();
-  updateMiniChart(chartProtein,totalProt,"Prot",maxProt);
-  updateMiniChart(chartSugar,totalSucre,"Sucre",maxSucre);
-  updateMiniChart(chartFat,totalGras,"Gras",maxGras);
-  updateMiniChart(chartVitC,totalVitC,"VitC",maxVitC);
-  saveState();
-
-  hidePrompt();
-}
-)rawliteral";
-html += R"rawliteral(
-// --------- Charts initialisation ---------
-function initCharts(){
-  // bar chart (repas)
-  let ctx=document.getElementById("chartCalories").getContext("2d");
-  chartCalories=new Chart(ctx,{type:'bar',
-    data:{labels:["Petit-déjeuner","Déjeuner","Dîner"],
-          datasets:[{label:"Calories",data:[0,0,0],
-          backgroundColor:["#4CAF50","#FF9800","#2196F3"]}]},
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      scales:{y:{beginAtZero:true,max:maxMeal}}
+      if (forecast.length >= 3) break;
     }
-  });
 
-  // big donut
-  let ctxBig=document.getElementById("bigPie").getContext("2d");
-  bigPie=new Chart(ctxBig,{type:'doughnut',
-    data:{labels:["Ingested","Remaining"],datasets:[{data:[0,maxCal],backgroundColor:["#8b4513","#ddd"]}]},
-    options:{plugins:{legend:{display:false},centerText:{text:"0 kcal",fontSize:40,color:"#8b4513"}}},
-    plugins:[centerText]
-  });
+    // --- Dessiner la barre arrondie ---
+    const barHeight = 50;
+    const radius = 20;
+    const barY = canvas.height - barHeight;
 
-  // minis (protein, sugar, fat, vitC)
-  chartProtein=new Chart(document.getElementById("chartProtein").getContext("2d"),{
-    type:'doughnut',
-    data:{labels:["Prot","Rest"],datasets:[{data:[0,maxProt],backgroundColor:["#4CAF50","#eee"]}]},
-    options:{plugins:{legend:{display:false},centerText:{text:"0g",fontSize:10,color:"#4CAF50"}}},
-    plugins:[centerText]
-  });
-  chartSugar=new Chart(document.getElementById("chartSugar").getContext("2d"),{
-    type:'doughnut',
-    data:{labels:["Sucre","Rest"],datasets:[{data:[0,maxSucre],backgroundColor:["#FF9800","#eee"]}]},
-    options:{plugins:{legend:{display:false},centerText:{text:"0g",fontSize:10,color:"#FF9800"}}},
-    plugins:[centerText]
-  });
-  chartFat=new Chart(document.getElementById("chartFat").getContext("2d"),{
-    type:'doughnut',
-    data:{labels:["Gras","Rest"],datasets:[{data:[0,maxGras],backgroundColor:["#F44336","#eee"]}]},
-    options:{plugins:{legend:{display:false},centerText:{text:"0g",fontSize:10,color:"#F44336"}}},
-    plugins:[centerText]
-  });
-  chartVitC=new Chart(document.getElementById("chartVitC").getContext("2d"),{
-    type:'doughnut',
-    data:{labels:["VitC","Rest"],datasets:[{data:[0,maxVitC],backgroundColor:["#2196F3","#eee"]}]},
-    options:{plugins:{legend:{display:false},centerText:{text:"0mg",fontSize:10,color:"#2196F3"}}},
-    plugins:[centerText]
-  });
-}
-)rawliteral";
-html += R"rawliteral(
-// Update functions
-function addToMealChart(kcal){
-  let h=new Date().getHours();
-  let idx=0;
-  if(h>=1 && h<=11) idx=0; else if(h>=12 && h<=15) idx=1; else idx=2;
-  chartCalories.data.datasets[0].data[idx]+=kcal;
-  if(chartCalories.data.datasets[0].data[idx]>maxMeal) chartCalories.data.datasets[0].data[idx]=maxMeal;
-  chartCalories.update();
-}
-)rawliteral";
-html += R"rawliteral(
-function updateBigPie(){
-  bigPie.data.datasets[0].data=[totalCalories,Math.max(maxCal-totalCalories,0)];
-  bigPie.options.plugins.centerText.text=Math.round(totalCalories)+" kcal";
-  bigPie.update();
-}
-)rawliteral";
-html += R"rawliteral(
-function updateMiniChart(chart,val,label,max){
-  chart.data.datasets[0].data=[Math.min(val,max), Math.max(max - Math.min(val,max),0)];
-  chart.options.plugins.centerText.text=(label==="VitC")? Math.round(val)+"mg" : Math.round(val)+"g";
-  chart.update();
-}
+    ctx.fillStyle = "rgba(151, 72, 89, 0.95)";
+    ctx.beginPath();
+    ctx.moveTo(0, barY);
+    ctx.lineTo(canvas.width, barY);
+    ctx.lineTo(canvas.width, canvas.height - radius);
+    ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
+    ctx.lineTo(radius, canvas.height);
+    ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+    ctx.closePath();
+    ctx.fill();
 
-// Suggestions images (défilement)
-let suggestImgs=["https://www.hagengrote.fr/genussmagazin/wp-content/uploads/2023/05/Apfel_FR_1.jpg",
-"https://blog.mon-marche.fr/wp-content/uploads/2021/05/5300_Banane.png",
-"https://cdn.pixabay.com/photo/2017/01/20/15/06/orange-1995056_1280.jpg",
-"https://www.nutritionniste-paris.com/wp-content/uploads/2025/07/Carottes-un-legume-sucre-riche-en-fibres-et-en-beta-carotene-1-1.webp"];
-)rawliteral";
-html += R"rawliteral(
-function startSuggestion(){ 
-  // afficher la première tout de suite
-  if(suggestImgs.length>0) document.getElementById("suggestImg").src = suggestImgs[0];
-  setInterval(()=>{ 
-    suggestIdx=(suggestIdx+1)%suggestImgs.length;
-    let img=document.getElementById("suggestImg"); 
-    img.style.transform="scale(0.9)";
-    setTimeout(()=>{ img.src=suggestImgs[suggestIdx]; img.style.transform="scale(1)"; },220);
-  },20000);
-}
-)rawliteral";
-html += R"rawliteral(
-// Reset
-function resetAll(){ localStorage.removeItem("totals"); location.reload(); }
-)rawliteral";
-html += R"rawliteral(
-// LocalStorage
-function saveState(){
-  localStorage.setItem("totals",JSON.stringify({
-    cal: totalCalories,
-    p: totalProt,
-    s: totalSucre,
-    g: totalGras,
-    c: totalVitC,
-    meals: chartCalories.data.datasets[0].data
-  }));
-}
+    // --- Ajouter les 3 jours avec texte plus gros ---
+    const boxWidth = canvas.width / 3;
+    forecast.forEach((val, i) => {
+      const centerX = boxWidth * i + boxWidth / 2;
 
+      ctx.fillStyle = "white";
+      ctx.font = "12px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(val.day.toUpperCase(), centerX, barY + 18);
 
-)rawliteral";
-html += R"rawliteral(
-function restoreState(){
-  let st = localStorage.getItem("totals");
-  if(!st) return;
-  try {
-    let d = JSON.parse(st);
-    totalCalories = d.cal||0;
-    totalProt = d.p||0;
-    totalSucre = d.s||0;
-    totalGras = d.g||0;
-    totalVitC = d.c||0;
-    if(d.meals && Array.isArray(d.meals)) {
-      chartCalories.data.datasets[0].data = d.meals;
-      chartCalories.update();
-    }
-    updateBigPie();
-    updateMiniChart(chartProtein,totalProt,"Prot",maxProt);
-    updateMiniChart(chartSugar,totalSucre,"Sucre",maxSucre);
-    updateMiniChart(chartFat,totalGras,"Gras",maxGras);
-    updateMiniChart(chartVitC,totalVitC,"VitC",maxVitC);
-  } catch(e){
-    console.error("restoreState parse error", e);
+      ctx.font = "20px Arial"; // emoji plus gros
+      ctx.fillText(val.emoji, centerX, barY + 38);
+    });
   }
-}
 
-window.onload = ()=>{
-  initCharts();
-  loadFoods();
-};
-
-document.getElementById("main").addEventListener("click", function(e){
-  if(!e.target.closest("#calo") && !e.target.closest("#overlay") && !e.target.closest("#promptBox")){
-    closeOverlay();
-  }
+  loadWeather();
 });
+

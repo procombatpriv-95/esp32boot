@@ -44,15 +44,12 @@ async function loadWeather() {
     const d = new Date(item.time);
     const day = d.toLocaleDateString("fr-FR", { weekday: "short" });
 
-    // skip le jour actuel
     if (day === today) continue;
-
-    if (!days[day] && d.getHours() === 12) {
+    if (!days[day]) {
       const symbolDay = item.data.next_6_hours?.summary?.symbol_code || "N/A";
       const [emojiDay] = getWeatherDescription(symbolDay).split(" ");
       days[day] = { emoji: emojiDay };
     }
-
     if (Object.keys(days).length >= 3) break;
   }
 
@@ -64,30 +61,28 @@ async function loadWeather() {
   }
 }
 
-// Arrière-plan sur canvas
+// Arrière-plan canvas
 function drawBackground() {
   const canvas = document.getElementById("weather-canvas");
   const ctx = canvas.getContext("2d");
   canvas.width = canvas.offsetWidth;
   canvas.height = canvas.offsetHeight;
 
-  // Fond dégradé
   const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
   grad.addColorStop(0, "#ec7263");
   grad.addColorStop(1, "#974859");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Cercles décoratifs
   ctx.fillStyle = "rgba(239, 199, 69, 0.4)";
   ctx.beginPath();
-  ctx.arc(canvas.width * 0.8, -canvas.height * 0.8, 300, 0, Math.PI * 2);
+  ctx.arc(canvas.width * 0.8, -canvas.height * 0.8, 200, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(canvas.width * 0.7, -canvas.height * 0.7, 210, 0, Math.PI * 2);
+  ctx.arc(canvas.width * 0.7, -canvas.height * 0.7, 140, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(canvas.width * 0.92, -canvas.height * 0.35, 100, 0, Math.PI * 2);
+  ctx.arc(canvas.width * 0.92, -canvas.height * 0.35, 70, 0, Math.PI * 2);
   ctx.fill();
 }
 

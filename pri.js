@@ -1,3 +1,4 @@
+
 window.addEventListener("load", () => {
 
   const weatherEmojis = {
@@ -25,10 +26,8 @@ window.addEventListener("load", () => {
     const canvas = document.getElementById("weather-canvas");
     const ctx = canvas.getContext("2d");
 
-    // Nettoyer
+    // Nettoyer et remplir le fond
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Fond dégradé
     const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
     grad.addColorStop(0, "#ec7263");
     grad.addColorStop(1, "#974859");
@@ -51,24 +50,23 @@ window.addEventListener("load", () => {
 
     // --- Haut gauche : météo ---
     ctx.fillStyle = "white";
-    ctx.font = "22px Arial";
+    ctx.font = "18px Arial";
     ctx.textAlign = "left";
-    ctx.fillText(emoji, 15, 30);
-    ctx.font = "14px Arial";
-    ctx.fillText(label.join(" "), 45, 30);
+    ctx.fillText(emoji, 10, 25);
+    ctx.font = "12px Arial";
+    ctx.fillText(label.join(" "), 40, 25);
 
     // --- Température + humidité ---
-    ctx.font = "32px Arial";
-    ctx.textAlign = "left";
-    ctx.fillText(`${Math.round(temp)}°`, 15, 90);
+    ctx.font = "24px Arial";
+    ctx.fillText(`${Math.round(temp)}°`, 10, 70);
 
-    ctx.font = "14px Arial";
-    ctx.fillText(`💧 ${humidity}%`, 15, 110);
+    ctx.font = "12px Arial";
+    ctx.fillText(`💧 ${humidity}%`, 10, 90);
 
     // --- Ville (droite) ---
-    ctx.font = "18px Arial";
+    ctx.font = "14px Arial";
     ctx.textAlign = "right";
-    ctx.fillText("London", canvas.width - 15, 40);
+    ctx.fillText("London", canvas.width - 10, 25);
 
     // --- Prévisions 3 prochains jours ---
     const forecast = [];
@@ -93,8 +91,8 @@ window.addEventListener("load", () => {
     }
 
     // --- Dessiner la barre arrondie ---
-    const barHeight = 45;
-    const radius = 25;
+    const barHeight = 40;
+    const radius = 20;
     const barY = canvas.height - barHeight;
 
     ctx.fillStyle = "rgba(151, 72, 89, 0.95)";
@@ -114,14 +112,15 @@ window.addEventListener("load", () => {
       const centerX = boxWidth * i + boxWidth / 2;
 
       ctx.fillStyle = "white";
-      ctx.font = "12px Arial";
+      ctx.font = "10px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(val.day.toUpperCase(), centerX, barY + 18);
+      ctx.fillText(val.day.toUpperCase(), centerX, barY + 15);
 
-      ctx.font = "16px Arial";
-      ctx.fillText(val.emoji, centerX, barY + 36);
+      ctx.font = "14px Arial";
+      ctx.fillText(val.emoji, centerX, barY + 30);
     });
   }
 
   loadWeather();
 });
+

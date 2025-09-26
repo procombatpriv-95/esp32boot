@@ -15,7 +15,7 @@ window.addEventListener("load", () => {
     "snow": "❄️ Snow",
     "thunderstorm": "⛈️ Thunderstorm",
     "fog": "🌫️ Fog",
-    "N/A": "❓ Inconnu"
+    "N/A": "☁️ Inconnu"
   };
 
   function getWeatherDescription(symbol) {
@@ -26,15 +26,15 @@ window.addEventListener("load", () => {
     const canvas = document.getElementById("weather-canvas");
     const ctx = canvas.getContext("2d");
 
-    // Nettoyer et remplir le fond
+    // --- Fond adaptatif ---
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
     grad.addColorStop(0, "#ec7263");
     grad.addColorStop(1, "#974859");
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvas.width, canvas.height); // Remplit tout le canvas
 
-    // Données météo
+    // --- Données météo ---
     const response = await fetch(
       "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=51.509865&lon=-0.118092"
     );
@@ -48,25 +48,28 @@ window.addEventListener("load", () => {
 
     const [emoji, ...label] = desc.split(" ");
 
-    // --- Haut gauche : météo ---
+    // --- Emoji en haut à gauche ---
     ctx.fillStyle = "white";
-    ctx.font = "18px Arial";
+    ctx.font = "28px Arial";
     ctx.textAlign = "left";
-    ctx.fillText(emoji, 10, 25);
-    ctx.font = "12px Arial";
-    ctx.fillText(label.join(" "), 40, 25);
+    ctx.fillText(emoji, 10, 30);
 
-    // --- Température + humidité ---
-    ctx.font = "24px Arial";
-    ctx.fillText(`${Math.round(temp)}°`, 10, 70);
+    // --- Description plus grosse ---
+    ctx.font = "16px Arial";
+    ctx.fillText(label.join(" "), 50, 32);
 
-    ctx.font = "12px Arial";
-    ctx.fillText(`💧 ${humidity}%`, 10, 90);
+    // --- Température plus grosse ---
+    ctx.font = "36px Arial";
+    ctx.fillText(`${Math.round(temp)}°`, 10, 80);
 
-    // --- Ville (droite) ---
+    // --- Humidité ---
     ctx.font = "14px Arial";
+    ctx.fillText(`💧 ${humidity}%`, 10, 100);
+
+    // --- Ville à droite ---
+    ctx.font = "16px Arial";
     ctx.textAlign = "right";
-    ctx.fillText("London", canvas.width - 10, 25);
+    ctx.fillText("London", canvas.width - 10, 30);
 
     // --- Prévisions 3 prochains jours ---
     const forecast = [];
@@ -91,7 +94,7 @@ window.addEventListener("load", () => {
     }
 
     // --- Dessiner la barre arrondie ---
-    const barHeight = 40;
+    const barHeight = 50;
     const radius = 20;
     const barY = canvas.height - barHeight;
 
@@ -106,21 +109,23 @@ window.addEventListener("load", () => {
     ctx.closePath();
     ctx.fill();
 
-    // --- Ajouter les 3 jours ---
+    // --- Ajouter les 3 jours avec texte plus gros ---
     const boxWidth = canvas.width / 3;
     forecast.forEach((val, i) => {
       const centerX = boxWidth * i + boxWidth / 2;
 
       ctx.fillStyle = "white";
-      ctx.font = "10px Arial";
+      ctx.font = "12px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(val.day.toUpperCase(), centerX, barY + 15);
+      ctx.fillText(val.day.toUpperCase(), centerX, barY + 18);
 
-      ctx.font = "14px Arial";
-      ctx.fillText(val.emoji, centerX, barY + 30);
+      ctx.font = "20px Arial"; // emoji plus gros
+      ctx.fillText(val.emoji, centerX, barY + 38);
     });
   }
 
   loadWeather();
 });
+
+
 

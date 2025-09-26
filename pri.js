@@ -1,4 +1,4 @@
-   const canvas = document.getElementById('prayerCanvas');
+    const canvas = document.getElementById('prayerCanvas');
     const ctx = canvas.getContext('2d');
 
     const DEFAULTS = { latitude: 51.5074, longitude: -0.1278, method: 2 };
@@ -10,16 +10,14 @@
       return m ? m[1] : s;
     }
 
-    function fetchTimings(lat, lon){
+    async function fetchTimings(lat, lon){
       const url = `https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=${DEFAULTS.method}`;
-      return fetch(url)
-        .then(r => r.json())
-        .then(j => {
-          if(!j || j.code !== 200) throw new Error('Impossible de récupérer les timings');
-          const t = j.data.timings;
-          prayers = {};
-          PRAYER_KEYS.forEach(k => prayers[k] = stripToHHMM(t[k] || ''));
-        });
+      const r = await fetch(url);
+      const j = await r.json();
+      if(!j || j.code !== 200) throw new Error('Impossible de récupérer les timings');
+      const t = j.data.timings;
+      prayers = {};
+      PRAYER_KEYS.forEach(k => prayers[k] = stripToHHMM(t[k] || ''));
     }
 
     function parseTimeToDateObj(timeStr){
@@ -57,7 +55,7 @@
       ctx.clearRect(0,0,canvas.width,canvas.height);
       ctx.textAlign = 'center';
 
-      // fond du canvas
+      // fond
       ctx.fillStyle = '#111216';
       ctx.fillRect(0,0,canvas.width,canvas.height);
 
@@ -83,8 +81,6 @@
       PRAYER_KEYS.forEach((key) => {
         const bx = x;
         const by = canvas.height - boxHeight - 10;
-
-        // Si c'est la prochaine prière, surligner en gris
         const isNext = (key === np.name);
         const boxColor = isNext ? '#333' : '#1c1c1f';
         roundRect(bx, by, boxWidth, boxHeight, 8, true, false, boxColor);
@@ -128,21 +124,10 @@
       if(stroke) ctx.stroke();
     }
 
-    let intervalId = null;
-    function startLoop(){
-      if(intervalId) clearInterval(intervalId);
+    async function startLoop(){
+      await fetchTimings(DEFAULTS.latitude, DEFAULTS.longitude);
       draw();
-      intervalId = setInterval(draw, 1000);
+      setInterval(draw, 1000);
     }
 
-    function init(){
-      if(navigator.geolocation){
-        navigator.geolocation.getCurrentPosition(pos => {
-          fetchTimings(pos.coords.latitude, pos.coords.longitude).then(startLoop).catch(()=>fetchTimings(DEFAULTS.latitude, DEFAULTS.longitude).then(startLoop));
-        }, ()=>fetchTimings(DEFAULTS.latitude, DEFAULTS.longitude).then(startLoop), {timeout:8000});
-      } else {
-        fetchTimings(DEFAULTS.latitude, DEFAULTS.longitude).then(startLoop);
-      }
-    }
-
-    init();
+    window.addEventListener("load", startLoop);

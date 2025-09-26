@@ -25,14 +25,21 @@ window.addEventListener("load", () => {
   async function loadWeather() {
     const canvas = document.getElementById("weather-canvas");
     const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
 
-    // --- Fond adaptatif ---
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    // --- Fond dégradé + cercles ---
+    ctx.clearRect(0, 0, W, H);
+    const grad = ctx.createLinearGradient(0, 0, W, H);
     grad.addColorStop(0, "#ec7263");
     grad.addColorStop(1, "#974859");
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height); // Remplit tout le canvas
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = "rgba(239,199,69,0.4)";
+    ctx.beginPath(); ctx.arc(W*0.8, -H*0.8, 300, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W*0.7, -H*0.7, 210, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W*0.92, -H*0.35, 100, 0, Math.PI*2); ctx.fill();
 
     // --- Données météo ---
     const response = await fetch(
@@ -69,7 +76,7 @@ window.addEventListener("load", () => {
     // --- Ville à droite ---
     ctx.font = "16px Arial";
     ctx.textAlign = "right";
-    ctx.fillText("London", canvas.width - 10, 30);
+    ctx.fillText("London", W - 10, 30);
 
     // --- Prévisions 3 prochains jours ---
     const forecast = [];
@@ -96,21 +103,21 @@ window.addEventListener("load", () => {
     // --- Dessiner la barre arrondie ---
     const barHeight = 50;
     const radius = 20;
-    const barY = canvas.height - barHeight;
+    const barY = H - barHeight;
 
     ctx.fillStyle = "rgba(151, 72, 89, 0.95)";
     ctx.beginPath();
     ctx.moveTo(0, barY);
-    ctx.lineTo(canvas.width, barY);
-    ctx.lineTo(canvas.width, canvas.height - radius);
-    ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
-    ctx.lineTo(radius, canvas.height);
-    ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+    ctx.lineTo(W, barY);
+    ctx.lineTo(W, H - radius);
+    ctx.quadraticCurveTo(W, H, W - radius, H);
+    ctx.lineTo(radius, H);
+    ctx.quadraticCurveTo(0, H, 0, H - radius);
     ctx.closePath();
     ctx.fill();
 
     // --- Ajouter les 3 jours avec texte plus gros ---
-    const boxWidth = canvas.width / 3;
+    const boxWidth = W / 3;
     forecast.forEach((val, i) => {
       const centerX = boxWidth * i + boxWidth / 2;
 

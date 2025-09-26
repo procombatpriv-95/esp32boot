@@ -1,19 +1,19 @@
 window.addEventListener("load", () => {
 
   const weatherEmojis = {
-    "clearsky_day": "☀️ Soleil",
-    "clearsky_night": "🌙 Nuit claire",
-    "fair_day": "🌤️ Beau",
-    "fair_night": "🌙✨ Doux",
-    "partlycloudy_day": "⛅ Nuageux",
-    "partlycloudy_night": "☁️🌙 Nuit nuageuse",
-    "cloudy": "☁️ Couvert",
-    "lightrain": "🌦️ Pluie fine",
-    "rain": "🌧️ Pluie",
-    "heavyrain": "🌧️🌧️ Forte pluie",
-    "snow": "❄️ Neige",
-    "thunderstorm": "⛈️ Orage",
-    "fog": "🌫️ Brouillard",
+    "clearsky_day": "☀️ Clear sky",
+    "clearsky_night": "🌙 Clear night",
+    "fair_day": "🌤️ Sunny",
+    "fair_night": "🌙✨ Bright night",
+    "partlycloudy_day": "⛅ Light rain",
+    "partlycloudy_night": "☁️🌙 Cloudy night",
+    "cloudy": "☁️ Cloudy",
+    "lightrain": "🌦️ Light rain",
+    "rain": "🌧️ Rain",
+    "heavyrain": "🌧️🌧️ Heavy rain",
+    "snow": "❄️ Snow",
+    "thunderstorm": "⛈️ Thunderstorm",
+    "fog": "🌫️ Fog",
     "N/A": "❓ Inconnu"
   };
 

@@ -1,3 +1,4 @@
+
     const canvas = document.getElementById('prayerCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -55,7 +56,6 @@
       ctx.clearRect(0,0,canvas.width,canvas.height);
       ctx.textAlign = 'center';
 
-      // fond
       ctx.fillStyle = '#111216';
       ctx.fillRect(0,0,canvas.width,canvas.height);
 
@@ -124,9 +124,10 @@
       if(stroke) ctx.stroke();
     }
 
-    async function startLoop(){
+    // Directement initialiser et démarrer
+    (async () => {
       await fetchTimings(DEFAULTS.latitude, DEFAULTS.longitude);
       draw();
       setInterval(draw, 1000);
-    }
+    })();
 

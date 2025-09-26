@@ -130,4 +130,3 @@
       setInterval(draw, 1000);
     }
 
-    window.addEventListener("load", startLoop);

@@ -128,7 +128,8 @@ setInterval(() => {
 function checkEditorContent() {
   // Vérifie si le contenu est vide ou seulement des espaces
   if (editor.innerText.trim() === '') {
-    editor.innerText = "void setup() {\n\n}";
+    editor.innerText = "void setup() {\n    \n}\n\nvoid loop() {\n    \n}";
+
   }
 }
 

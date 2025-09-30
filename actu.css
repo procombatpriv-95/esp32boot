@@ -1,11 +1,4 @@
 
-.actubar-container.expanded * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
 
 .actubar-container {
     position: fixed;
@@ -49,6 +42,7 @@
 
 }
 
+
 .profile-image {
     width: 100%;
     height: 100%;
@@ -74,6 +68,12 @@
             visibility: hidden;
             transition: opacity 0.3s ease;
         }
+.actubar-panel * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
         
         .actubar-container.expanded .actubar-panel {
             opacity: 1;

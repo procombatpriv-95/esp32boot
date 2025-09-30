@@ -281,3 +281,18 @@
             getLocationAndWeather();
             getNewsData();
         });
+actubarContainer.addEventListener('click', function(e) {
+    if (e.target !== temperatureClose && !temperatureClose.contains(e.target)) {
+        this.classList.add('expanded');
+        
+        if (!window.weatherLoaded) {
+            getLocationAndWeather();
+            window.weatherLoaded = true;
+        }
+        if (!window.newsLoaded) {
+            getNewsData();
+            window.newsLoaded = true;
+        }
+        // Les notifications se chargeront automatiquement via votre code existant
+    }
+});

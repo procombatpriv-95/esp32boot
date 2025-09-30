@@ -1,0 +1,218 @@
+.actubar-container {
+    position: fixed;
+    top: 50px;
+    right: 50px;
+    height: 50px;
+    width: 50px;
+    background-color: transparent;
+    border-radius: 20px;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1000;
+    padding: 0;
+    color:white;
+}
+
+.actubar-container:hover {
+    background-color: rgba(17, 18, 22, 0.3);
+}
+
+.actubar-container.expanded {
+    width: 350px;
+    height: 650px;
+    border-radius: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    background-color: rgba(17, 18, 22, 0.5);
+    transform-origin: top right;
+}
+
+.profile-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 18px;
+    object-fit: cover;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.actubar-container.expanded .profile-image {
+    opacity: 0;
+    border-radius: 25px;
+}
+        
+        .actubar-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+        
+        .actubar-container.expanded .actubar-panel {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        
+        .time-section {
+            flex: 1;
+        }
+        
+        .time {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .date {
+            font-size: 15px;
+            opacity: 0.8;
+        }
+        
+        .timezone-info {
+            font-size: 10px;
+            opacity: 0.6;
+            margin-top: 2px;
+        }
+        
+        .temperature-simple {
+            font-size: 24px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 10px;
+            transition: background-color 0.2s;
+            text-align: right;
+        }
+        
+        .temperature-simple:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .weather-details {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .location-info {
+            font-size: 10px;
+            opacity: 0.6;
+            margin-top: 3px;
+        }
+        
+        .news-section {
+            margin-top: 15px;
+        }
+        
+        .news-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .news-container {
+            height: 280px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 12px;
+        }
+        
+        .news-item {
+            display: flex;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+        }
+        
+        .news-item:not(:last-child) {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .news-image {
+            width: 70px;
+            height: 70px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-right: 12px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 26px;
+            overflow: hidden;
+        }
+        
+        .news-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .news-content {
+            flex: 1;
+        }
+        
+        .news-title-item {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+        
+        .news-description {
+            font-size: 13px;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 15px;
+            font-style: italic;
+            opacity: 0.7;
+        }
+        
+        .error {
+            color: #ff6b6b;
+            text-align: center;
+            padding: 15px;
+            font-size: 13px;
+        }
+        
+        /* Scrollbar personnalisée */
+        .news-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .news-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .news-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        
+        .news-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }

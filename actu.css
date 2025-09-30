@@ -1,3 +1,14 @@
+
+
+* {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+
+
 .actubar-container {
     position: fixed;
     margin-top: 5px;
@@ -27,16 +38,13 @@
 }
 
 .actubar-container.expanded {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+
     width: 350px;
     height: 650px;
     border-radius: 30px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     background-color: rgba(17, 18, 22, 0.5);
 
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .profile-image {

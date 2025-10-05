@@ -16,8 +16,9 @@
             width: 400px;
             height: 600px;
             display: flex;
-            justify-content: flex-start;
-            align-items: flex-start;
+            top: 15px; 
+            left: 300px;
+       
         }
         
         .main-button {

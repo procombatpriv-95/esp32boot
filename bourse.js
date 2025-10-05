@@ -233,6 +233,8 @@
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'middle';
                     ctx.fillText('$' + value.toFixed(0), margin.left - 10, y);
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Bitcoin Graph', margin.left + graphWidth / 2, CSS_H - 20);
                 }
             }
 

@@ -1,5 +1,5 @@
         window.addEventListener("load", () => {
-            const canvas = document.getElementById("market");
+            const canvas = document.getElementById("bourse");
 
             // Configuration du canvas pour haute résolution
             const DPR = window.devicePixelRatio || 1;

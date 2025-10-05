@@ -234,9 +234,6 @@
                     ctx.textBaseline = 'middle';
                     ctx.fillText('$' + value.toFixed(0), margin.left - 10, y);
                 }
-
-                // Titre de l'axe X
-
             }
 
             function drawWaitingMessage() {
@@ -244,7 +241,6 @@
                 ctx.font = '16px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-
             }
 
             // Connexion WebSocket pour les vraies données

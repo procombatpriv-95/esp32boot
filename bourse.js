@@ -1,15 +1,5 @@
         window.addEventListener("load", () => {
             const canvas = document.getElementById("bourse");
-            
-            // Références aux éléments des statistiques
-            const todayAvgEl = document.getElementById("todayAvg");
-            const todayChangeEl = document.getElementById("todayChange");
-            const weekAvgEl = document.getElementById("weekAvg");
-            const weekChangeEl = document.getElementById("weekChange");
-            const monthAvgEl = document.getElementById("monthAvg");
-            const monthChangeEl = document.getElementById("monthChange");
-            const sixMonthsAvgEl = document.getElementById("sixMonthsAvg");
-            const sixMonthsChangeEl = document.getElementById("sixMonthsChange");
 
             // Configuration du canvas pour haute résolution
             const DPR = window.devicePixelRatio || 1;
@@ -25,89 +15,14 @@
 
             // Données historiques pour Heikin-Ashi
             const historicalData = [];
-            let currentPrice = 50000;
+            let currentPrice = 50000; // Prix de départ
             let countdown = 2;
             let countdownInterval;
-
-            // === CORRECTION : Variables pour stocker les moyennes fixes ===
-            let fixedWeekAvg = null;
-            let fixedMonthAvg = null;
-            let fixedSixMonthsAvg = null;
-
-            // === FONCTIONS POUR LES STATISTIQUES ===
-            function calculateAverages() {
-                if (historicalData.length === 0) return;
-                
-                const now = Date.now();
-                const oneDayAgo = now - (24 * 60 * 60 * 1000);
-                const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
-                const oneMonthAgo = now - (30 * 24 * 60 * 60 * 1000);
-                const sixMonthsAgo = now - (180 * 24 * 60 * 60 * 1000);
-                
-                // === CORRECTION : Calcul de la moyenne d'aujourd'hui (changeante) ===
-                const todayData = historicalData.filter(d => d.timestamp >= oneDayAgo);
-                const todayAvg = calculatePeriodAverage(todayData);
-                
-                // === CORRECTION : Calcul des moyennes fixes une seule fois ===
-                if (fixedWeekAvg === null) {
-                    const weekData = historicalData.filter(d => 
-                        d.timestamp >= oneWeekAgo && d.timestamp < oneDayAgo
-                    );
-                    fixedWeekAvg = calculatePeriodAverage(weekData);
-                }
-                
-                if (fixedMonthAvg === null) {
-                    const monthData = historicalData.filter(d => 
-                        d.timestamp >= oneMonthAgo && d.timestamp < oneWeekAgo
-                    );
-                    fixedMonthAvg = calculatePeriodAverage(monthData);
-                }
-                
-                if (fixedSixMonthsAvg === null) {
-                    const sixMonthsData = historicalData.filter(d => 
-                        d.timestamp >= sixMonthsAgo && d.timestamp < oneMonthAgo
-                    );
-                    fixedSixMonthsAvg = calculatePeriodAverage(sixMonthsData);
-                }
-                
-                // Mettre à jour l'interface
-                updateStatDisplay(todayAvgEl, todayChangeEl, todayAvg, "Aujourd'hui");
-                updateStatDisplay(weekAvgEl, weekChangeEl, fixedWeekAvg, "1 semaine");
-                updateStatDisplay(monthAvgEl, monthChangeEl, fixedMonthAvg, "1 mois");
-                updateStatDisplay(sixMonthsAvgEl, sixMonthsChangeEl, fixedSixMonthsAvg, "6 mois");
-            }
-            
-            function calculatePeriodAverage(data) {
-                if (data.length === 0) return { avg: 0, change: 0 };
-                
-                const closes = data.map(d => d.close);
-                const avg = closes.reduce((a, b) => a + b, 0) / closes.length;
-                
-                // Calculer le changement par rapport au prix actuel
-                const currentPrice = historicalData[historicalData.length - 1].close;
-                const change = ((currentPrice - avg) / avg) * 100;
-                
-                return { avg, change };
-            }
-            
-            function updateStatDisplay(valueEl, changeEl, data, period) {
-                if (!data || data.avg === 0) {
-                    valueEl.textContent = "--";
-                    changeEl.textContent = "--";
-                    return;
-                }
-                
-                valueEl.textContent = "$" + data.avg.toFixed(2);
-                changeEl.textContent = (data.change >= 0 ? "+" : "") + data.change.toFixed(2) + "%";
-                changeEl.className = `stat-change ${data.change >= 0 ? 'positive' : 'negative'}`;
-                
-                // Ajouter un indicateur visuel
-                valueEl.style.color = data.change >= 0 ? '#39d353' : '#ff6b6b';
-            }
 
             // Formules de calcul Heikin-Ashi 
             function calculateHeikinAshi(previousHA, currentRegular) {
                 if (!previousHA) {
+                    // Première bougie : utilisation des prix réguliers
                     return {
                         open: (currentRegular.open + currentRegular.close) / 2,
                         high: currentRegular.high,
@@ -132,28 +47,25 @@
                 let price = 50000;
                 const now = Date.now();
                 
-                // Générer 180 points de données (6 mois avec 1 point par jour)
-                for (let i = 0; i < 180; i++) {
+                for (let i = 0; i < 50; i++) {
                     const volatility = Math.random() * 800 - 400;
                     const open = price;
                     const close = price + volatility;
                     const high = Math.max(open, close) + Math.random() * 300;
                     const low = Math.min(open, close) - Math.random() * 300;
                     
-                    // Chaque point représente 1 jour (24h * 60min * 60sec * 1000ms)
-                    const timestamp = now - (180 - i) * (24 * 60 * 60 * 1000);
-                    
                     sampleData.push({
                         open: open,
                         high: high,
                         low: low,
                         close: close,
-                        timestamp: timestamp
+                        timestamp: now - (50 - i) * 2000 // 2 secondes d'intervalle
                     });
                     
                     price = close;
                 }
 
+                // Conversion en Heikin-Ashi
                 const haData = [];
                 sampleData.forEach((candle, index) => {
                     const previousHA = haData[index - 1];
@@ -181,25 +93,27 @@
 
             // Ajouter une nouvelle bougie
             function addNewCandle() {
+                // Variation aléatoire basée sur le dernier prix
                 const lastCandle = historicalData[historicalData.length - 1];
                 const volatility = (Math.random() - 0.5) * 1000;
                 const newClose = lastCandle.close + volatility;
                 
                 const newCandle = {
-                    open: lastCandle.close,
+                    open: lastCandle.close, // L'ouverture est la clôture précédente
                     high: Math.max(lastCandle.close, newClose) + Math.random() * 200,
                     low: Math.min(lastCandle.close, newClose) - Math.random() * 200,
                     close: newClose,
                     timestamp: Date.now()
                 };
                 
+                // Conversion en Heikin-Ashi
                 const newHA = calculateHeikinAshi(lastCandle, newCandle);
                 historicalData.push(newHA);
+                
+                // Mettre à jour le prix actuel
                 currentPrice = newClose;
                 
-                // === Mettre à jour les statistiques (seulement aujourd'hui changera) ===
-                calculateAverages();
-                
+                // Redessiner le graphique
                 drawChart();
             }
 
@@ -227,6 +141,7 @@
                 ctx.strokeStyle = 'rgba(255,255,255,0.1)';
                 ctx.lineWidth = 1;
                 
+                // Grille verticale
                 const verticalLines = 8;
                 for (let i = 0; i <= verticalLines; i++) {
                     const x = margin.left + (i * graphWidth / verticalLines);
@@ -236,6 +151,7 @@
                     ctx.stroke();
                 }
                 
+                // Grille horizontale
                 const horizontalLines = 6;
                 for (let i = 0; i <= horizontalLines; i++) {
                     const y = margin.top + (i * graphHeight / horizontalLines);
@@ -249,9 +165,11 @@
             function drawHeikinAshiCandles() {
                 if (historicalData.length === 0) return;
 
+                // Afficher seulement les dernières bougies visibles
                 const startIndex = Math.max(0, historicalData.length - visibleCandles);
                 const visibleData = historicalData.slice(startIndex);
                 
+                // Calcul des prix min/max pour la mise à l'échelle
                 const prices = visibleData.flatMap(d => [d.high, d.low, d.open, d.close]);
                 const minPrice = Math.min(...prices);
                 const maxPrice = Math.max(...prices);
@@ -262,23 +180,27 @@
                 visibleData.forEach((candle, index) => {
                     const x = margin.left + (index * (candleWidth + 2));
                     
+                    // Calcul des coordonnées Y
                     const highY = margin.top + graphHeight - ((candle.high - minPrice) * scaleY);
                     const lowY = margin.top + graphHeight - ((candle.low - minPrice) * scaleY);
                     const openY = margin.top + graphHeight - ((candle.open - minPrice) * scaleY);
                     const closeY = margin.top + graphHeight - ((candle.close - minPrice) * scaleY);
                     
+                    // Détermination de la couleur (hausse ou baisse)
                     const isBullish = candle.close >= candle.open;
                     ctx.fillStyle = isBullish ? '#39d353' : '#ff6b6b';
                     ctx.strokeStyle = isBullish ? '#39d353' : '#ff6b6b';
                     
+                    // Dessin de la mèche
                     ctx.beginPath();
                     ctx.moveTo(x + candleWidth/2, highY);
                     ctx.lineTo(x + candleWidth/2, lowY);
                     ctx.stroke();
                     
+                    // Dessin du corps
                     const bodyTop = Math.min(openY, closeY);
                     const bodyHeight = Math.abs(openY - closeY);
-                    const bodyHeightMin = 1;
+                    const bodyHeightMin = 1; // Hauteur minimale pour visibilité
                     
                     ctx.fillRect(
                         x, 
@@ -295,12 +217,14 @@
                 ctx.fillStyle = 'rgba(255,255,255,0.7)';
                 ctx.font = '12px Arial';
 
+                // Axe des prix (Y)
                 const visibleData = historicalData.slice(-visibleCandles);
                 const prices = visibleData.flatMap(d => [d.high, d.low, d.open, d.close]);
                 const minPrice = Math.min(...prices);
                 const maxPrice = Math.max(...prices);
                 const priceRange = maxPrice - minPrice || 1;
 
+                // Étiquettes de l'axe Y
                 const yTicks = 5;
                 for (let i = 0; i <= yTicks; i++) {
                     const value = minPrice + (i * priceRange / yTicks);
@@ -309,6 +233,8 @@
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'middle';
                     ctx.fillText('$' + value.toFixed(0), margin.left - 10, y);
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Bitcoin Graph', margin.left + graphWidth / 2, CSS_H - 20);
                 }
             }
 
@@ -317,7 +243,6 @@
                 ctx.font = '16px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('Chargement des données...', CSS_W / 2, CSS_H / 2);
             }
 
             // Connexion WebSocket pour les vraies données
@@ -327,7 +252,7 @@
                 ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
                     const price = parseFloat(data.p);
-                    currentPrice = price;
+                    currentPrice = price; // Met à jour le prix actuel
                 };
                 
                 ws.onerror = (error) => {
@@ -337,8 +262,6 @@
 
             // Initialisation
             historicalData.push(...generateInitialData());
-            // === CALCULER LES STATISTIQUES INITIALES ===
-            calculateAverages();
             drawChart();
             connectWebSocket();
             startCountdown();

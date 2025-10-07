@@ -29,10 +29,67 @@
             let countdown = 2;
             let countdownInterval;
 
+            // === VARIABLES POUR LES FONCTIONNALITÉS ===
+            let isFrozen = false;
+            let scrollOffset = 0; // 0 = temps réel, >0 = défilé vers la gauche
+
             // === CORRECTION : Variables pour stocker les moyennes fixes ===
             let fixedWeekAvg = null;
             let fixedMonthAvg = null;
             let fixedSixMonthsAvg = null;
+
+            // === FONCTIONS POUR LES BOUTONS ===
+            function initControls() {
+                const freezeBtn = document.getElementById('freezeBtn');
+                const scrollLeftBtn = document.getElementById('scrollLeftBtn');
+                const scrollRightBtn = document.getElementById('scrollRightBtn');
+                
+                // Mettre à jour l'état des boutons
+                updateScrollButtons();
+                
+                // Bouton Freeze
+                freezeBtn.addEventListener('click', function() {
+                    isFrozen = !isFrozen;
+                    this.classList.toggle('active', isFrozen);
+                    
+                    if (isFrozen) {
+                        clearInterval(countdownInterval);
+                        countdownInterval = null;
+                    } else {
+                        startCountdown();
+                    }
+                });
+                
+                // Bouton Défilement gauche - VERS LES DONNÉES ANCIENNES
+                scrollLeftBtn.addEventListener('click', function() {
+                    // Augmenter le décalage (aller vers la gauche)
+                    scrollOffset += 10;
+                    updateScrollButtons();
+                    drawChart();
+                });
+                
+                // Bouton Retour temps réel
+                scrollRightBtn.addEventListener('click', function() {
+                    // Remettre à zéro (retour au temps réel)
+                    scrollOffset = 0;
+                    updateScrollButtons();
+                    drawChart();
+                });
+            }
+            
+            function updateScrollButtons() {
+                const scrollLeftBtn = document.getElementById('scrollLeftBtn');
+                const scrollRightBtn = document.getElementById('scrollRightBtn');
+                
+                if (scrollLeftBtn && scrollRightBtn) {
+                    // Bouton gauche désactivé si on ne peut plus défiler vers la gauche
+                    const maxScroll = Math.max(0, historicalData.length - visibleCandles);
+                    scrollLeftBtn.disabled = scrollOffset >= maxScroll;
+                    
+                    // Bouton droit désactivé si on est déjà en temps réel
+                    scrollRightBtn.disabled = scrollOffset === 0;
+                }
+            }
 
             // === FONCTIONS POUR LES STATISTIQUES ===
             function calculateAverages() {
@@ -132,8 +189,8 @@
                 let price = 50000;
                 const now = Date.now();
                 
-                // Générer 180 points de données (6 mois avec 1 point par jour)
-                for (let i = 0; i < 180; i++) {
+                // Générer 200 points de données pour avoir plus de données à défiler
+                for (let i = 0; i < 200; i++) {
                     const volatility = Math.random() * 800 - 400;
                     const open = price;
                     const close = price + volatility;
@@ -141,7 +198,7 @@
                     const low = Math.min(open, close) - Math.random() * 300;
                     
                     // Chaque point représente 1 jour (24h * 60min * 60sec * 1000ms)
-                    const timestamp = now - (180 - i) * (24 * 60 * 60 * 1000);
+                    const timestamp = now - (200 - i) * (24 * 60 * 60 * 1000);
                     
                     sampleData.push({
                         open: open,
@@ -181,6 +238,8 @@
 
             // Ajouter une nouvelle bougie
             function addNewCandle() {
+                if (isFrozen) return; // Ne pas ajouter de nouvelles bougies si gelé
+                
                 const lastCandle = historicalData[historicalData.length - 1];
                 const volatility = (Math.random() - 0.5) * 1000;
                 const newClose = lastCandle.close + volatility;
@@ -196,6 +255,9 @@
                 const newHA = calculateHeikinAshi(lastCandle, newCandle);
                 historicalData.push(newHA);
                 currentPrice = newClose;
+                
+                // Mettre à jour les boutons de défilement
+                updateScrollButtons();
                 
                 // === Mettre à jour les statistiques (seulement aujourd'hui changera) ===
                 calculateAverages();
@@ -248,17 +310,34 @@
 
             function drawHeikinAshiCandles() {
                 if (historicalData.length === 0) return;
-
-                const startIndex = Math.max(0, historicalData.length - visibleCandles);
-                const visibleData = historicalData.slice(startIndex);
+                
+                let startIndex, endIndex;
+                
+                if (scrollOffset > 0) {
+                    // Mode défilement : afficher les données à partir du décalage
+                    startIndex = Math.max(0, historicalData.length - visibleCandles - scrollOffset);
+                    endIndex = startIndex + visibleCandles;
+                } else {
+                    // Mode normal : afficher les dernières bougies
+                    startIndex = Math.max(0, historicalData.length - visibleCandles);
+                    endIndex = historicalData.length;
+                }
+                
+                // Assurer que les index sont valides
+                startIndex = Math.max(0, startIndex);
+                endIndex = Math.min(historicalData.length, endIndex);
+                
+                const visibleData = historicalData.slice(startIndex, endIndex);
+                
+                if (visibleData.length === 0) return;
                 
                 const prices = visibleData.flatMap(d => [d.high, d.low, d.open, d.close]);
                 const minPrice = Math.min(...prices);
                 const maxPrice = Math.max(...prices);
                 const priceRange = maxPrice - minPrice || 1;
-
+                
                 const scaleY = graphHeight / priceRange;
-
+                
                 visibleData.forEach((candle, index) => {
                     const x = margin.left + (index * (candleWidth + 2));
                     
@@ -295,7 +374,17 @@
                 ctx.fillStyle = 'rgba(255,255,255,0.7)';
                 ctx.font = '12px Arial';
 
-                const visibleData = historicalData.slice(-visibleCandles);
+                let visibleData;
+                if (scrollOffset > 0) {
+                    const startIndex = Math.max(0, historicalData.length - visibleCandles - scrollOffset);
+                    const endIndex = Math.min(historicalData.length, startIndex + visibleCandles);
+                    visibleData = historicalData.slice(startIndex, endIndex);
+                } else {
+                    visibleData = historicalData.slice(-visibleCandles);
+                }
+                
+                if (visibleData.length === 0) return;
+                
                 const prices = visibleData.flatMap(d => [d.high, d.low, d.open, d.close]);
                 const minPrice = Math.min(...prices);
                 const maxPrice = Math.max(...prices);
@@ -310,6 +399,9 @@
                     ctx.textBaseline = 'middle';
                     ctx.fillText('$' + value.toFixed(0), margin.left - 10, y);
                 }
+                
+                ctx.textAlign = 'center';
+                ctx.fillText('Bitcoin Graph', margin.left + graphWidth / 2, CSS_H - 20);
             }
 
             function drawWaitingMessage() {
@@ -337,9 +429,9 @@
 
             // Initialisation
             historicalData.push(...generateInitialData());
-            // === CALCULER LES STATISTIQUES INITIALES ===
             calculateAverages();
             drawChart();
             connectWebSocket();
             startCountdown();
+            initControls(); // Initialiser les boutons
         });

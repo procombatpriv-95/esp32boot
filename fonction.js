@@ -1602,4 +1602,31 @@ function closeMenu() {
     
     clearTimeout(animationTimeout);
 }
+
+
+
+
+
+restaurantDButton.addEventListener('click', function(event) {
+    event.stopPropagation();
+    toggleLock(restaurantContainer);
+});
+
+f1DButton.addEventListener('click', function(event) {
+    event.stopPropagation();
+    toggleLock(f1Container);
+});
+
+
+
+trophyDButton.addEventListener('click', function(event) {
+    event.stopPropagation();
+    toggleLock(trophyContainer);
+});
+
+newsDButton.addEventListener('click', function(event) {
+    event.stopPropagation();
+    toggleLock(newsContainer);
+});
+
 // Modifier les écouteurs d'événements des boutons D existants

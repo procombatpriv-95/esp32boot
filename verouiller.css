@@ -1,0 +1,74 @@
+   #lock-screen {
+      display: none; /* Caché au démarrage */
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    /* Quand visible */
+    #lock-screen.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* --- Inputs (curseur à gauche) --- */
+    #lock-screen input[type="text"],
+    #lock-screen input[type="password"] {
+      width: 220px;
+      padding: 10px;
+      margin: 8px 0;
+      border: none;
+      outline: none;
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 14px;
+      text-align: left; /* Curseur à gauche */
+      padding-left: 15px;
+      caret-color: white;
+    }
+
+    #lock-screen input::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+      text-align: left;
+      padding-left: 0;
+    }
+
+    /* --- Bouton OK --- */
+    #lock-screen button {
+      margin-top: 12px;
+      width: 90px;
+      padding: 8px;
+      border: none;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(90deg, #4e9af1, #6cc1ff);
+      box-shadow: 0 0 12px rgba(123, 179, 255, 0.6);
+      transition: 0.3s;
+    }
+
+    #lock-screen button:hover {
+      background: linear-gradient(90deg, #6cc1ff, #4e9af1);
+      transform: scale(1.05);
+    }
+
+    /* Message d’erreur */
+    #error-message {
+      color: red;
+      font-size: 13px;
+      margin-top: 10px;
+      height: 16px;
+    }

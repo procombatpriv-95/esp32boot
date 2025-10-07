@@ -9,7 +9,7 @@
         
         .fonctioncontainer {
 
-
+            left: 300px;
             position: fixed;
             width: 400px;
             height: 600px;
@@ -32,9 +32,9 @@
             font-weight: bold;
             color: #fff;
             cursor: pointer;
-            position: fixed;
+            position: absolute;
             top: 20px;
-            left: 300px;
+            left: 50px;
             border: 2px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             z-index: 5;

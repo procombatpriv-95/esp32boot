@@ -12,9 +12,8 @@ let currentFontSize = localStorage.getItem('text-font-size') || '14px';
 let currentFontColor = localStorage.getItem('text-font-color') || 'black';
 let currentFontFamily = localStorage.getItem('text-font-family') || 'Arial';
 
-// Charger le contenu sauvegardé
 if (localStorage.getItem('code')) {
-  editor.innerHTML = localStorage.getItem('code');
+  editor.innerText = localStorage.getItem('code');
 }
 if (localStorage.getItem('text')) {
   textEditor.innerHTML = localStorage.getItem('text');
@@ -25,76 +24,6 @@ fontColor.value = currentFontColor;
 fontFamily.value = currentFontFamily;
 controlBar.style.display = 'none';
 
-// Fonction pour colorier le code Arduino
-function colorizeArduinoCode() {
-  let content = editor.innerText;
-  
-  // Remplacer les mots-clés par des spans colorés
-  content = content
-    .replace(/\b(void)\b/g, '<span class="keyword-blue">$1</span>')
-    .replace(/\b(setup|loop)\b/g, '<span class="keyword-orange">$1</span>')
-    .replace(/(\{|\})/g, '<span class="bracket-white">$1</span>');
-  
-  editor.innerHTML = content;
-  
-  // Restaurer la position du curseur
-  restoreCursorPosition();
-}
-
-// Sauvegarder la position du curseur
-let cursorPosition = 0;
-
-function saveCursorPosition() {
-  const sel = window.getSelection();
-  if (sel.rangeCount > 0) {
-    const range = sel.getRangeAt(0);
-    const preCaretRange = range.cloneRange();
-    preCaretRange.selectNodeContents(editor);
-    preCaretRange.setEnd(range.endContainer, range.endOffset);
-    cursorPosition = preCaretRange.toString().length;
-  }
-}
-
-// Restaurer la position du curseur
-function restoreCursorPosition() {
-  const textNode = getTextNodeAtPosition(editor, cursorPosition);
-  if (textNode) {
-    const range = document.createRange();
-    range.setStart(textNode.node, textNode.position);
-    range.collapse(true);
-    
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-}
-
-// Helper pour trouver la position du texte
-function getTextNodeAtPosition(root, index) {
-  const treeWalker = document.createTreeWalker(
-    root,
-    NodeFilter.SHOW_TEXT,
-    null,
-    false
-  );
-  
-  let currentIndex = 0;
-  let currentNode;
-  
-  while (currentNode = treeWalker.nextNode()) {
-    const nodeLength = currentNode.textContent.length;
-    if (index >= currentIndex && index <= currentIndex + nodeLength) {
-      return {
-        node: currentNode,
-        position: index - currentIndex
-      };
-    }
-    currentIndex += nodeLength;
-  }
-  return null;
-}
-
-// Appliquer les styles à la sélection
 function applyStyleToSelection() {
   const sel = window.getSelection();
   if (sel.rangeCount > 0 && sel.toString() !== '') {
@@ -115,7 +44,6 @@ function applyStyleToSelection() {
   }
 }
 
-// Événements pour l'éditeur de texte
 textEditor.addEventListener('keydown', (e) => {
   const isPrintable = e.key.length === 1;
   if (!inTextMode || !isPrintable) return;
@@ -140,35 +68,22 @@ textEditor.addEventListener('keydown', (e) => {
   }
 });
 
-// Événements pour l'éditeur de code
-editor.addEventListener('input', () => {
-  saveCursorPosition();
-  setTimeout(() => {
-    colorizeArduinoCode();
-    checkEditorContent();
-  }, 10);
-});
-
-// Changer les polices et couleurs
 fontSize.addEventListener('change', () => {
   currentFontSize = fontSize.value;
   localStorage.setItem('text-font-size', currentFontSize);
   applyStyleToSelection();
 });
-
 fontColor.addEventListener('change', () => {
   currentFontColor = fontColor.value;
   localStorage.setItem('text-font-color', currentFontColor);
   applyStyleToSelection();
 });
-
 fontFamily.addEventListener('change', () => {
   currentFontFamily = fontFamily.value;
   localStorage.setItem('text-font-family', currentFontFamily);
   applyStyleToSelection();
 });
 
-// Bouton de sauvegarde
 bleft.addEventListener('click', () => {
   const isText = inTextMode;
   const content = isText ? textEditor.innerText : editor.innerText;
@@ -185,7 +100,6 @@ bleft.addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-// Bouton de changement de mode
 bright.addEventListener('click', () => {
   if (!inTextMode) {
     editor.style.transform = 'rotateY(-180deg)';
@@ -202,13 +116,11 @@ bright.addEventListener('click', () => {
   }
 });
 
-// Style pour le défilement horizontal
 editor.style.overflowX = 'auto';
 textEditor.style.overflowX = 'auto';
 
-// Sauvegarde automatique
 setInterval(() => {
-  localStorage.setItem('code', editor.innerHTML);
+  localStorage.setItem('code', editor.innerText);
   localStorage.setItem('text', textEditor.innerHTML);
 }, 3000);
 
@@ -216,9 +128,15 @@ setInterval(() => {
 function checkEditorContent() {
   // Vérifie si le contenu est vide ou seulement des espaces
   if (editor.innerText.trim() === '') {
-    editor.innerHTML = '<span class="keyword-blue">void</span> <span class="keyword-orange">setup</span><span class="bracket-white">{</span>\n\n<span class="bracket-white">}</span>\n\n<span class="keyword-blue">void</span> <span class="keyword-orange">loop</span><span class="bracket-white">{</span>\n\n<span class="bracket-white">}</span>';
+    editor.innerText = "void setup() {\n    \n}\n\nvoid loop() {\n    \n}";
+
   }
 }
+
+// Déclenche à chaque modification du contenu
+editor.addEventListener('input', () => {
+  setTimeout(checkEditorContent, 100);
+});
 
 // Vérifie aussi au chargement initial
 window.addEventListener('load', () => {
@@ -226,27 +144,9 @@ window.addEventListener('load', () => {
     !localStorage.getItem('code') ||
     localStorage.getItem('code').trim() === ''
   ) {
-    editor.innerHTML = '<span class="keyword-blue">void</span> <span class="keyword-orange">setup</span><span class="bracket-white">{</span>\n\n<span class="bracket-white">}</span>\n\n<span class="keyword-blue">void</span> <span class="keyword-orange">loop</span><span class="bracket-white">{</span>\n\n<span class="bracket-white">}</span>';
-  } else {
-    // Appliquer la coloration au contenu existant
-    colorizeArduinoCode();
+    editor.innerText = "void setup() {\n\n}";
   }
 });
 
-// Ajouter les styles CSS pour la coloration
-const style = document.createElement('style');
-style.textContent = `
-  .keyword-blue {
-    color: #4dabf7;
-    font-weight: bold;
-  }
-  .keyword-orange {
-    color: #ff922b;
-    font-weight: bold;
-  }
-  .bracket-white {
-    color: #ffffff;
-    font-weight: bold;
-  }
-`;
-document.head.appendChild(style);
+
+

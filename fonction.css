@@ -1,8 +1,5 @@
 
-        
-
-        
-        .container {
+        .fonctioncontainer {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -10,9 +7,8 @@
             width: 400px;
             height: 600px;
             display: flex;
-            top: 15px; 
-            left: 300px;
-       
+            justify-content: flex-start;
+            align-items: flex-start;
         }
         
         .main-button {

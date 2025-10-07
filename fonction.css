@@ -34,7 +34,7 @@
             cursor: pointer;
             position: absolute;
             top: 20px;
-            left: 50px;
+            left: 400px;
             border: 2px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             z-index: 5;
@@ -61,7 +61,7 @@
             width: 240px;
             height: 40px;
             border-radius: 25px;
-            left: 50px;
+            left: 400px;
             top: 20px;
         }
         
@@ -74,7 +74,7 @@
             width: 320px;
             height: 430px;
             top: 20px;
-            left: 40px;
+            left: 400px;
             border-radius: 25px;
             transform-origin: top center;
             overflow-y: auto;
@@ -85,7 +85,7 @@
             width: 320px;
             height: 430px;
             top: 20px;
-            left: 40px;
+            left: 400px;
             border-radius: 25px;
             transform-origin: top center;
             overflow-y: auto;
@@ -96,7 +96,7 @@
             width: 320px;
             height: 480px;
             top: 20px;
-            left: 40px;
+            left: 400px;
             border-radius: 25px;
             transform-origin: top center;
             overflow-y: auto;
@@ -110,7 +110,7 @@
             align-items: center;
             width: 200px;
             left: 70px;
-            top: 20px;
+            top: 400px;
             z-index: 10;
             opacity: 0;
             visibility: hidden;

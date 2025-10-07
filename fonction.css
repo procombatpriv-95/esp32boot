@@ -1,9 +1,19 @@
+.fonctioncontainer,
+.fonctioncontainer *,
+.fonctioncontainer *::before,
+.fonctioncontainer *::after {
+    box-sizing: border-box;
+}
+        
+        body {
+            background-color: white;
 
+        }
+        
         .fonctioncontainer {
+            margin: 0;
+            padding: 0;
 
-            box-sizing: border-box;
-            top:15px; 
-            margin-left: 255px;
             position: relative;
             width: 400px;
             height: 600px;
@@ -13,6 +23,8 @@
         }
         
         .main-button {
+
+            font-family: Arial, sans-serif;
             width: 30px;
             height: 30px;
             border-radius: 50%;

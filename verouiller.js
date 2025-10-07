@@ -1,5 +1,5 @@
     const correctUser = "pw";
-    const correctPass = "Codeurx95";
+    const correctPass = "Codeurm95";
 
     let inactivityTimer;
     const lockScreen = document.getElementById("lock-screen");

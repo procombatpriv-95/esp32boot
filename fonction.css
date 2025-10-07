@@ -3,6 +3,8 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            top:15px; 
+            margin-left: 255px;
             position: relative;
             width: 400px;
             height: 600px;
@@ -13,8 +15,6 @@
         
         .main-button {
             width: 30px;
-            top:21px; 
-            margin-left: 270px;
             height: 30px;
             border-radius: 50%;
             background-color: rgba(17, 18, 22, 0.5);

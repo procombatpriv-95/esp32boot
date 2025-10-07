@@ -1,7 +1,6 @@
 
         .fonctioncontainer {
-            bottom:21px; 
-            margin-left: 255px;"
+
             box-sizing: border-box;
             position: relative;
             width: 400px;
@@ -13,6 +12,8 @@
         
         .main-button {
             width: 30px;
+            top:21px; 
+            margin-left: 270px;
             height: 30px;
             border-radius: 50%;
             background-color: rgba(17, 18, 22, 0.5);

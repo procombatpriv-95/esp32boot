@@ -1,4 +1,4 @@
-        .boursecontainer{
+        .boursecontainer {
             position: relative;
             align-items: center;
             max-width: 700px;
@@ -6,6 +6,7 @@
             height: auto;
             font-family: Arial, sans-serif;
         }
+        
         .stats-container {
             display: flex;
             justify-content: space-between;
@@ -13,6 +14,7 @@
             margin-top: 20px;
             gap: 10px;
         }
+        
         .stat-box {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
@@ -24,23 +26,28 @@
             flex-direction: column;
             justify-content: center;
         }
+        
         .stat-title {
             font-size: 12px;
             color: #888;
             margin-bottom: 8px;
         }
+        
         .stat-value {
             font-size: 16px;
             font-weight: bold;
             color: #39d353;
         }
+        
         .stat-change {
             font-size: 12px;
             margin-top: 5px;
         }
+        
         .positive {
             color: #39d353;
         }
+        
         .negative {
             color: #ff6b6b;
         }
@@ -79,7 +86,6 @@
 
         /* BOUTON FREEZE ACTIF */
         .canvas-btn.freeze-btn.active {
-
             background-color: deepskyblue;
         }
 
@@ -94,4 +100,16 @@
         .canvas-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 0 15px rgba(0,0,0,0.7);
+        }
+        
+        /* Style pour le canvas avec déplacement */
+        .canvas-draggable {
+            cursor: move;
+            user-select: none;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .canvas-draggable.dragging {
+            cursor: grabbing;
         }

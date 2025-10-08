@@ -1,5 +1,6 @@
         window.addEventListener("load", () => {
             const canvas = document.getElementById("bourse");
+            const canvasContainer = document.getElementById('canvasContainer');
             
             // Références aux éléments des statistiques
             const todayAvgEl = document.getElementById("todayAvg");
@@ -37,6 +38,93 @@
             let fixedWeekAvg = null;
             let fixedMonthAvg = null;
             let fixedSixMonthsAvg = null;
+
+            // === FONCTIONS POUR LE DRAG AND DROP DU CANVAS ===
+            function initCanvasDrag() {
+                let isDragging = false;
+                let startX, startY;
+                let startLeft, startTop;
+                
+                canvasContainer.addEventListener('mousedown', startDrag);
+                canvasContainer.addEventListener('touchstart', startDragTouch);
+                
+                function startDrag(e) {
+                    // Ne pas démarrer le drag si on clique sur un bouton
+                    if (e.target.classList.contains('canvas-btn')) {
+                        return;
+                    }
+                    
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    
+                    // Sauvegarder la position initiale
+                    const rect = canvasContainer.getBoundingClientRect();
+                    startLeft = parseInt(canvasContainer.style.left) || 0;
+                    startTop = parseInt(canvasContainer.style.top) || 0;
+                    
+                    canvasContainer.classList.add('dragging');
+                    document.addEventListener('mousemove', onDrag);
+                    document.addEventListener('mouseup', stopDrag);
+                    e.preventDefault();
+                }
+                
+                function startDragTouch(e) {
+                    if (e.touches.length === 1) {
+                        // Ne pas démarrer le drag si on clique sur un bouton
+                        const touch = e.touches[0];
+                        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                        if (element && element.classList.contains('canvas-btn')) {
+                            return;
+                        }
+                        
+                        isDragging = true;
+                        startX = touch.clientX;
+                        startY = touch.clientY;
+                        
+                        const rect = canvasContainer.getBoundingClientRect();
+                        startLeft = parseInt(canvasContainer.style.left) || 0;
+                        startTop = parseInt(canvasContainer.style.top) || 0;
+                        
+                        canvasContainer.classList.add('dragging');
+                        document.addEventListener('touchmove', onDragTouch);
+                        document.addEventListener('touchend', stopDrag);
+                        e.preventDefault();
+                    }
+                }
+                
+                function onDrag(e) {
+                    if (!isDragging) return;
+                    
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    
+                    // Déplacer le container avec le canvas et les boutons
+                    canvasContainer.style.position = 'relative';
+                    canvasContainer.style.left = (startLeft + dx) + 'px';
+                    canvasContainer.style.top = (startTop + dy) + 'px';
+                }
+                
+                function onDragTouch(e) {
+                    if (!isDragging || e.touches.length !== 1) return;
+                    
+                    const dx = e.touches[0].clientX - startX;
+                    const dy = e.touches[0].clientY - startY;
+                    
+                    canvasContainer.style.position = 'relative';
+                    canvasContainer.style.left = (startLeft + dx) + 'px';
+                    canvasContainer.style.top = (startTop + dy) + 'px';
+                }
+                
+                function stopDrag() {
+                    isDragging = false;
+                    canvasContainer.classList.remove('dragging');
+                    document.removeEventListener('mousemove', onDrag);
+                    document.removeEventListener('touchmove', onDragTouch);
+                    document.removeEventListener('mouseup', stopDrag);
+                    document.removeEventListener('touchend', stopDrag);
+                }
+            }
 
             // === FONCTIONS POUR LES BOUTONS ===
             function initControls() {
@@ -414,17 +502,8 @@
 
             // Connexion WebSocket pour les vraies données
             function connectWebSocket() {
-                const ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
-                
-                ws.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    const price = parseFloat(data.p);
-                    currentPrice = price;
-                };
-                
-                ws.onerror = (error) => {
-                    console.error("Erreur WebSocket, utilisation des données simulées");
-                };
+                // Simulation WebSocket - désactivée pour l'exemple
+                console.log("Connexion WebSocket simulée");
             }
 
             // Initialisation
@@ -434,4 +513,5 @@
             connectWebSocket();
             startCountdown();
             initControls(); // Initialiser les boutons
+            initCanvasDrag(); // Initialiser le drag du canvas
         });

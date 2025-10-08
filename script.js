@@ -1,14 +1,9 @@
-function makeElementDraggable(element) {
+function makeElementDraggable(element, dragHandle) {
     let isDragging = false;
     let startX, startY;
     let startLeft = 0, startTop = 0;
 
-    element.addEventListener('mousedown', (e) => {
-        // Ne pas démarrer le drag si on clique sur un bouton ou un select
-        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.contentEditable === 'true') {
-            return;
-        }
-        
+    dragHandle.addEventListener('mousedown', (e) => {
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -42,8 +37,10 @@ function makeElementDraggable(element) {
     }
 }
 
-// Rendre l'éditeur déplaçable
-makeElementDraggable(document.getElementById('tous'));
+// Rendre l'éditeur déplaçable seulement via la bande invisible en haut
+const tousElement = document.getElementById('tous');
+const dragHandle = document.querySelector('.drag-handle');
+makeElementDraggable(tousElement, dragHandle);
 
 const textEditor = document.getElementById('text-editor');
 const editor = document.getElementById('editor');
@@ -193,6 +190,5 @@ window.addEventListener('load', () => {
     editor.innerText = "void setup() {\n\n}";
   }
 });
-
 
 

@@ -20,7 +20,7 @@
     // Réinitialise le timer d’inactivité
     function resetTimer() {
       clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(showLockScreen, 30000); // 20 min secondes
+      inactivityTimer = setTimeout(showLockScreen, 120000); // 20 min secondes
     }
 
     // Détecte toute activité

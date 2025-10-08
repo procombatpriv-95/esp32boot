@@ -1,47 +1,3 @@
-function makeElementDraggable(element, dragHandle) {
-    let isDragging = false;
-    let startX, startY;
-    let startLeft = 0, startTop = 0;
-
-    dragHandle.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        
-        // Récupérer la position actuelle
-        startLeft = parseInt(element.style.left) || 0;
-        startTop = parseInt(element.style.top) || 0;
-        
-        element.classList.add('dragging');
-        document.addEventListener('mousemove', onDrag);
-        document.addEventListener('mouseup', stopDrag);
-        e.preventDefault();
-    });
-
-    function onDrag(e) {
-        if (!isDragging) return;
-        
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        
-        element.style.position = 'relative';
-        element.style.left = (startLeft + dx) + 'px';
-        element.style.top = (startTop + dy) + 'px';
-    }
-
-    function stopDrag() {
-        isDragging = false;
-        element.classList.remove('dragging');
-        document.removeEventListener('mousemove', onDrag);
-        document.removeEventListener('mouseup', stopDrag);
-    }
-}
-
-// Rendre l'éditeur déplaçable seulement via la bande invisible en haut
-const tousElement = document.getElementById('tous');
-const dragHandle = document.querySelector('.drag-handle');
-makeElementDraggable(tousElement, dragHandle);
-
 const textEditor = document.getElementById('text-editor');
 const editor = document.getElementById('editor');
 const bleft = document.getElementById('bleft');
@@ -173,6 +129,7 @@ function checkEditorContent() {
   // Vérifie si le contenu est vide ou seulement des espaces
   if (editor.innerText.trim() === '') {
     editor.innerText = "void setup() {\n    \n}\n\nvoid loop() {\n    \n}";
+
   }
 }
 
@@ -190,5 +147,4 @@ window.addEventListener('load', () => {
     editor.innerText = "void setup() {\n\n}";
   }
 });
-
 

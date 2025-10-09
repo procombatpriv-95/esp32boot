@@ -1,164 +1,161 @@
-const notemove = document.getElementById('notemove');
-const contentArea = document.getElementById('contentArea');
-const wordInput = document.getElementById('wordInput');
-const freezeBtn = document.getElementById('freezeBtn');
-const inputnote = document.getElementById('inputnote');
-const noteContain = document.querySelector('.notecontain');
-let savedWords = JSON.parse(localStorage.getItem('protocolWords') || '[]');
-let isExpanded = false;
-let isDragging = false;
-let isFrozen = false;
-let dragOffset = { x: 0, y: 0 };
-let hasDragged = false;
+const specialNotemove = document.getElementById('special-notemove');
+const specialContentArea = document.getElementById('special-contentArea');
+const specialWordInput = document.getElementById('special-wordInput');
+const specialFreezeBtn = document.getElementById('special-freezeBtn');
+const specialInputnote = document.getElementById('special-inputnote');
+const specialNoteContain = document.querySelector('.special-note-container');
+let specialSavedWords = JSON.parse(localStorage.getItem('specialProtocolWords') || '[]');
+let specialIsExpanded = false;
+let specialIsDragging = false;
+let specialIsFrozen = false;
+let specialDragOffset = { x: 0, y: 0 };
+let specialHasDragged = false;
 
-renderWords();
+specialRenderWords();
 
 // Ouvrir en cliquant sur le bouton N
-notemove.addEventListener('click', (e) => {
-  if (hasDragged || e.target.id === 'resetBtn' || e.target.id === 'freezeBtn') {
-    hasDragged = false;
+specialNotemove.addEventListener('click', (e) => {
+  if (specialHasDragged || e.target.id === 'special-resetBtn' || e.target.id === 'special-freezeBtn') {
+    specialHasDragged = false;
     return;
   }
   
-  if (!isExpanded) {
-    notemove.classList.add('expanded');
-    isExpanded = true;
-    renderWords();
+  if (!specialIsExpanded) {
+    specialNotemove.classList.add('special-expanded');
+    specialIsExpanded = true;
+    specialRenderWords();
   } else {
-    if (!isFrozen) {
-      closeMenu();
+    if (!specialIsFrozen) {
+      specialCloseMenu();
     }
   }
 });
 
 // Gestion du bouton freeze
-freezeBtn.addEventListener('click', (e) => {
+specialFreezeBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   
-  isFrozen = !isFrozen;
-  freezeBtn.classList.toggle('active');
+  specialIsFrozen = !specialIsFrozen;
+  specialFreezeBtn.classList.toggle('special-active');
   
-  if (isFrozen) {
-    notemove.classList.add('frozen');
+  if (specialIsFrozen) {
+    specialNotemove.classList.add('special-frozen');
   } else {
-    notemove.classList.remove('frozen');
+    specialNotemove.classList.remove('special-frozen');
   }
 });
 
 // Fonction pour fermer le menu
-function closeMenu() {
-  noteContain.classList.add('closing');
+function specialCloseMenu() {
+  specialNoteContain.classList.add('special-closing');
   
   setTimeout(() => {
-    notemove.classList.remove('expanded');
-    isExpanded = false;
-    isFrozen = false;
-    freezeBtn.classList.remove('active');
-    notemove.classList.remove('frozen');
-    renderWords();
+    specialNotemove.classList.remove('special-expanded');
+    specialIsExpanded = false;
+    specialIsFrozen = false;
+    specialFreezeBtn.classList.remove('special-active');
+    specialNotemove.classList.remove('special-frozen');
+    specialRenderWords();
     
     setTimeout(() => {
-      noteContain.classList.remove('closing');
+      specialNoteContain.classList.remove('special-closing');
     }, 500);
   }, 50);
 }
 
 // Fermer le menu quand on clique en dehors
 document.addEventListener('click', (e) => {
-  if (isExpanded && !isFrozen && !notemove.contains(e.target) && e.target !== inputnote && !inputnote.contains(e.target)) {
-    closeMenu();
+  if (specialIsExpanded && !specialIsFrozen && !specialNotemove.contains(e.target) && e.target !== specialInputnote && !specialInputnote.contains(e.target)) {
+    specialCloseMenu();
   }
 });
 
 // Gestion de la saisie
-wordInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && wordInput.value.trim() !== '') {
-    savedWords.push(wordInput.value.trim());
-    wordInput.value = '';
-    saveAndRender();
+specialWordInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && specialWordInput.value.trim() !== '') {
+    specialSavedWords.push(specialWordInput.value.trim());
+    specialWordInput.value = '';
+    specialSaveAndRender();
   }
 });
 
-function saveAndRender() {
-  localStorage.setItem('protocolWords', JSON.stringify(savedWords));
-  renderWords();
+function specialSaveAndRender() {
+  localStorage.setItem('specialProtocolWords', JSON.stringify(specialSavedWords));
+  specialRenderWords();
 }
 
-function renderWords() {
-  if (isExpanded) {
-    contentArea.innerHTML = savedWords.map(w => `• ${w}`).join('<br>');
+function specialRenderWords() {
+  if (specialIsExpanded) {
+    specialContentArea.innerHTML = specialSavedWords.map(w => `• ${w}`).join('<br>');
   } else {
-    contentArea.innerHTML = '';
+    specialContentArea.innerHTML = '';
   }
   
-  document.getElementById('resetBtn').onclick = (e) => {
+  document.getElementById('special-resetBtn').onclick = (e) => {
     e.stopPropagation();
-    savedWords = [];
-    saveAndRender();
+    specialSavedWords = [];
+    specialSaveAndRender();
   };
 }
 
 // Système de déplacement
-let dragStartFrozenState = false;
+let specialDragStartFrozenState = false;
 
-function startDrag(e) {
-  if (!isExpanded || (isExpanded && isFrozen)) {
-    if (e.target === wordInput) {
+function specialStartDrag(e) {
+  if (!specialIsExpanded || (specialIsExpanded && specialIsFrozen)) {
+    if (e.target === specialWordInput) {
       return;
     }
     
-    dragStartFrozenState = isFrozen;
-    hasDragged = false;
-    isDragging = true;
-    const noteContain = document.querySelector('.notecontain');
+    specialDragStartFrozenState = specialIsFrozen;
+    specialHasDragged = false;
+    specialIsDragging = true;
     
-    const rect = noteContain.getBoundingClientRect();
-    dragOffset.x = e.clientX - rect.left;
-    dragOffset.y = e.clientY - rect.top;
+    const rect = specialNoteContain.getBoundingClientRect();
+    specialDragOffset.x = e.clientX - rect.left;
+    specialDragOffset.y = e.clientY - rect.top;
     
-    noteContain.classList.add('dragging');
-    document.addEventListener('mousemove', doDrag);
-    document.addEventListener('mouseup', stopDrag);
+    specialNoteContain.classList.add('special-dragging');
+    document.addEventListener('mousemove', specialDoDrag);
+    document.addEventListener('mouseup', specialStopDrag);
     
     e.preventDefault();
   }
 }
 
-function doDrag(e) {
-  if (!isDragging) return;
+function specialDoDrag(e) {
+  if (!specialIsDragging) return;
   
-  const noteContain = document.querySelector('.notecontain');
-  noteContain.style.left = (e.clientX - dragOffset.x) + 'px';
-  noteContain.style.top = (e.clientY - dragOffset.y) + 'px';
-  noteContain.style.marginLeft = '0';
-  noteContain.style.bottom = 'auto';
+  specialNoteContain.style.left = (e.clientX - specialDragOffset.x) + 'px';
+  specialNoteContain.style.top = (e.clientY - specialDragOffset.y) + 'px';
+  specialNoteContain.style.marginLeft = '0';
+  specialNoteContain.style.bottom = 'auto';
   
   if (Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3) {
-    hasDragged = true;
+    specialHasDragged = true;
   }
 }
 
-function stopDrag(e) {
-  if (!isDragging) return;
+function specialStopDrag(e) {
+  if (!specialIsDragging) return;
   
-  isDragging = false;
-  const noteContain = document.querySelector('.notecontain');
-  noteContain.classList.remove('dragging');
-  document.removeEventListener('mousemove', doDrag);
-  document.removeEventListener('mouseup', stopDrag);
+  specialIsDragging = false;
+  specialNoteContain.classList.remove('special-dragging');
+  document.removeEventListener('mousemove', specialDoDrag);
+  document.removeEventListener('mouseup', specialStopDrag);
   
-  if (isExpanded && !dragStartFrozenState && !isFrozen) {
-    if (!notemove.contains(e.target) && e.target !== inputnote && !inputnote.contains(e.target)) {
-      closeMenu();
+  if (specialIsExpanded && !specialDragStartFrozenState && !specialIsFrozen) {
+    if (!specialNotemove.contains(e.target) && e.target !== specialInputnote && !specialInputnote.contains(e.target)) {
+      specialCloseMenu();
     }
   }
 }
 
 // Événements de déplacement
-notemove.addEventListener('mousedown', startDrag);
-contentArea.addEventListener('mousedown', startDrag);
+specialNotemove.addEventListener('mousedown', specialStartDrag);
+specialContentArea.addEventListener('mousedown', specialStartDrag);
 
 // Empêcher le déplacement sur l'input et boutons
-wordInput.addEventListener('mousedown', (e) => e.stopPropagation());
-document.getElementById('resetBtn').addEventListener('mousedown', (e) => e.stopPropagation());
-freezeBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+specialWordInput.addEventListener('mousedown', (e) => e.stopPropagation());
+document.getElementById('special-resetBtn').addEventListener('mousedown', (e) => e.stopPropagation());
+specialFreezeBtn.addEventListener('mousedown', (e) => e.stopPropagation());

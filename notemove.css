@@ -1,7 +1,12 @@
-
+  .special-note-container {
+    width: 220px;
+    position: absolute;
+    user-select: none;
+    z-index: 10000;
+  }
 
   /* Le bouton N de 50px qui s'élargit */
-  #notemove {
+  #special-notemove {
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -23,14 +28,14 @@
   }
 
   /* Effet hover sur le bouton N */
-  #notemove:hover:not(.expanded) {
+  #special-notemove:hover:not(.special-expanded) {
     transform: scale(1.1);
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     background-color: rgba(17,18,22,0.7);
   }
 
   /* Container étendu - animation avec bounce */
-  #notemove.expanded {
+  #special-notemove.special-expanded {
     width: 200px;
     height: 300px;
     border-radius: 30px;
@@ -40,11 +45,11 @@
     transform: scale(1);
     box-shadow: 0 5px 20px rgba(0,0,0,0.4);
     transform-origin: bottom center;
-    animation: expandBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: special-expandBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 
   /* Animation bounce vers le bas */
-  @keyframes expandBounce {
+  @keyframes special-expandBounce {
     0% {
       width: 30px;
       height: 30px;
@@ -77,18 +82,17 @@
   }
 
   /* Animation de fermeture - TOUT EN MÊME TEMPS */
-  .closing #notemove {
-    animation: shrinkInstant 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  .special-closing #special-notemove {
+    animation: special-shrinkInstant 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 
-  @keyframes shrinkInstant {
+  @keyframes special-shrinkInstant {
     0% {
       width: 200px;
       height: 300px;
       border-radius: 30px;
     }
     10% {
-      /* Rétrécissement instantané */
       width: 30px;
       height: 30px;
       border-radius: 50%;
@@ -112,35 +116,35 @@
   }
 
   /* Cacher les boutons et contenu pendant la fermeture */
-  .closing #resetBtn,
-  .closing #freezeBtn,
-  .closing .content-area {
+  .special-closing #special-resetBtn,
+  .special-closing #special-freezeBtn,
+  .special-closing .special-content-area {
     display: none !important;
   }
 
   /* Cacher l'input pendant la fermeture */
-  .closing + #inputnote {
+  .special-closing + #special-inputnote {
     display: none !important;
   }
 
   /* Effet hover sur le container étendu */
-  #notemove.expanded:hover {
+  #special-notemove.special-expanded:hover {
     box-shadow: 0 8px 25px rgba(0,0,0,0.5);
     background-color: rgba(17,18,22,0.7);
   }
 
   /* Le texte "N" au centre quand fermé */
-  .n-text {
+  .special-n-text {
     font-size: 20px;
     font-weight: bold;
     transition: transform 0.2s ease;
   }
 
-  #notemove.expanded .n-text {
+  #special-notemove.special-expanded .special-n-text {
     display: none;
   }
 
-  #resetBtn {
+  #special-resetBtn {
     position: absolute;
     top: 8px;
     left: 8px;
@@ -163,13 +167,13 @@
     transform: scale(0);
   }
 
-  #notemove.expanded #resetBtn {
+  #special-notemove.special-expanded #special-resetBtn {
     display: block;
-    animation: buttonBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
+    animation: special-buttonBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
   }
 
   /* Animation bouton avec bounce */
-  @keyframes buttonBounce {
+  @keyframes special-buttonBounce {
     0% {
       transform: scale(0);
       opacity: 0;
@@ -191,13 +195,13 @@
   }
 
   /* Effet hover sur le bouton reset */
-  #resetBtn:hover {
+  #special-resetBtn:hover {
     transform: scale(1.15);
     background: rgba(255,255,255,0.2);
     box-shadow: 0 3px 8px rgba(0,0,0,0.3);
   }
 
-  #freezeBtn {
+  #special-freezeBtn {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -220,27 +224,27 @@
     transform: scale(0);
   }
 
-  #freezeBtn.active {
+  #special-freezeBtn.special-active {
     background: rgba(255, 0, 0, 0.5) !important;
   }
 
-  #notemove.expanded #freezeBtn {
+  #special-notemove.special-expanded #special-freezeBtn {
     display: block;
-    animation: buttonBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s forwards;
+    animation: special-buttonBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s forwards;
   }
 
   /* Effet hover sur le bouton freeze */
-  #freezeBtn:hover {
+  #special-freezeBtn:hover {
     transform: scale(1.15);
     background: rgba(255,255,255,0.2);
     box-shadow: 0 3px 8px rgba(0,0,0,0.3);
   }
 
-  #freezeBtn.active:hover {
+  #special-freezeBtn.special-active:hover {
     background: rgba(255, 0, 0, 0.7) !important;
   }
 
-  .content-area {
+  .special-content-area {
     width: 100%;
     height: calc(100% - 40px);
     margin-top: 40px;
@@ -250,13 +254,13 @@
     transform: translateY(10px);
   }
 
-  #notemove.expanded .content-area {
+  #special-notemove.special-expanded .special-content-area {
     display: block;
-    animation: contentBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards;
+    animation: special-contentBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards;
   }
 
   /* Animation contenu avec bounce */
-  @keyframes contentBounce {
+  @keyframes special-contentBounce {
     0% {
       opacity: 0;
       transform: translateY(20px);
@@ -274,7 +278,7 @@
     }
   }
 
-  #inputnote {
+  #special-inputnote {
     margin-top: 10px;
     margin-left: 10px;
     width: 200px;
@@ -283,13 +287,13 @@
     transform: translateY(20px) scale(0.9);
   }
 
-  #notemove.expanded + #inputnote {
+  #special-notemove.special-expanded + #special-inputnote {
     display: block;
-    animation: inputBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards;
+    animation: special-inputBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards;
   }
 
   /* Animation input avec bounce */
-  @keyframes inputBounce {
+  @keyframes special-inputBounce {
     0% {
       opacity: 0;
       transform: translateY(20px) scale(0.9);
@@ -311,11 +315,11 @@
   }
 
   /* Effet hover sur la zone input */
-  #inputnote:hover {
+  #special-inputnote:hover {
     transform: scale(1.02);
   }
 
-  #inputnote input {
+  #special-inputnote input {
     width: 100%;
     padding: 10px;
     height: 50px;
@@ -333,29 +337,29 @@
   }
 
   /* Effet hover sur l'input */
-  #inputnote input:hover {
+  #special-inputnote input:hover {
     transform: scale(1.02);
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     background-color: rgba(17,18,22,0.7);
   }
 
-  #inputnote input:focus {
+  #special-inputnote input:focus {
     outline: none;
     transform: scale(1.03);
     box-shadow: 0 5px 15px rgba(0,0,0,0.4);
     background-color: rgba(17,18,22,0.8);
   }
 
-  .dragging {
+  .special-dragging {
     opacity: 0.8;
   }
 
   /* Curseur pour le déplacement quand freeze est activé */
-  #notemove.expanded.frozen {
+  #special-notemove.special-expanded.special-frozen {
     cursor: move;
   }
 
   /* Effet sur tout le container quand on hover */
-  .notecontain:hover #notemove:not(.expanded) {
+  .special-note-container:hover #special-notemove:not(.special-expanded) {
     transform: scale(1.1);
   }

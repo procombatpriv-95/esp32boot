@@ -1,161 +1,359 @@
-const specialNotemove = document.getElementById('special-notemove');
-const specialContentArea = document.getElementById('special-contentArea');
-const specialWordInput = document.getElementById('special-wordInput');
-const specialFreezeBtn = document.getElementById('special-freezeBtn');
-const specialInputnote = document.getElementById('special-inputnote');
-const specialNoteContain = document.querySelector('.special-note-container');
-let specialSavedWords = JSON.parse(localStorage.getItem('specialProtocolWords') || '[]');
-let specialIsExpanded = false;
-let specialIsDragging = false;
-let specialIsFrozen = false;
-let specialDragOffset = { x: 0, y: 0 };
-let specialHasDragged = false;
 
-specialRenderWords();
-
-// Ouvrir en cliquant sur le bouton N
-specialNotemove.addEventListener('click', (e) => {
-  if (specialHasDragged || e.target.id === 'special-resetBtn' || e.target.id === 'special-freezeBtn') {
-    specialHasDragged = false;
-    return;
+  #notemove {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #111216;
+    background-color: rgba(17,18,22,0.5);
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    transform: scale(1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transform-origin: bottom center;
   }
-  
-  if (!specialIsExpanded) {
-    specialNotemove.classList.add('special-expanded');
-    specialIsExpanded = true;
-    specialRenderWords();
-  } else {
-    if (!specialIsFrozen) {
-      specialCloseMenu();
+
+  /* Effet hover sur le bouton N */
+  #notemove:hover:not(.expanded) {
+    transform: scale(1.1);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    background-color: rgba(17,18,22,0.7);
+  }
+
+  /* Container étendu - animation avec bounce */
+  #notemove.expanded {
+    width: 200px;
+    height: 300px;
+    border-radius: 30px;
+    padding: 10px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    transform: scale(1);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+    transform-origin: bottom center;
+    animation: expandBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* Animation bounce vers le bas */
+  @keyframes expandBounce {
+    0% {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      transform: scale(0.8);
+    }
+    30% {
+      width: 220px;
+      height: 320px;
+      border-radius: 35px;
+      transform: scale(1.05);
+    }
+    50% {
+      width: 190px;
+      height: 290px;
+      border-radius: 28px;
+      transform: scale(0.98);
+    }
+    70% {
+      width: 205px;
+      height: 305px;
+      border-radius: 30px;
+      transform: scale(1.02);
+    }
+    100% {
+      width: 200px;
+      height: 300px;
+      border-radius: 30px;
     }
   }
-});
 
-// Gestion du bouton freeze
-specialFreezeBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  
-  specialIsFrozen = !specialIsFrozen;
-  specialFreezeBtn.classList.toggle('special-active');
-  
-  if (specialIsFrozen) {
-    specialNotemove.classList.add('special-frozen');
-  } else {
-    specialNotemove.classList.remove('special-frozen');
+  /* Animation de fermeture - TOUT EN MÊME TEMPS */
+  .closing #notemove {
+    animation: shrinkInstant 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
-});
 
-// Fonction pour fermer le menu
-function specialCloseMenu() {
-  specialNoteContain.classList.add('special-closing');
-  
-  setTimeout(() => {
-    specialNotemove.classList.remove('special-expanded');
-    specialIsExpanded = false;
-    specialIsFrozen = false;
-    specialFreezeBtn.classList.remove('special-active');
-    specialNotemove.classList.remove('special-frozen');
-    specialRenderWords();
-    
-    setTimeout(() => {
-      specialNoteContain.classList.remove('special-closing');
-    }, 500);
-  }, 50);
-}
-
-// Fermer le menu quand on clique en dehors
-document.addEventListener('click', (e) => {
-  if (specialIsExpanded && !specialIsFrozen && !specialNotemove.contains(e.target) && e.target !== specialInputnote && !specialInputnote.contains(e.target)) {
-    specialCloseMenu();
-  }
-});
-
-// Gestion de la saisie
-specialWordInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && specialWordInput.value.trim() !== '') {
-    specialSavedWords.push(specialWordInput.value.trim());
-    specialWordInput.value = '';
-    specialSaveAndRender();
-  }
-});
-
-function specialSaveAndRender() {
-  localStorage.setItem('specialProtocolWords', JSON.stringify(specialSavedWords));
-  specialRenderWords();
-}
-
-function specialRenderWords() {
-  if (specialIsExpanded) {
-    specialContentArea.innerHTML = specialSavedWords.map(w => `• ${w}`).join('<br>');
-  } else {
-    specialContentArea.innerHTML = '';
-  }
-  
-  document.getElementById('special-resetBtn').onclick = (e) => {
-    e.stopPropagation();
-    specialSavedWords = [];
-    specialSaveAndRender();
-  };
-}
-
-// Système de déplacement
-let specialDragStartFrozenState = false;
-
-function specialStartDrag(e) {
-  if (!specialIsExpanded || (specialIsExpanded && specialIsFrozen)) {
-    if (e.target === specialWordInput) {
-      return;
+  @keyframes shrinkInstant {
+    0% {
+      width: 200px;
+      height: 300px;
+      border-radius: 30px;
     }
-    
-    specialDragStartFrozenState = specialIsFrozen;
-    specialHasDragged = false;
-    specialIsDragging = true;
-    
-    const rect = specialNoteContain.getBoundingClientRect();
-    specialDragOffset.x = e.clientX - rect.left;
-    specialDragOffset.y = e.clientY - rect.top;
-    
-    specialNoteContain.classList.add('special-dragging');
-    document.addEventListener('mousemove', specialDoDrag);
-    document.addEventListener('mouseup', specialStopDrag);
-    
-    e.preventDefault();
-  }
-}
-
-function specialDoDrag(e) {
-  if (!specialIsDragging) return;
-  
-  specialNoteContain.style.left = (e.clientX - specialDragOffset.x) + 'px';
-  specialNoteContain.style.top = (e.clientY - specialDragOffset.y) + 'px';
-  specialNoteContain.style.marginLeft = '0';
-  specialNoteContain.style.bottom = 'auto';
-  
-  if (Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3) {
-    specialHasDragged = true;
-  }
-}
-
-function specialStopDrag(e) {
-  if (!specialIsDragging) return;
-  
-  specialIsDragging = false;
-  specialNoteContain.classList.remove('special-dragging');
-  document.removeEventListener('mousemove', specialDoDrag);
-  document.removeEventListener('mouseup', specialStopDrag);
-  
-  if (specialIsExpanded && !specialDragStartFrozenState && !specialIsFrozen) {
-    if (!specialNotemove.contains(e.target) && e.target !== specialInputnote && !specialInputnote.contains(e.target)) {
-      specialCloseMenu();
+    10% {
+      /* Rétrécissement instantané */
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      transform: scale(0.9);
+    }
+    30% {
+      transform: scale(1.15);
+    }
+    50% {
+      transform: scale(0.95);
+    }
+    70% {
+      transform: scale(1.05);
+    }
+    100% {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      transform: scale(1);
     }
   }
-}
 
-// Événements de déplacement
-specialNotemove.addEventListener('mousedown', specialStartDrag);
-specialContentArea.addEventListener('mousedown', specialStartDrag);
+  /* Cacher les boutons et contenu pendant la fermeture */
+  .closing #resetBtn,
+  .closing #freezeBtn,
+  .closing .content-area {
+    display: none !important;
+  }
 
-// Empêcher le déplacement sur l'input et boutons
-specialWordInput.addEventListener('mousedown', (e) => e.stopPropagation());
-document.getElementById('special-resetBtn').addEventListener('mousedown', (e) => e.stopPropagation());
-specialFreezeBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+  /* Cacher l'input pendant la fermeture */
+  .closing + #inputnote {
+    display: none !important;
+  }
+
+  /* Effet hover sur le container étendu */
+  #notemove.expanded:hover {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    background-color: rgba(17,18,22,0.7);
+  }
+
+  /* Le texte "N" au centre quand fermé */
+  .n-text {
+    font-size: 20px;
+    font-weight: bold;
+    transition: transform 0.2s ease;
+  }
+
+  #notemove.expanded .n-text {
+    display: none;
+  }
+
+  #resetBtn {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 30px;
+    text-align: center;
+    display: none;
+    z-index: 10;
+    transition: all 0.2s ease;
+    transform: scale(0);
+  }
+
+  #notemove.expanded #resetBtn {
+    display: block;
+    animation: buttonBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
+  }
+
+  /* Animation bouton avec bounce */
+  @keyframes buttonBounce {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.3);
+      opacity: 1;
+    }
+    75% {
+      transform: scale(0.9);
+    }
+    90% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Effet hover sur le bouton reset */
+  #resetBtn:hover {
+    transform: scale(1.15);
+    background: rgba(255,255,255,0.2);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+  }
+
+  #freezeBtn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 30px;
+    text-align: center;
+    display: none;
+    z-index: 10;
+    transition: all 0.3s ease;
+    transform: scale(0);
+  }
+
+  #freezeBtn.active {
+    background: rgba(255, 0, 0, 0.5) !important;
+  }
+
+  #notemove.expanded #freezeBtn {
+    display: block;
+    animation: buttonBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s forwards;
+  }
+
+  /* Effet hover sur le bouton freeze */
+  #freezeBtn:hover {
+    transform: scale(1.15);
+    background: rgba(255,255,255,0.2);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+  }
+
+  #freezeBtn.active:hover {
+    background: rgba(255, 0, 0, 0.7) !important;
+  }
+
+  .content-area {
+    width: 100%;
+    height: calc(100% - 40px);
+    margin-top: 40px;
+    overflow-y: auto;
+    display: none;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  #notemove.expanded .content-area {
+    display: block;
+    animation: contentBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards;
+  }
+
+  /* Animation contenu avec bounce */
+  @keyframes contentBounce {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(-5px);
+    }
+    80% {
+      transform: translateY(3px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  #inputnote {
+    margin-top: 10px;
+    margin-left: 10px;
+    width: 200px;
+    display: none;
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+
+  #notemove.expanded + #inputnote {
+    display: block;
+    animation: inputBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards;
+  }
+
+  /* Animation input avec bounce */
+  @keyframes inputBounce {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.9);
+    }
+    50% {
+      opacity: 1;
+      transform: translateY(-8px) scale(1.05);
+    }
+    70% {
+      transform: translateY(4px) scale(0.98);
+    }
+    85% {
+      transform: translateY(-2px) scale(1.02);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Effet hover sur la zone input */
+  #inputnote:hover {
+    transform: scale(1.02);
+  }
+
+  #inputnote input {
+    width: 100%;
+    padding: 10px;
+    height: 50px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    background: #111216;
+    background-color: rgba(17,18,22,0.5);
+    color: #fff;
+    cursor: text;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+
+  /* Effet hover sur l'input */
+  #inputnote input:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    background-color: rgba(17,18,22,0.7);
+  }
+
+  #inputnote input:focus {
+    outline: none;
+    transform: scale(1.03);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+    background-color: rgba(17,18,22,0.8);
+  }
+
+  .dragging {
+    opacity: 0.8;
+  }
+
+  /* Curseur pour le déplacement quand freeze est activé */
+  #notemove.expanded.frozen {
+    cursor: move;
+  }
+
+  /* Effet sur tout le container quand on hover */
+  .notecontain:hover #notemove:not(.expanded) {
+    transform: scale(1.1);
+  }

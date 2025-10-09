@@ -1,8 +1,4 @@
-  .notecontain {
-    width: 220px;
-    position: absolute;
-    user-select: none;
-  }
+
 
   /* Le bouton N de 50px qui s'élargit */
   #notemove {

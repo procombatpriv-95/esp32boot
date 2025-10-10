@@ -1,76 +1,10 @@
-
-
-  const canvas = document.getElementById("echange");
+const canvas = document.getElementById("echange");
   const ctx = canvas.getContext("2d");
 
-  let rate = 0.85;
+  let rate = 0.85; // 1 EUR = 0.85 GBP par défaut
   let euroValue = "";
   let poundValue = "";
   let activeField = null;
-  
-  // Variables pour le drag & drop
-  let isDragging = false;
-  let dragOffsetX = 0;
-  let dragOffsetY = 0;
-  let canvasX = 20; // Position initiale X
-  let canvasY = 20; // Position initiale Y
-
-  // Appliquer la position initiale
-  canvas.style.left = canvasX + 'px';
-  canvas.style.top = canvasY + 'px';
-
-  // --- Gestion du Drag & Drop ---
-  canvas.addEventListener("mousedown", startDrag);
-  document.addEventListener("mousemove", drag);
-  document.addEventListener("mouseup", stopDrag);
-
-  function startDrag(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    // Vérifier si on clique sur un champ de saisie
-    const isEuroField = (x >= 50 && x <= 130 && y >= 65 && y <= 95);
-    const isPoundField = (x >= 170 && x <= 250 && y >= 65 && y <= 95);
-    
-    // Si on ne clique pas sur un champ de saisie, on active le drag
-    if (!isEuroField && !isPoundField) {
-      isDragging = true;
-      dragOffsetX = e.clientX - canvasX;
-      dragOffsetY = e.clientY - canvasY;
-      canvas.style.cursor = "grabbing";
-      e.preventDefault(); // Empêcher la sélection de texte
-    } else {
-      // Gestion normale des clics sur les champs
-      if (isEuroField) {
-        activeField = "euro";
-      } else if (isPoundField) {
-        activeField = "pound";
-      }
-      drawUI();
-    }
-  }
-
-  function drag(e) {
-    if (!isDragging) return;
-    
-    canvasX = e.clientX - dragOffsetX;
-    canvasY = e.clientY - dragOffsetY;
-    
-    // Limiter le déplacement dans la fenêtre
-    canvasX = Math.max(0, Math.min(canvasX, window.innerWidth - canvas.width));
-    canvasY = Math.max(0, Math.min(canvasY, window.innerHeight - canvas.height));
-    
-    canvas.style.left = canvasX + 'px';
-    canvas.style.top = canvasY + 'px';
-  }
-
-  function stopDrag() {
-    if (isDragging) {
-      isDragging = false;
-      canvas.style.cursor = "move";
-    }
-  }
 
   // --- Charger le taux réel ---
   async function fetchRate() {
@@ -99,8 +33,9 @@
   }
 
   function drawUI() {
-    ctx.fillStyle = "#111216";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#111216";  // couleur de fond
+    ctx.fillRect(0, 0, canvas.width, canvas.height, 30);
+
 
     // Titre
     ctx.fillStyle = "white";
@@ -150,10 +85,8 @@
     }
   }
 
-  // --- Gestion clics (pour sélectionner les champs) ---
+  // --- Gestion clics ---
   canvas.addEventListener("click", e => {
-    if (isDragging) return; // Ne pas gérer les clics si on vient de déplacer
-    
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -186,5 +119,6 @@
   window.addEventListener("load", async () => {
     await fetchRate();
     drawUI();
+    // rafraîchissement UI régulier (par ex. toutes les 500 ms)
     setInterval(drawUI, 500);
   });

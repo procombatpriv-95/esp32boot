@@ -1,26 +1,7 @@
 
 
   /* Le bouton N de 50px qui s'élargit */
-  #notemove {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: #111216;
-    background-color: rgba(17,18,22,0.5);
-    color: white;
-    font-size: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    transition: all 0.3s ease;
-    overflow: hidden;
-    transform: scale(1);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    transform-origin: bottom center;
-  }
+
 
   /* Effet hover sur le bouton N */
   #notemove:hover:not(.expanded) {

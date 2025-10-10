@@ -1,6 +1,6 @@
         .boursecontainer {
             position: relative;
-
+            align-item: center;
             max-width: 700px;
             margin: 0 auto;
             height: auto;

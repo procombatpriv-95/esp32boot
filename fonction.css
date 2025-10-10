@@ -7,39 +7,7 @@
     position: relative;
 }
 
-.fonctioncontainer {
-    position: absolute;
-    width: 400px;
-    height: 600px;
-    display: flex;
-    justify-content: flex-start;
-    align-items: flex-start;
-    z-index: 1100 !important;
-}
 
-.main-button {
-    font-family: Arial, sans-serif;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background-color: rgba(17, 18, 22, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 28px;
-    font-weight: bold;
-    color: #fff;
-    cursor: pointer;
-    z-index: 1100 !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    user-select: none;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-    position: absolute;
-    top: 20px;
-    left: 40px;
-}
 
 .main-button:hover {
     transform: scale(1.05);

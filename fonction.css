@@ -7,61 +7,7 @@
         
 
         
-        .fonctioncontainer {
 
-
-            position: fixed;
-            width: 400px;
-            height: 600px;
-            display: flex;
-            justify-content: flex-start;
-            align-items: flex-start;
-        }
-        
-        .main-button {
-
-            font-family: Arial, sans-serif;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background-color: rgba(17, 18, 22, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 28px;
-            font-weight: bold;
-            color: #fff;
-            cursor: pointer;
-
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 5;
-            user-select: none;
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-        }
-        
-        .main-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-        }
-        
-        .button-text {
-            font-family: "Arial Black", "Segoe UI", sans-serif;
-            font-size: 14px;
-            font-weight: bold;
-            color: #4ecdc4;
-            text-shadow: 0 0 10px rgba(78, 205, 196, 0.7);
-            transition: opacity 0.3s ease;
-        }
-        
-        .main-button.expanded {
-            width: 240px;
-            height: 40px;
-            border-radius: 25px;
-            left: 50px;
-            top: 20px;
-        }
         
         .expanded .button-text {
             opacity: 0;
@@ -101,21 +47,7 @@
             padding: 15px;
         }
         
-        .sub-buttons {
 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 200px;
-
-            z-index: 10;
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-            transition: opacity 0.1s ease 0.1s, visibility 0s linear 0.2s;
-            height: 40px;
-            padding: 0 15px;
-        }
         
         .sub-buttons.visible {
             opacity: 1;

@@ -30,7 +30,7 @@
     left: 50px;
     top: 20px;
     z-index: 1100 !important;
-    position: absolute;
+    position: fixed;
 }
 
 .sub-buttons {

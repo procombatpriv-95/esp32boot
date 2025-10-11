@@ -1,8 +1,13 @@
-
 function makeCanvasDraggable(canvas) {
     let isDragging = false;
     let startX, startY;
     let startLeft = 0, startTop = 0;
+
+    // Initialiser le positionnement fixed
+    canvas.style.position = 'fixed';
+    canvas.style.zIndex = '9998';
+    canvas.style.left = '20px';
+    canvas.style.top = '20px';
 
     canvas.addEventListener('mousedown', (e) => {
         isDragging = true;
@@ -10,10 +15,12 @@ function makeCanvasDraggable(canvas) {
         startY = e.clientY;
         
         // Récupérer la position actuelle
-        startLeft = parseInt(canvas.style.left) || 0;
-        startTop = parseInt(canvas.style.top) || 0;
+        const rect = canvas.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
         
         canvas.classList.add('dragging');
+        canvas.style.zIndex = '9999'; // Augmenter pendant le drag
         document.addEventListener('mousemove', onDrag);
         document.addEventListener('mouseup', stopDrag);
         e.preventDefault();
@@ -25,14 +32,17 @@ function makeCanvasDraggable(canvas) {
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
         
-        canvas.style.position = 'relative';
+        // Maintenir le positionnement fixed
+        canvas.style.position = 'fixed';
         canvas.style.left = (startLeft + dx) + 'px';
         canvas.style.top = (startTop + dy) + 'px';
+        canvas.style.zIndex = '9999';
     }
 
     function stopDrag() {
         isDragging = false;
         canvas.classList.remove('dragging');
+        canvas.style.zIndex = '9998'; // Revenir au z-index normal
         document.removeEventListener('mousemove', onDrag);
         document.removeEventListener('mouseup', stopDrag);
     }
@@ -183,6 +193,9 @@ window.addEventListener("load", () => {
       }
     }
   };
+
+  draw(); // layout vide
+});
 
   draw(); // layout vide
 });

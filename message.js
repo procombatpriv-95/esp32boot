@@ -33,7 +33,7 @@ function addNotification(message) {
   notif.style.display = "flex";
   notif.style.justifyContent = "center";
   notif.style.alignItems = "center";
-  notif.style.background = "rgba(50,50,50,0.85)";
+  notif.style.background = "rgba(50,50,50,0.3)";
   notif.style.color = "white";
   notif.style.fontFamily = "Arial, sans-serif";
   notif.style.fontSize = "14px";

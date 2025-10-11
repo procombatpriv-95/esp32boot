@@ -13,7 +13,7 @@ function addNotification(message) {
   if (!container) return;
 
   // ✅ Limite à 3 notifs visibles
-  if (container.children.length >= 3) {
+  if (container.children.length >= 1) {
     container.removeChild(container.firstChild); // supprime la plus ancienne
   }
 

@@ -155,10 +155,7 @@ f1DButton.addEventListener('click', function(event) {
     toggleLock(f1Container);
 });
 
-transportDButton.addEventListener('click', function(event) {
-    event.stopPropagation();
-    toggleLock(transportContainer);
-});
+
 
 trophyDButton.addEventListener('click', function(event) {
     event.stopPropagation();

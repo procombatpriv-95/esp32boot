@@ -1,13 +1,8 @@
+voici le java renvoie le moi modifie 
 function makeCanvasDraggable(canvas) {
     let isDragging = false;
     let startX, startY;
     let startLeft = 0, startTop = 0;
-
-    // Initialiser le positionnement fixed
-    canvas.style.position = 'fixed';
-    canvas.style.zIndex = '9998';
-    canvas.style.left = '20px';
-    canvas.style.top = '20px';
 
     canvas.addEventListener('mousedown', (e) => {
         isDragging = true;
@@ -15,12 +10,10 @@ function makeCanvasDraggable(canvas) {
         startY = e.clientY;
         
         // Récupérer la position actuelle
-        const rect = canvas.getBoundingClientRect();
-        startLeft = rect.left;
-        startTop = rect.top;
+        startLeft = parseInt(canvas.style.left) || 0;
+        startTop = parseInt(canvas.style.top) || 0;
         
         canvas.classList.add('dragging');
-        canvas.style.zIndex = '9999'; // Augmenter pendant le drag
         document.addEventListener('mousemove', onDrag);
         document.addEventListener('mouseup', stopDrag);
         e.preventDefault();
@@ -32,17 +25,14 @@ function makeCanvasDraggable(canvas) {
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
         
-        // Maintenir le positionnement fixed
-        canvas.style.position = 'fixed';
+        canvas.style.position = 'relative';
         canvas.style.left = (startLeft + dx) + 'px';
         canvas.style.top = (startTop + dy) + 'px';
-        canvas.style.zIndex = '9999';
     }
 
     function stopDrag() {
         isDragging = false;
         canvas.classList.remove('dragging');
-        canvas.style.zIndex = '9998'; // Revenir au z-index normal
         document.removeEventListener('mousemove', onDrag);
         document.removeEventListener('mouseup', stopDrag);
     }
@@ -120,7 +110,7 @@ window.addEventListener("load", () => {
       ctx.fillStyle = "#fff";
       ctx.font = "600 9px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(info.short, cx, cy+3);
+      ctx.fillText(info.short, cx, cy+1);
 
       // nom à droite du logo
       ctx.textAlign = "left";
@@ -136,7 +126,7 @@ window.addEventListener("load", () => {
 
         // flèche
         ctx.font = "12px Arial";
-        ctx.fillText(info.trend === "up" ? "↑" : "↓", pos.x+cardW-20, pos.y+45);
+        ctx.fillText(info.trend === "up" ? "↑" : "↓", pos.x+110, pos.y+45);
 
         // % variation (dès la première fois)
         const pct = ((info.lastDisplayed - info.prev) / info.prev) * 100;
@@ -145,7 +135,7 @@ window.addEventListener("load", () => {
         ctx.fillText((pct>=0?"+":"") + pct.toFixed(2) + "%", pos.x+12, pos.y+62);
       } else {
         ctx.font = "600 14px Arial";
-        ctx.fillStyle = "#666";
+        ctx.fillStyle = "#ff6b6b"; 
         ctx.fillText("--", pos.x+12, pos.y+45);
       }
     });
@@ -159,7 +149,7 @@ window.addEventListener("load", () => {
       if (s.latest !== null) {
         if (forceImmediate && symbolKey === key && !s.firstUpdateDone) {
           s.trend = "up"; 
-          s.prev = s.latest;
+          s.prev = s.latest;            // ⚡ prev = latest → % = 0.00% dès la première fois
           s.lastDisplayed = s.latest;
           s.firstUpdateDone = true;
           changed = true;
@@ -174,7 +164,7 @@ window.addEventListener("load", () => {
     if (changed) draw();
   }
 
-  // --- Interval 10s ---
+  // --- Interval 30s ---
   window.marketInterval = setInterval(() => updateDisplay(false), 10000);
 
   // --- WebSocket ---
@@ -192,18 +182,6 @@ window.addEventListener("load", () => {
         updateDisplay(true, symbol);
       }
     }
-  };
-
-  ws.onopen = () => {
-    console.log("WebSocket connected");
-  };
-
-  ws.onerror = (error) => {
-    console.error("WebSocket error:", error);
-  };
-
-  ws.onclose = () => {
-    console.log("WebSocket disconnected");
   };
 
   draw(); // layout vide

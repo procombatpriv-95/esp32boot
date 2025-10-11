@@ -23,33 +23,6 @@
     transition: opacity 0.3s ease;
 }
 
-.main-button.expanded {
-    width: 240px;
-    height: 40px;
-    border-radius: 25px;
-    left: 50px;
-    top: 20px;
-    z-index: 1100 !important;
-    position: fixed;
-}
-
-.sub-buttons {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 200px;
-    z-index: 1100 !important;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.1s ease 0.1s, visibility 0s linear 0.2s;
-    height: 40px;
-    padding: 0 15px;
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 0;
-}
 
 .main-button.expanded ~ .sub-buttons {
     top: 5px;

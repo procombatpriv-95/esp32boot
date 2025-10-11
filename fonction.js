@@ -79,16 +79,17 @@ function closeMenu() {
     mainButton.classList.remove('expanded-burger');
     mainButton.classList.remove('expanded-trophy');
     mainButton.classList.remove('expanded-news');
+    
+    // AJOUT: Remettre le z-index à normal quand on ferme
+    mainButton.style.zIndex = '100';
+    
     isExpanded = false;
     subButtons.style.display = 'flex';
-    
-    // IMPORTANT: Cacher tous les conteneurs
     restaurantContainer.style.display = 'none';
     f1Container.style.display = 'none';
     transportContainer.style.display = 'none';
     trophyContainer.style.display = 'none';
     newsContainer.style.display = 'none';
-    
     proximityTitle.style.display = 'none';
     restaurantLocationInfo.style.display = 'none';
     transportLocationInfo.style.display = 'none';
@@ -176,6 +177,10 @@ infoButton.addEventListener('click', async function(event) {
     mainButton.classList.add('expanded-news');
     mainButton.classList.remove('expanded-burger');
     mainButton.classList.remove('expanded-trophy');
+    
+    // AJOUT: Changer le z-index seulement quand ouvert
+    mainButton.style.zIndex = '1100';
+    
     subButtons.style.display = 'none';
     newsContainer.style.display = 'flex';
     restaurantContainer.style.display = 'none';
@@ -193,6 +198,10 @@ burgerButton.addEventListener('click', async function(event) {
     mainButton.classList.add('expanded-burger');
     mainButton.classList.remove('expanded-trophy');
     mainButton.classList.remove('expanded-news');
+    
+    // AJOUT: Changer le z-index seulement quand ouvert
+    mainButton.style.zIndex = '1100';
+    
     subButtons.style.display = 'none';
     restaurantContainer.style.display = 'flex';
     f1Container.style.display = 'none';
@@ -217,6 +226,10 @@ busButton.addEventListener('click', async function(event) {
     mainButton.classList.add('expanded-burger');
     mainButton.classList.remove('expanded-trophy');
     mainButton.classList.remove('expanded-news');
+    
+    // AJOUT: Changer le z-index seulement quand ouvert
+    mainButton.style.zIndex = '1100';
+    
     subButtons.style.display = 'none';
     transportContainer.style.display = 'flex';
     restaurantContainer.style.display = 'none';
@@ -224,33 +237,7 @@ busButton.addEventListener('click', async function(event) {
     trophyContainer.style.display = 'none';
     newsContainer.style.display = 'none';
     
-    // Afficher le contenu selon l'onglet actif
-    if (currentTransportTab === 'expressP') {
-        showExpressPContent();
-        await fetchRealTimeBusData();
-    } else {
-        showExpressTContent();
-        transportLocationInfo.style.display = 'block';
-        transportLocationInfo.textContent = '📍 Recherche de votre position...';
-        await getUserLocation();
-        transportLocationInfo.textContent = `📍 Position: ${userCity || 'votre zone'}`;
-        expressTLastLocation = { ...userLocation };
-        await findNearbyBusesWithRealAPI();
-    }
-    
-    // Mise à jour automatique
-    if (transportRefreshInterval) {
-        clearInterval(transportRefreshInterval);
-    }
-    transportRefreshInterval = setInterval(() => {
-        if (transportContainer.style.display === 'flex') {
-            if (currentTransportTab === 'expressP') {
-                fetchRealTimeBusData();
-            } else {
-                updateExpressTData();
-            }
-        }
-    }, 10000); // 10 secondes pour les deux
+    // ... (le reste de la fonction) ...
 });
 
 // Clic sur le trophée pour le contenu trophée
@@ -260,6 +247,10 @@ trophyButton.addEventListener('click', function(event) {
     mainButton.classList.add('expanded-trophy');
     mainButton.classList.remove('expanded-burger');
     mainButton.classList.remove('expanded-news');
+    
+    // AJOUT: Changer le z-index seulement quand ouvert
+    mainButton.style.zIndex = '1100';
+    
     subButtons.style.display = 'none';
     trophyContainer.style.display = 'flex';
     restaurantContainer.style.display = 'none';

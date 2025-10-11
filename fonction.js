@@ -81,11 +81,14 @@ function closeMenu() {
     mainButton.classList.remove('expanded-news');
     isExpanded = false;
     subButtons.style.display = 'flex';
+    
+    // IMPORTANT: Cacher tous les conteneurs
     restaurantContainer.style.display = 'none';
     f1Container.style.display = 'none';
     transportContainer.style.display = 'none';
     trophyContainer.style.display = 'none';
     newsContainer.style.display = 'none';
+    
     proximityTitle.style.display = 'none';
     restaurantLocationInfo.style.display = 'none';
     transportLocationInfo.style.display = 'none';
@@ -98,6 +101,8 @@ function closeMenu() {
     
     clearTimeout(animationTimeout);
 }
+
+// ... (le reste du JavaScript reste inchangé) ...
 
 // Fonction pour verrouiller/déverrouiller
 function toggleLock(container) {

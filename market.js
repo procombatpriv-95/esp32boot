@@ -1,4 +1,4 @@
-voici le java renvoie le moi modifie 
+
 function makeCanvasDraggable(canvas) {
     let isDragging = false;
     let startX, startY;

@@ -41,6 +41,11 @@ const apiKey = 'b97899dfc31d70bf41c43c5b865654e6';
 let isLocked = false;
 let lockedContainer = null;
 
+// AJOUT: Variables pour le système de drag
+let isDraggingWit = false;
+let dragOffsetWit = { x: 0, y: 0 };
+let witHasDragged = false;
+
 // Configuration des APIs TfL exactes pour Favorite
 const tflApis = {
     bus14: 'https://api.tfl.gov.uk/Line/14/Arrivals',
@@ -49,15 +54,93 @@ const tflApis = {
     circleLine: 'https://api.tfl.gov.uk/Line/Circle/Arrivals'
 };
 
-// Gérer le clic sur le bouton principal
+// AJOUT: Système de drag pour le composant Wit
+function startDragWit(e) {
+    // Empêcher le drag si on clique sur les sous-boutons ou pendant les animations
+    if (e.target.classList.contains('sub-button') || 
+        e.target.closest('.sub-button') ||
+        isExpanded ||
+        mainButton.classList.contains('expanded-burger') ||
+        mainButton.classList.contains('expanded-trophy') ||
+        mainButton.classList.contains('expanded-news')) {
+        return;
+    }
+    
+    witHasDragged = false;
+    isDraggingWit = true;
+    
+    const rect = mainButton.getBoundingClientRect();
+    dragOffsetWit.x = e.clientX - rect.left;
+    dragOffsetWit.y = e.clientY - rect.top;
+    
+    mainButton.classList.add('dragging-wit');
+    document.addEventListener('mousemove', doDragWit);
+    document.addEventListener('mouseup', stopDragWit);
+    
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+function doDragWit(e) {
+    if (!isDraggingWit) return;
+    
+    const fonctioncontainer = document.querySelector('.fonctioncontainer');
+    fonctioncontainer.style.left = (e.clientX - dragOffsetWit.x) + 'px';
+    fonctioncontainer.style.top = (e.clientY - dragOffsetWit.y) + 'px';
+    fonctioncontainer.style.marginLeft = '0';
+    fonctioncontainer.style.bottom = 'auto';
+    
+    // Mettre à jour le z-index pendant le drag
+    fonctioncontainer.style.zIndex = '1100';
+    mainButton.style.zIndex = '1100';
+    
+    if (Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3) {
+        witHasDragged = true;
+    }
+}
+
+function stopDragWit(e) {
+    if (!isDraggingWit) return;
+    
+    isDraggingWit = false;
+    mainButton.classList.remove('dragging-wit');
+    document.removeEventListener('mousemove', doDragWit);
+    document.removeEventListener('mouseup', stopDragWit);
+    
+    e.stopPropagation();
+}
+
+// MODIFICATION: Gérer le clic sur le bouton principal avec gestion du drag
 mainButton.addEventListener('click', function(event) {
     event.stopPropagation();
+    
+    // Si on vient de dragger, ne pas ouvrir le menu
+    if (witHasDragged) {
+        witHasDragged = false;
+        return;
+    }
+    
     if (isExpanded) {
         closeMenu();
         return;
     }
     clearTimeout(animationTimeout);
     openMenu();
+});
+
+// Événement de drag sur le bouton principal
+mainButton.addEventListener('mousedown', startDragWit);
+
+// Empêcher le drag sur les sous-boutons
+subButtons.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+});
+
+// Empêcher le drag sur les boutons D et autres éléments interactifs
+document.querySelectorAll('.d-button').forEach(button => {
+    button.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+    });
 });
 
 function openMenu() {
@@ -74,14 +157,17 @@ function closeMenu() {
         return;
     }
     
+    // Réinitialiser l'état du drag
+    witHasDragged = false;
+    
     subButtons.classList.remove('visible');
     mainButton.classList.remove('expanded');
     mainButton.classList.remove('expanded-burger');
     mainButton.classList.remove('expanded-trophy');
     mainButton.classList.remove('expanded-news');
     
-    // AJOUT: Remettre le z-index à normal quand on ferme
-    mainButton.style.zIndex = '100';
+    // Remettre le z-index à normal quand on ferme
+    mainButton.style.zIndex = '1100';
     
     isExpanded = false;
     subButtons.style.display = 'flex';
@@ -102,8 +188,6 @@ function closeMenu() {
     
     clearTimeout(animationTimeout);
 }
-
-// ... (le reste du JavaScript reste inchangé) ...
 
 // Fonction pour verrouiller/déverrouiller
 function toggleLock(container) {
@@ -155,8 +239,6 @@ f1DButton.addEventListener('click', function(event) {
     toggleLock(f1Container);
 });
 
-
-
 trophyDButton.addEventListener('click', function(event) {
     event.stopPropagation();
     toggleLock(trophyContainer);
@@ -175,7 +257,7 @@ infoButton.addEventListener('click', async function(event) {
     mainButton.classList.remove('expanded-burger');
     mainButton.classList.remove('expanded-trophy');
     
-    // AJOUT: Changer le z-index seulement quand ouvert
+    // Changer le z-index seulement quand ouvert
     mainButton.style.zIndex = '1100';
     
     subButtons.style.display = 'none';
@@ -196,7 +278,7 @@ burgerButton.addEventListener('click', async function(event) {
     mainButton.classList.remove('expanded-trophy');
     mainButton.classList.remove('expanded-news');
     
-    // AJOUT: Changer le z-index seulement quand ouvert
+    // Changer le z-index seulement quand ouvert
     mainButton.style.zIndex = '1100';
     
     subButtons.style.display = 'none';
@@ -224,7 +306,7 @@ busButton.addEventListener('click', async function(event) {
     mainButton.classList.remove('expanded-trophy');
     mainButton.classList.remove('expanded-news');
     
-    // AJOUT: Changer le z-index seulement quand ouvert
+    // Changer le z-index seulement quand ouvert
     mainButton.style.zIndex = '1100';
     
     subButtons.style.display = 'none';
@@ -234,7 +316,8 @@ busButton.addEventListener('click', async function(event) {
     trophyContainer.style.display = 'none';
     newsContainer.style.display = 'none';
     
-    // ... (le reste de la fonction) ...
+    // Initialiser le transport
+    switchTransportTab('expressP');
 });
 
 // Clic sur le trophée pour le contenu trophée
@@ -245,7 +328,7 @@ trophyButton.addEventListener('click', function(event) {
     mainButton.classList.remove('expanded-burger');
     mainButton.classList.remove('expanded-news');
     
-    // AJOUT: Changer le z-index seulement quand ouvert
+    // Changer le z-index seulement quand ouvert
     mainButton.style.zIndex = '1100';
     
     subButtons.style.display = 'none';
@@ -1590,4 +1673,30 @@ subButtons.addEventListener('click', function(event) {
         event.target.style.backgroundColor = '';
     }, 300);
 });
+
+// AJOUT: CSS pour l'effet de drag
+const style = document.createElement('style');
+style.textContent = `
+    .dragging-wit {
+        opacity: 0.8;
+        cursor: grabbing !important;
+    }
+    
+    .main-button:not(.expanded):not(.dragging-wit) {
+        cursor: grab;
+    }
+    
+    .main-button:not(.expanded):hover:not(.dragging-wit) {
+        cursor: grab;
+    }
+    
+    .main-button.dragging-wit {
+        cursor: grabbing !important;
+    }
+    
+    .fonctioncontainer {
+        cursor: default;
+    }
+`;
+document.head.appendChild(style);
 // Modifier les écouteurs d'événements des boutons D existants

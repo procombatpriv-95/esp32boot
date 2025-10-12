@@ -1,4 +1,4 @@
-redonne moi le code java au complet avec les modif integre  const mainButton = document.getElementById('mainButton');
+const mainButton = document.getElementById('mainButton');
 const subButtons = document.getElementById('subButtons');
 const restaurantContainer = document.getElementById('restaurantContainer');
 const restaurantsGrid = document.getElementById('restaurantsGrid');

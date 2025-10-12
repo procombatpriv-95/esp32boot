@@ -118,11 +118,4 @@
         }
         
         /* Indicateur de déplacement pour les stat-box */
-        .stat-box::after {
-            content: "⋮⋮";
-            position: absolute;
-            top: 5px;
-            right: 10px;
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 12px;
-        }
+

@@ -1,193 +1,193 @@
-const notemove = document.getElementById('notemove');
-const contentArea = document.getElementById('contentArea');
-const wordInput = document.getElementById('wordInput');
-const freezenote = document.getElementById('freezenote');
-const inputnote = document.getElementById('inputnote');
-const noteContain = document.querySelector('.notecontain');
-let savedWords = JSON.parse(localStorage.getItem('protocolWords') || '[]');
-let isExpanded = false;
-let isDragging = false;
-let isFrozen = false;
-let dragOffset = { x: 0, y: 0 };
-let hasDragged = false;
+const rappelmove = document.getElementById('rappelmove');
+const contentAreaRappel = document.getElementById('contentAreaRappel');
+const wordInputRappel = document.getElementById('wordInputRappel');
+const freezerappel = document.getElementById('freezerappel');
+const inputrappel = document.getElementById('inputrappel');
+const rappelContain = document.querySelector('.rappelcontain');
+let savedRappels = JSON.parse(localStorage.getItem('protocolRappels') || '[]');
+let isExpandedRappel = false;
+let isDraggingRappel = false;
+let isFrozenRappel = false;
+let dragOffsetRappel = { x: 0, y: 0 };
+let hasDraggedRappel = false;
 
 // FORCER le z-index au chargement et constamment
-function enforceZIndex() {
-  noteContain.style.zIndex = '9500';
-  notemove.style.zIndex = '9500';
-  document.querySelectorAll('.notecontain, #notemove, #inputnote, .content-area').forEach(el => {
+function enforceZIndexRappel() {
+  rappelContain.style.zIndex = '9500';
+  rappelmove.style.zIndex = '9500';
+  document.querySelectorAll('.rappelcontain, #rappelmove, #inputrappel, .content-area-rappel').forEach(el => {
     el.style.zIndex = '9500';
   });
 }
 
 // Appeler au chargement
-document.addEventListener('DOMContentLoaded', enforceZIndex);
+document.addEventListener('DOMContentLoaded', enforceZIndexRappel);
 // Appeler constamment
-setInterval(enforceZIndex, 100);
+setInterval(enforceZIndexRappel, 100);
 
-renderWords();
+renderRappels();
 
-// Ouvrir en cliquant sur le bouton N
-notemove.addEventListener('click', (e) => {
-  if (hasDragged || e.target.id === 'resetBtn' || e.target.id === 'freezenote') {
-    hasDragged = false;
+// Ouvrir en cliquant sur le bouton R
+rappelmove.addEventListener('click', (e) => {
+  if (hasDraggedRappel || e.target.id === 'resetRappelBtn' || e.target.id === 'freezerappel') {
+    hasDraggedRappel = false;
     return;
   }
   
-  if (!isExpanded) {
-    notemove.classList.add('expanded');
-    isExpanded = true;
-    renderWords();
-    enforceZIndex(); // Forcer z-index après expansion
+  if (!isExpandedRappel) {
+    rappelmove.classList.add('expanded');
+    isExpandedRappel = true;
+    renderRappels();
+    enforceZIndexRappel();
   } else {
-    if (!isFrozen) {
-      closeMenu();
+    if (!isFrozenRappel) {
+      closeMenuRappel();
     }
   }
 });
 
-// Gestion du bouton freezenote
-freezenote.addEventListener('click', (e) => {
+// Gestion du bouton gelé
+freezerappel.addEventListener('click', (e) => {
   e.stopPropagation();
   
-  isFrozen = !isFrozen;
-  freezenote.classList.toggle('active');
+  isFrozenRappel = !isFrozenRappel;
+  freezerappel.classList.toggle('active');
   
-  if (isFrozen) {
-    notemove.classList.add('frozen');
+  if (isFrozenRappel) {
+    rappelmove.classList.add('frozen');
   } else {
-    notemove.classList.remove('frozen');
+    rappelmove.classList.remove('frozen');
   }
   
-  enforceZIndex(); // Forcer z-index après changement d'état
+  enforceZIndexRappel();
 });
 
 // Fonction pour fermer le menu
-function closeMenu() {
-  noteContain.classList.add('closing');
+function closeMenuRappel() {
+  rappelContain.classList.add('closing-rappel');
   
   setTimeout(() => {
-    notemove.classList.remove('expanded');
-    isExpanded = false;
-    isFrozen = false;
-    freezenote.classList.remove('active');
-    notemove.classList.remove('frozen');
-    renderWords();
+    rappelmove.classList.remove('expanded');
+    isExpandedRappel = false;
+    isFrozenRappel = false;
+    freezerappel.classList.remove('active');
+    rappelmove.classList.remove('frozen');
+    renderRappels();
     
     setTimeout(() => {
-      noteContain.classList.remove('closing');
-      enforceZIndex(); // Forcer z-index après fermeture
+      rappelContain.classList.remove('closing-rappel');
+      enforceZIndexRappel();
     }, 500);
   }, 50);
 }
 
 // Fermer le menu quand on clique en dehors
 document.addEventListener('click', (e) => {
-  if (isExpanded && !isFrozen && !notemove.contains(e.target) && e.target !== inputnote && !inputnote.contains(e.target)) {
-    closeMenu();
+  if (isExpandedRappel && !isFrozenRappel && !rappelmove.contains(e.target) && e.target !== inputrappel && !inputrappel.contains(e.target)) {
+    closeMenuRappel();
   }
 });
 
 // Gestion de la saisie
-wordInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && wordInput.value.trim() !== '') {
-    savedWords.push(wordInput.value.trim());
-    wordInput.value = '';
-    saveAndRender();
+wordInputRappel.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && wordInputRappel.value.trim() !== '') {
+    savedRappels.push(wordInputRappel.value.trim());
+    wordInputRappel.value = '';
+    saveAndRenderRappel();
   }
 });
 
-function saveAndRender() {
-  localStorage.setItem('protocolWords', JSON.stringify(savedWords));
-  renderWords();
+function saveAndRenderRappel() {
+  localStorage.setItem('protocolRappels', JSON.stringify(savedRappels));
+  renderRappels();
 }
 
-function renderWords() {
-  if (isExpanded) {
-    contentArea.innerHTML = savedWords.map(w => `• ${w}`).join('<br>');
+function renderRappels() {
+  if (isExpandedRappel) {
+    contentAreaRappel.innerHTML = savedRappels.map(r => `• ${r}`).join('<br>');
   } else {
-    contentArea.innerHTML = '';
+    contentAreaRappel.innerHTML = '';
   }
   
-  document.getElementById('resetBtn').onclick = (e) => {
+  document.getElementById('resetRappelBtn').onclick = (e) => {
     e.stopPropagation();
-    savedWords = [];
-    saveAndRender();
+    savedRappels = [];
+    saveAndRenderRappel();
   };
 }
 
 // Système de déplacement
-let dragStartFrozenState = false;
+let dragStartFrozenStateRappel = false;
 
-function startDrag(e) {
-  if (!isExpanded || (isExpanded && isFrozen)) {
-    if (e.target === wordInput) {
+function startDragRappel(e) {
+  if (!isExpandedRappel || (isExpandedRappel && isFrozenRappel)) {
+    if (e.target === wordInputRappel) {
       return;
     }
     
-    dragStartFrozenState = isFrozen;
-    hasDragged = false;
-    isDragging = true;
+    dragStartFrozenStateRappel = isFrozenRappel;
+    hasDraggedRappel = false;
+    isDraggingRappel = true;
     
     // Forcer z-index au début du drag
-    enforceZIndex();
+    enforceZIndexRappel();
     
-    const rect = noteContain.getBoundingClientRect();
-    dragOffset.x = e.clientX - rect.left;
-    dragOffset.y = e.clientY - rect.top;
+    const rect = rappelContain.getBoundingClientRect();
+    dragOffsetRappel.x = e.clientX - rect.left;
+    dragOffsetRappel.y = e.clientY - rect.top;
     
-    noteContain.classList.add('dragging');
-    document.addEventListener('mousemove', doDrag);
-    document.addEventListener('mouseup', stopDrag);
+    rappelContain.classList.add('dragging-rappel');
+    document.addEventListener('mousemove', doDragRappel);
+    document.addEventListener('mouseup', stopDragRappel);
     
     e.preventDefault();
   }
 }
 
-function doDrag(e) {
-  if (!isDragging) return;
+function doDragRappel(e) {
+  if (!isDraggingRappel) return;
   
-  const noteContain = document.querySelector('.notecontain');
-  noteContain.style.left = (e.clientX - dragOffset.x) + 'px';
-  noteContain.style.top = (e.clientY - dragOffset.y) + 'px';
-  noteContain.style.marginLeft = '0';
-  noteContain.style.bottom = 'auto';
+  const rappelContain = document.querySelector('.rappelcontain');
+  rappelContain.style.left = (e.clientX - dragOffsetRappel.x) + 'px';
+  rappelContain.style.top = (e.clientY - dragOffsetRappel.y) + 'px';
+  rappelContain.style.marginLeft = '0';
+  rappelContain.style.bottom = 'auto';
   
   // Forcer z-index pendant le drag
-  enforceZIndex();
+  enforceZIndexRappel();
   
   if (Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3) {
-    hasDragged = true;
+    hasDraggedRappel = true;
   }
 }
 
-function stopDrag(e) {
-  if (!isDragging) return;
+function stopDragRappel(e) {
+  if (!isDraggingRappel) return;
   
-  isDragging = false;
-  const noteContain = document.querySelector('.notecontain');
-  noteContain.classList.remove('dragging');
-  document.removeEventListener('mousemove', doDrag);
-  document.removeEventListener('mouseup', stopDrag);
+  isDraggingRappel = false;
+  const rappelContain = document.querySelector('.rappelcontain');
+  rappelContain.classList.remove('dragging-rappel');
+  document.removeEventListener('mousemove', doDragRappel);
+  document.removeEventListener('mouseup', stopDragRappel);
   
   // Forcer z-index après le drag
-  enforceZIndex();
+  enforceZIndexRappel();
   
-  if (isExpanded && !dragStartFrozenState && !isFrozen) {
-    if (!notemove.contains(e.target) && e.target !== inputnote && !inputnote.contains(e.target)) {
-      closeMenu();
+  if (isExpandedRappel && !dragStartFrozenStateRappel && !isFrozenRappel) {
+    if (!rappelmove.contains(e.target) && e.target !== inputrappel && !inputrappel.contains(e.target)) {
+      closeMenuRappel();
     }
   }
 }
 
 // Événements de déplacement
-notemove.addEventListener('mousedown', startDrag);
-contentArea.addEventListener('mousedown', startDrag);
+rappelmove.addEventListener('mousedown', startDragRappel);
+contentAreaRappel.addEventListener('mousedown', startDragRappel);
 
 // Empêcher le déplacement sur l'input et boutons
-wordInput.addEventListener('mousedown', (e) => e.stopPropagation());
-document.getElementById('resetBtn').addEventListener('mousedown', (e) => e.stopPropagation());
-freezenote.addEventListener('mousedown', (e) => e.stopPropagation());
+wordInputRappel.addEventListener('mousedown', (e) => e.stopPropagation());
+document.getElementById('resetRappelBtn').addEventListener('mousedown', (e) => e.stopPropagation());
+freezerappel.addEventListener('mousedown', (e) => e.stopPropagation());
 
 // Forcer le z-index initial
-enforceZIndex();
+enforceZIndexRappel();

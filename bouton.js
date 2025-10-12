@@ -43,7 +43,7 @@ function openBackgroundMenu(e){
     {name: 'Paysage', bg: 'https://cdn.pixabay.com/photo/2020/06/11/01/28/landscape-5284806_1280.jpg'},
     {name: 'Sombre',  bg: 'https://wallpapers.com/images/hd/dark-nature-ecoszxkcqcayo73x.jpg'},
     {name: 'Chill', bg: 'https://img.tastelife.tv/assets/uploads/2022/01/New_Zealand_-_AMAZING_Beautiful_Nature_with_Relaxing_Music__Soundscapes_16x9.jpg'},
-    {name: 'River', bg: 'https://i.pinimg.com/originals/31/68/c0/3168c09eeeb529be5b321575fe56b02b.gif'},
+    {name: 'Cloudy', bg: 'https://i.makeagif.com/media/6-28-2016/f8YwH9.gif'},
     {name: 'Lunaire', bg: 'https://cdn.pixabay.com/photo/2024/01/25/13/40/ai-generated-8531975_1280.png'}
   ];
 

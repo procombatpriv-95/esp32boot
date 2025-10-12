@@ -11,6 +11,20 @@ let isFrozen = false;
 let dragOffset = { x: 0, y: 0 };
 let hasDragged = false;
 
+// FORCER le z-index au chargement et constamment
+function enforceZIndex() {
+  noteContain.style.zIndex = '9500';
+  notemove.style.zIndex = '9500';
+  document.querySelectorAll('.notecontain, #notemove, #inputnote, .content-area').forEach(el => {
+    el.style.zIndex = '9500';
+  });
+}
+
+// Appeler au chargement
+document.addEventListener('DOMContentLoaded', enforceZIndex);
+// Appeler constamment
+setInterval(enforceZIndex, 100);
+
 renderWords();
 
 // Ouvrir en cliquant sur le bouton N
@@ -24,6 +38,7 @@ notemove.addEventListener('click', (e) => {
     notemove.classList.add('expanded');
     isExpanded = true;
     renderWords();
+    enforceZIndex(); // Forcer z-index après expansion
   } else {
     if (!isFrozen) {
       closeMenu();
@@ -43,6 +58,8 @@ freezenote.addEventListener('click', (e) => {
   } else {
     notemove.classList.remove('frozen');
   }
+  
+  enforceZIndex(); // Forcer z-index après changement d'état
 });
 
 // Fonction pour fermer le menu
@@ -59,6 +76,7 @@ function closeMenu() {
     
     setTimeout(() => {
       noteContain.classList.remove('closing');
+      enforceZIndex(); // Forcer z-index après fermeture
     }, 500);
   }, 50);
 }
@@ -110,7 +128,9 @@ function startDrag(e) {
     dragStartFrozenState = isFrozen;
     hasDragged = false;
     isDragging = true;
-    const noteContain = document.querySelector('.notecontain');
+    
+    // Forcer z-index au début du drag
+    enforceZIndex();
     
     const rect = noteContain.getBoundingClientRect();
     dragOffset.x = e.clientX - rect.left;
@@ -133,6 +153,9 @@ function doDrag(e) {
   noteContain.style.marginLeft = '0';
   noteContain.style.bottom = 'auto';
   
+  // Forcer z-index pendant le drag
+  enforceZIndex();
+  
   if (Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3) {
     hasDragged = true;
   }
@@ -146,6 +169,9 @@ function stopDrag(e) {
   noteContain.classList.remove('dragging');
   document.removeEventListener('mousemove', doDrag);
   document.removeEventListener('mouseup', stopDrag);
+  
+  // Forcer z-index après le drag
+  enforceZIndex();
   
   if (isExpanded && !dragStartFrozenState && !isFrozen) {
     if (!notemove.contains(e.target) && e.target !== inputnote && !inputnote.contains(e.target)) {
@@ -162,4 +188,6 @@ contentArea.addEventListener('mousedown', startDrag);
 wordInput.addEventListener('mousedown', (e) => e.stopPropagation());
 document.getElementById('resetBtn').addEventListener('mousedown', (e) => e.stopPropagation());
 freezenote.addEventListener('mousedown', (e) => e.stopPropagation());
-</script>
+
+// Forcer le z-index initial
+enforceZIndex();

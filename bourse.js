@@ -39,17 +39,17 @@
             let fixedMonthAvg = null;
             let fixedSixMonthsAvg = null;
 
-            // === FONCTIONS POUR LE DRAG AND DROP DU CANVAS ===
-            function initCanvasDrag() {
+            // === FONCTIONS POUR LE DRAG AND DROP DU CANVAS ET DES DIVS ===
+            function initDragForElement(element) {
                 let isDragging = false;
                 let startX, startY;
                 let startLeft, startTop;
                 
-                canvasContainer.addEventListener('mousedown', startDrag);
-                canvasContainer.addEventListener('touchstart', startDragTouch);
+                element.addEventListener('mousedown', startDrag);
+                element.addEventListener('touchstart', startDragTouch);
                 
                 function startDrag(e) {
-                    // Ne pas démarrer le drag si on clique sur un bouton
+                    // Ne pas démarrer le drag si on clique sur un bouton (pour le canvas)
                     if (e.target.classList.contains('canvas-btn')) {
                         return;
                     }
@@ -59,11 +59,11 @@
                     startY = e.clientY;
                     
                     // Sauvegarder la position initiale
-                    const rect = canvasContainer.getBoundingClientRect();
-                    startLeft = parseInt(canvasContainer.style.left) || 0;
-                    startTop = parseInt(canvasContainer.style.top) || 0;
+                    const rect = element.getBoundingClientRect();
+                    startLeft = parseInt(element.style.left) || 0;
+                    startTop = parseInt(element.style.top) || 0;
                     
-                    canvasContainer.classList.add('dragging');
+                    element.classList.add('dragging');
                     document.addEventListener('mousemove', onDrag);
                     document.addEventListener('mouseup', stopDrag);
                     e.preventDefault();
@@ -71,10 +71,10 @@
                 
                 function startDragTouch(e) {
                     if (e.touches.length === 1) {
-                        // Ne pas démarrer le drag si on clique sur un bouton
+                        // Ne pas démarrer le drag si on clique sur un bouton (pour le canvas)
                         const touch = e.touches[0];
-                        const element = document.elementFromPoint(touch.clientX, touch.clientY);
-                        if (element && element.classList.contains('canvas-btn')) {
+                        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                        if (targetElement && targetElement.classList.contains('canvas-btn')) {
                             return;
                         }
                         
@@ -82,11 +82,11 @@
                         startX = touch.clientX;
                         startY = touch.clientY;
                         
-                        const rect = canvasContainer.getBoundingClientRect();
-                        startLeft = parseInt(canvasContainer.style.left) || 0;
-                        startTop = parseInt(canvasContainer.style.top) || 0;
+                        const rect = element.getBoundingClientRect();
+                        startLeft = parseInt(element.style.left) || 0;
+                        startTop = parseInt(element.style.top) || 0;
                         
-                        canvasContainer.classList.add('dragging');
+                        element.classList.add('dragging');
                         document.addEventListener('touchmove', onDragTouch);
                         document.addEventListener('touchend', stopDrag);
                         e.preventDefault();
@@ -99,10 +99,10 @@
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
                     
-                    // Déplacer le container avec le canvas et les boutons
-                    canvasContainer.style.position = 'relative';
-                    canvasContainer.style.left = (startLeft + dx) + 'px';
-                    canvasContainer.style.top = (startTop + dy) + 'px';
+                    // Déplacer l'élément
+                    element.style.position = 'relative';
+                    element.style.left = (startLeft + dx) + 'px';
+                    element.style.top = (startTop + dy) + 'px';
                 }
                 
                 function onDragTouch(e) {
@@ -111,19 +111,30 @@
                     const dx = e.touches[0].clientX - startX;
                     const dy = e.touches[0].clientY - startY;
                     
-                    canvasContainer.style.position = 'relative';
-                    canvasContainer.style.left = (startLeft + dx) + 'px';
-                    canvasContainer.style.top = (startTop + dy) + 'px';
+                    element.style.position = 'relative';
+                    element.style.left = (startLeft + dx) + 'px';
+                    element.style.top = (startTop + dy) + 'px';
                 }
                 
                 function stopDrag() {
                     isDragging = false;
-                    canvasContainer.classList.remove('dragging');
+                    element.classList.remove('dragging');
                     document.removeEventListener('mousemove', onDrag);
                     document.removeEventListener('touchmove', onDragTouch);
                     document.removeEventListener('mouseup', stopDrag);
                     document.removeEventListener('touchend', stopDrag);
                 }
+            }
+
+            function initAllDraggableElements() {
+                // Initialiser le drag pour le canvas
+                initDragForElement(canvasContainer);
+                
+                // Initialiser le drag pour toutes les stat-box
+                const statBoxes = document.querySelectorAll('.stat-box');
+                statBoxes.forEach(box => {
+                    initDragForElement(box);
+                });
             }
 
             // === FONCTIONS POUR LES BOUTONS ===
@@ -513,5 +524,5 @@
             connectWebSocket();
             startCountdown();
             initControls(); // Initialiser les boutons
-            initCanvasDrag(); // Initialiser le drag du canvas
+            initAllDraggableElements(); // Initialiser le drag pour tous les éléments
         });

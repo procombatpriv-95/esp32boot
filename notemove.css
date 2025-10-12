@@ -1,6 +1,7 @@
 
-  /* Effet hover sur le bouton N */
-  #notemove:hover:not(.expanded) {
+
+  /* Effet hover sur le bouton R */
+  #rappelmove:hover:not(.expanded) {
     transform: scale(1.1);
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     background-color: rgba(17,18,22,0.7);
@@ -10,7 +11,7 @@
 
 
   /* Animation bounce vers le bas */
-  @keyframes expandBounce {
+  @keyframes expandBounceRappel {
     0% {
       width: 30px;
       height: 30px;
@@ -18,44 +19,43 @@
       transform: scale(0.8);
     }
     30% {
-      width: 240px; /* Élargi */
-      height: 340px; /* Élargi */
+      width: 240px;
+      height: 340px;
       border-radius: 35px;
       transform: scale(1.05);
     }
     50% {
-      width: 210px; /* Élargi */
-      height: 310px; /* Élargi */
+      width: 210px;
+      height: 310px;
       border-radius: 28px;
       transform: scale(0.98);
     }
     70% {
-      width: 225px; /* Élargi */
-      height: 325px; /* Élargi */
+      width: 225px;
+      height: 325px;
       border-radius: 30px;
       transform: scale(1.02);
     }
     100% {
-      width: 220px; /* Élargi */
-      height: 320px; /* Élargi */
+      width: 220px;
+      height: 320px;
       border-radius: 30px;
     }
   }
 
-  /* Animation de fermeture - TOUT EN MÊME TEMPS */
-  .closing #notemove {
-    animation: shrinkInstant 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    z-index: 9500 !important; /* Z-index permanent */
+  /* Animation de fermeture */
+  .closing-rappel #rappelmove {
+    animation: shrinkInstantRappel 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    z-index: 9500 !important;
   }
 
-  @keyframes shrinkInstant {
+  @keyframes shrinkInstantRappel {
     0% {
-      width: 220px; /* Élargi */
-      height: 320px; /* Élargi */
+      width: 220px;
+      height: 320px;
       border-radius: 30px;
     }
     10% {
-      /* Rétrécissement instantané */
       width: 30px;
       height: 30px;
       border-radius: 50%;
@@ -78,36 +78,35 @@
     }
   }
 
-  /* Cacher les boutons et contenu pendant la fermeture */
-  .closing #resetBtn,
-  .closing #freezenote,
-  .closing .content-area {
+  /* Cacher les éléments pendant la fermeture */
+  .closing-rappel #resetRappelBtn,
+  .closing-rappel #freezerappel,
+  .closing-rappel .content-area-rappel {
     display: none !important;
   }
 
-  /* Cacher l'input pendant la fermeture */
-  .closing + #inputnote {
+  .closing-rappel + #inputrappel {
     display: none !important;
   }
 
   /* Effet hover sur le container étendu */
-  #notemove.expanded:hover {
+  #rappelmove.expanded:hover {
     box-shadow: 0 8px 25px rgba(0,0,0,0.5);
     background-color: rgba(17,18,22,0.7);
   }
 
-  /* Le texte "N" au centre quand fermé */
-  .n-text {
+  /* Le texte "R" au centre quand fermé */
+  .r-text {
     font-size: 20px;
     font-weight: bold;
     transition: transform 0.2s ease;
   }
 
-  #notemove.expanded .n-text {
+  #rappelmove.expanded .r-text {
     display: none;
   }
 
-  #resetBtn {
+  #resetRappelBtn {
     position: absolute;
     top: 8px;
     left: 8px;
@@ -125,18 +124,18 @@
     line-height: 30px;
     text-align: center;
     display: none;
-    z-index: 9510 !important; /* Z-index plus élevé */
+    z-index: 9510 !important;
     transition: all 0.2s ease;
     transform: scale(0);
   }
 
-  #notemove.expanded #resetBtn {
+  #rappelmove.expanded #resetRappelBtn {
     display: block;
-    animation: buttonBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
+    animation: buttonBounceRappel 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
   }
 
   /* Animation bouton avec bounce */
-  @keyframes buttonBounce {
+  @keyframes buttonBounceRappel {
     0% {
       transform: scale(0);
       opacity: 0;
@@ -158,13 +157,13 @@
   }
 
   /* Effet hover sur le bouton reset */
-  #resetBtn:hover {
+  #resetRappelBtn:hover {
     transform: scale(1.15);
     background: rgba(255,255,255,0.2);
     box-shadow: 0 3px 8px rgba(0,0,0,0.3);
   }
 
-  #freezenote {
+  #freezerappel {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -182,32 +181,32 @@
     line-height: 30px;
     text-align: center;
     display: none;
-    z-index: 9510 !important; /* Z-index plus élevé */
+    z-index: 9510 !important;
     transition: all 0.3s ease;
     transform: scale(0);
   }
 
-  #freezenote.active {
+  #freezerappel.active {
     background: rgba(255, 0, 0, 0.5) !important;
   }
 
-  #notemove.expanded #freezenote {
+  #rappelmove.expanded #freezerappel {
     display: block;
-    animation: buttonBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s forwards;
+    animation: buttonBounceRappel 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s forwards;
   }
 
-  /* Effet hover sur le bouton freezenote */
-  #freezenote:hover {
+  /* Effet hover sur le bouton freezerappel */
+  #freezerappel:hover {
     transform: scale(1.15);
     background: rgba(255,255,255,0.2);
     box-shadow: 0 3px 8px rgba(0,0,0,0.3);
   }
 
-  #freezenote.active:hover {
+  #freezerappel.active:hover {
     background: rgba(255, 0, 0, 0.7) !important;
   }
 
-  .content-area {
+  .content-area-rappel {
     width: 100%;
     height: calc(100% - 40px);
     margin-top: 40px;
@@ -215,16 +214,16 @@
     display: none;
     opacity: 0;
     transform: translateY(10px);
-    z-index: 9500 !important; /* Z-index permanent */
+    z-index: 9500 !important;
   }
 
-  #notemove.expanded .content-area {
+  #rappelmove.expanded .content-area-rappel {
     display: block;
-    animation: contentBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards;
+    animation: contentBounceRappel 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards;
   }
 
   /* Animation contenu avec bounce */
-  @keyframes contentBounce {
+  @keyframes contentBounceRappel {
     0% {
       opacity: 0;
       transform: translateY(20px);
@@ -242,24 +241,24 @@
     }
   }
 
-  #inputnote {
+  #inputrappel {
     margin-top: 10px;
     margin-left: 10px;
     width: 200px;
     display: none;
     opacity: 0;
     transform: translateY(20px) scale(0.9);
-    z-index: 9500 !important; /* Z-index permanent */
+    z-index: 9500 !important;
     position: relative;
   }
 
-  #notemove.expanded + #inputnote {
+  #rappelmove.expanded + #inputrappel {
     display: block;
-    animation: inputBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards;
+    animation: inputBounceRappel 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards;
   }
 
   /* Animation input avec bounce */
-  @keyframes inputBounce {
+  @keyframes inputBounceRappel {
     0% {
       opacity: 0;
       transform: translateY(20px) scale(0.9);
@@ -281,11 +280,11 @@
   }
 
   /* Effet hover sur la zone input */
-  #inputnote:hover {
+  #inputrappel:hover {
     transform: scale(1.02);
   }
 
-  #inputnote input {
+  #inputrappel input {
     width: 100%;
     padding: 10px;
     height: 50px;
@@ -303,35 +302,35 @@
   }
 
   /* Effet hover sur l'input */
-  #inputnote input:hover {
+  #inputrappel input:hover {
     transform: scale(1.02);
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     background-color: rgba(17,18,22,0.7);
   }
 
-  #inputnote input:focus {
+  #inputrappel input:focus {
     outline: none;
     transform: scale(1.03);
     box-shadow: 0 5px 15px rgba(0,0,0,0.4);
     background-color: rgba(17,18,22,0.8);
   }
 
-  .dragging {
+  .dragging-rappel {
     opacity: 0.8;
-    z-index: 9500 !important; /* Z-index permanent pendant le drag */
+    z-index: 9500 !important;
   }
 
-  /* Curseur pour le déplacement quand freeze est activé */
-  #notemove.expanded.frozen {
+  /* Curseur pour le déplacement quand gelé est activé */
+  #rappelmove.expanded.frozen {
     cursor: move;
   }
 
   /* Effet sur tout le container quand on hover */
-  .notecontain:hover #notemove:not(.expanded) {
+  .rappelcontain:hover #rappelmove:not(.expanded) {
     transform: scale(1.1);
   }
 
   /* Assurer que tous les états ont le z-index */
-  .notecontain * {
+  .rappelcontain * {
     z-index: inherit;
   }

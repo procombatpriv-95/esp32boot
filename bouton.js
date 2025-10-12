@@ -43,7 +43,7 @@ function openBackgroundMenu(e){
     {name: 'Paysage', bg: 'https://cdn.pixabay.com/photo/2020/06/11/01/28/landscape-5284806_1280.jpg'},
     {name: 'Sombre',  bg: 'https://wallpapers.com/images/hd/dark-nature-ecoszxkcqcayo73x.jpg'},
     {name: 'Chill', bg: 'https://img.tastelife.tv/assets/uploads/2022/01/New_Zealand_-_AMAZING_Beautiful_Nature_with_Relaxing_Music__Soundscapes_16x9.jpg'},
-    {name: 'Cloudy', bg: 'https://i.makeagif.com/media/6-28-2016/f8YwH9.gif'},
+    {name: 'mountain', bg: 'https://www.greenpeace.org.au/static/planet4-australiapacific-stateless/2024/02/578210d6-tumblr_njzjlss9h71tv1qiho1_1280.gif'},
     {name: 'Lunaire', bg: 'https://cdn.pixabay.com/photo/2024/01/25/13/40/ai-generated-8531975_1280.png'}
   ];
 

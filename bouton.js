@@ -42,8 +42,8 @@ function openBackgroundMenu(e){
   const options = [
     {name: 'Paysage', bg: 'https://cdn.pixabay.com/photo/2020/06/11/01/28/landscape-5284806_1280.jpg'},
     {name: 'Sombre',  bg: 'https://wallpapers.com/images/hd/dark-nature-ecoszxkcqcayo73x.jpg'},
-    {name: 'Mode Chill', bg: 'https://img.tastelife.tv/assets/uploads/2022/01/New_Zealand_-_AMAZING_Beautiful_Nature_with_Relaxing_Music__Soundscapes_16x9.jpg'},
-    {name: 'Plage', bg: 'https://www.pro-voyages.com/storage/app/uploads/public/5b4/754/fc9/5b4754fc9400e676561435.jpg'},
+    {name: 'Chill', bg: 'https://img.tastelife.tv/assets/uploads/2022/01/New_Zealand_-_AMAZING_Beautiful_Nature_with_Relaxing_Music__Soundscapes_16x9.jpg'},
+    {name: 'Marée', bg: 'https://media.licdn.com/dms/image/v2/C4D22AQHK8p491rsC3Q/feedshare-shrink_2048_1536/feedshare-shrink_2048_1536/0/1587754104650?e=2147483647&v=beta&t=1LBiNv4O6pm5kF-jHyNT96YibTcvpHDelmSHBA_-IMw'},
     {name: 'Lunaire', bg: 'https://cdn.pixabay.com/photo/2024/01/25/13/40/ai-generated-8531975_1280.png'}
   ];
 

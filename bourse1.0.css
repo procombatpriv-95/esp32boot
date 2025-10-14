@@ -1,0 +1,234 @@
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .carousel-scene {
+            width: 1000px;
+            height: 500px;
+            position: relative;
+            perspective: 1500px;
+            margin-bottom: 50px;
+        }
+        
+        .carousel {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: rotate 20s infinite linear;
+            transform: rotateY(-10deg);
+        }
+        
+        @keyframes rotate {
+            from { transform: rotateY(-10deg); }
+            to { transform: rotateY(350deg); }
+        }
+        
+        .carousel-item {
+            position: absolute;
+            width: 400px;
+            height: 200px;
+            left: 300px;
+            top: 150px;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+        
+        .carousel-item canvas {
+            width: 100%;
+            height: 160px;
+            background:#111216;
+            background-color: rgba(17, 18, 22, 0.5);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+        }
+        
+        .crypto-name {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            z-index: 10;
+        }
+        
+        /* Positionnement 3D CORRIGÉ avec espacement égal à 90° */
+        .carousel-item:nth-child(1) { 
+            transform: rotateY(0deg) translateZ(280px);
+        }
+        .carousel-item:nth-child(2) { 
+            transform: rotateY(90deg) translateZ(280px);
+        }
+        .carousel-item:nth-child(3) { 
+            transform: rotateY(180deg) translateZ(280px);
+        }
+        .carousel-item:nth-child(4) { 
+            transform: rotateY(270deg) translateZ(280px);
+        }
+        
+        /* CONTENEUR PRINCIPAL DES BOUTONS DANS LE CANVAS */
+        .canvas-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .carousel-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 100;
+        }
+
+        /* STYLE DE BASE DES BOUTONS - PLUS PETITS DANS LE CAROUSEL */
+        .canvas-btn {
+            border: 1px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            background: #111216;
+            color: white;
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+        }
+
+        /* Boutons PLUS PETITS dans le carousel */
+        .carousel-controls .canvas-btn {
+            width: 24px;
+            height: 24px;
+            font-size: 10px;
+        }
+
+        /* Boutons PLUS GROS dans la vue sélectionnée */
+        .selected-view .canvas-btn {
+            width: 30px;
+            height: 30px;
+            font-size: 14px;
+        }
+
+        /* BOUTON FREEZE ACTIF */
+        .canvas-btn.freeze-btn.active {
+            background-color: deepskyblue;
+        }
+
+        /* ÉTAT DÉSACTIVÉ */
+        .canvas-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* EFFET AU SURVOL */
+        .canvas-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 0 8px rgba(0,0,0,0.7);
+        }
+        
+        /* EFFET AU CLIC - GROSSISSEMENT */
+        .canvas-btn:active:not(:disabled) {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(0,0,0,0.9);
+        }
+        
+        /* Style pour le canvas avec déplacement */
+        .canvas-draggable {
+            cursor: move;
+            user-select: none;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .canvas-draggable.dragging {
+            cursor: grabbing;
+        }
+        
+        /* Vue sélectionnée - DIMENSIONS CONFIGURABLES */
+        .selected-view {
+            display: none;
+            width: 700px;
+            height: 400px;
+            background:#111216 !important;
+            background-color: rgba(17, 18, 22, 0.5) !important;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .selected-view.active {
+            display: flex;
+        }
+        
+        .selected-view canvas {
+            width: 100%;
+            height: 400px;
+            background:#111216;
+            background-color: rgba(17, 18, 22, 0.5);
+            border-radius: 20px;
+        }
+        
+        .selected-crypto-name {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            z-index: 10;
+        }
+        
+        .back-btn {
+            background: rgba(57, 211, 83, 0.9);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 30px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .back-btn:hover {
+            background: rgba(57, 211, 83, 1);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .carousel-paused {
+            animation-play-state: paused;
+        }
+
+        /* DÉPLACEMENT BITCOIN SÉLECTIONNÉ */
+        .selected-view.bitcoin-selected {
+            margin-left: 100px;
+        }

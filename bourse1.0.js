@@ -6,6 +6,7 @@
                     name: 'Bitcoin (BTC)', 
                     color: 'white',
                     symbol: 'BTCUSDT',
+                    priceElement: 'btcPrice',
                     size: '10px',
                     position: '20px'
                 },
@@ -14,6 +15,7 @@
                     name: 'Ethereum (ETH)', 
                     color: 'white',
                     symbol: 'ETHUSDT',
+                    priceElement: 'ethPrice',
                     size: '10px',
                     position: '20px'
                 },
@@ -22,6 +24,7 @@
                     name: 'XRP', 
                     color: 'white',
                     symbol: 'XRPUSDT',
+                    priceElement: 'xrpPrice',
                     size: '10px',
                     position: '20px'
                 },
@@ -30,6 +33,7 @@
                     name: 'Litecoin (LTC)', 
                     color: 'white',
                     symbol: 'LTCUSDT',
+                    priceElement: 'ltcPrice',
                     size: '10px',
                     position: '20px'
                 }
@@ -42,11 +46,78 @@
             const selectedCanvas = document.getElementById('selectedCanvas');
             const selectedCryptoName = document.getElementById('selectedCryptoName');
             const backBtn = document.getElementById('backBtn');
+            const connectionStatus = document.getElementById('connectionStatus');
             
             // Variables d'état
             let graphInstances = {};
             let selectedCrypto = null;
             let carouselUpdateInterval;
+            let apiUpdateInterval;
+            
+            // === API BINANCE AVEC INTERVALLE DE 2 SECONDES ===
+            function startApiUpdates() {
+                // Mettre à jour immédiatement au démarrage
+                fetchAllPrices();
+                
+                // Puis toutes les 2 secondes
+                apiUpdateInterval = setInterval(fetchAllPrices, 2000);
+            }
+            
+            function fetchAllPrices() {
+                cryptos.forEach(crypto => {
+                    fetchCryptoPrice(crypto);
+                });
+            }
+            
+            function fetchCryptoPrice(crypto) {
+                const url = `https://api.binance.com/api/v3/ticker/price?symbol=${crypto.symbol}`;
+                
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Erreur réseau');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const price = parseFloat(data.price);
+                        updateCryptoPrice(crypto.id, price);
+                        connectionStatus.textContent = 'Connecté';
+                        connectionStatus.className = 'connection-status connected';
+                    })
+                    .catch(error => {
+                        console.error(`Erreur pour ${crypto.symbol}:`, error);
+                        connectionStatus.textContent = 'Erreur de connexion';
+                        connectionStatus.className = 'connection-status disconnected';
+                    });
+            }
+            
+            // Mettre à jour le prix d'une cryptomonnaie
+            function updateCryptoPrice(cryptoId, price) {
+                const instance = graphInstances[cryptoId];
+                if (!instance) return;
+                
+                // Mettre à jour le prix actuel
+                instance.currentPrice = price;
+                
+                // Mettre à jour l'affichage du prix DANS LE CAROUSEL SEULEMENT
+                const priceElement = document.getElementById(cryptos.find(c => c.id === cryptoId).priceElement);
+                if (priceElement) {
+                    priceElement.textContent = `$${price.toFixed(2)}`;
+                    priceElement.style.color = price > (instance.lastPrice || 0) ? '#39d353' : '#ff6b6b';
+                }
+                
+                // NE PAS METTRE À JOUR L'AFFICHAGE DU PRIX DANS LA VUE SÉLECTIONNÉE
+                // (supprimé pour cacher le prix dans la vue sélectionnée)
+                
+                // Ajouter une nouvelle bougie si pas gelé et pas en défilement
+                if (!instance.isFrozen && instance.scrollOffset === 0) {
+                    addNewCandle(instance, price);
+                    drawHeikinAshiChart(instance);
+                }
+                
+                instance.lastPrice = price;
+            }
             
             // === FONCTIONS POUR LE DRAG AND DROP ===
             function initDragForElement(element) {
@@ -58,7 +129,6 @@
                 element.addEventListener('touchstart', startDragTouch);
                 
                 function startDrag(e) {
-                    // Ne pas démarrer le drag si on clique sur un bouton (pour le canvas)
                     if (e.target.classList.contains('canvas-btn')) {
                         return;
                     }
@@ -67,7 +137,6 @@
                     startX = e.clientX;
                     startY = e.clientY;
                     
-                    // Sauvegarder la position initiale
                     const rect = element.getBoundingClientRect();
                     startLeft = parseInt(element.style.left) || 0;
                     startTop = parseInt(element.style.top) || 0;
@@ -80,7 +149,6 @@
                 
                 function startDragTouch(e) {
                     if (e.touches.length === 1) {
-                        // Ne pas démarrer le drag si on clique sur un bouton (pour le canvas)
                         const touch = e.touches[0];
                         const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
                         if (targetElement && targetElement.classList.contains('canvas-btn')) {
@@ -108,7 +176,6 @@
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
                     
-                    // Déplacer l'élément
                     element.style.position = 'relative';
                     element.style.left = (startLeft + dx) + 'px';
                     element.style.top = (startTop + dy) + 'px';
@@ -136,7 +203,6 @@
             }
 
             function initAllDraggableElements() {
-                // Initialiser le drag pour la vue sélectionnée
                 initDragForElement(selectedView);
             }
             
@@ -152,16 +218,13 @@
             function initGraph(canvas, crypto, isCarousel = false) {
                 const DPR = window.devicePixelRatio || 1;
                 
-                // DIMENSIONS DIFFÉRENTES selon le contexte
                 let CSS_W, CSS_H;
                 
                 if (isCarousel) {
-                    // Dimensions du carousel (inchangées)
                     CSS_W = 400;
                     CSS_H = 160;
                 } else {
-                    // Dimensions du canvas sélectionné
-                    CSS_W = 690;
+                    CSS_W = 700;
                     CSS_H = 340;
                 }
                 
@@ -173,11 +236,11 @@
                 const ctx = canvas.getContext('2d');
                 ctx.scale(DPR, DPR);
                 
-                // Générer des données initiales
-                const historicalData = generateInitialData(getBasePrice(crypto.id));
-                const currentPrice = historicalData[historicalData.length - 1].close;
+                // Générer des données initiales basées sur le prix actuel
+                const basePrice = getBasePrice(crypto.id);
+                const historicalData = generateInitialData(basePrice);
+                const currentPrice = basePrice;
                 
-                // Stocker l'instance
                 graphInstances[crypto.id] = {
                     canvas: canvas,
                     ctx: ctx,
@@ -187,13 +250,12 @@
                     isFrozen: false,
                     CSS_W: CSS_W,
                     CSS_H: CSS_H,
-                    scrollOffset: 0
+                    scrollOffset: 0,
+                    lastPrice: basePrice
                 };
                 
-                // Dessiner le graphique
                 drawHeikinAshiChart(graphInstances[crypto.id]);
                 
-                // Initialiser les contrôles
                 if (isCarousel) {
                     initCarouselControls(crypto.id);
                 }
@@ -217,7 +279,6 @@
                 const data = [];
                 let price = basePrice;
                 
-                // Générer plus de données pour permettre le défilement
                 for (let i = 0; i < 200; i++) {
                     const volatility = (Math.random() - 0.5) * basePrice * 0.03;
                     const open = price;
@@ -240,7 +301,7 @@
             }
 
             // Dessiner le graphique Heikin-Ashi
-            function drawHeikinAshiChart(instance) {
+           function drawHeikinAshiChart(instance) {
                 const { ctx, historicalData, CSS_W, CSS_H, scrollOffset } = instance;
                 
                 ctx.clearRect(0, 0, CSS_W, CSS_H);
@@ -389,7 +450,6 @@
                 
                 updateScrollButtons(cryptoId);
                 
-                // Bouton Freeze
                 freezeBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     const instance = graphInstances[cryptoId];
@@ -399,7 +459,6 @@
                     }
                 });
                 
-                // Bouton Défilement gauche
                 scrollLeftBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     const instance = graphInstances[cryptoId];
@@ -410,7 +469,6 @@
                     }
                 });
                 
-                // Bouton Retour temps réel
                 scrollRightBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     const instance = graphInstances[cryptoId];
@@ -421,7 +479,6 @@
                     }
                 });
                 
-                // Événement de clic sur le canvas du carousel
                 const canvas = document.getElementById(`${cryptoId}Canvas`);
                 canvas.addEventListener('click', function(e) {
                     selectCrypto(cryptoId);
@@ -454,20 +511,17 @@
                 
                 updateSelectedViewButtons();
                 
-                // Bouton Freeze
                 freezeBtn.addEventListener('click', function() {
                     instance.isFrozen = !instance.isFrozen;
                     freezeBtn.classList.toggle('active', instance.isFrozen);
                 });
                 
-                // Bouton Défilement gauche
                 scrollLeftBtn.addEventListener('click', function() {
                     instance.scrollOffset += 10;
                     updateSelectedViewButtons();
                     drawHeikinAshiChart(instance);
                 });
                 
-                // Bouton Retour temps réel
                 scrollRightBtn.addEventListener('click', function() {
                     instance.scrollOffset = 0;
                     updateSelectedViewButtons();
@@ -493,14 +547,11 @@
             function selectCrypto(cryptoId) {
                 selectedCrypto = cryptos.find(c => c.id === cryptoId);
                 
-                // Arrêter la rotation
                 carousel.classList.add('carousel-paused');
                 clearInterval(carouselUpdateInterval);
                 
-                // Masquer le carousel
                 carouselScene.classList.add('hidden');
                 
-                // Afficher la vue sélectionnée
                 selectedCryptoName.textContent = selectedCrypto.name;
                 selectedCryptoName.style.fontSize = selectedCrypto.size;
                 selectedCryptoName.style.color = selectedCrypto.color;
@@ -511,59 +562,37 @@
                 selectedCryptoName.style.textAlign = 'center';
                 selectedCryptoName.style.top = 'auto';
                 
+                // NE PAS METTRE À JOUR LE PRIX DANS LA VUE SÉLECTIONNÉE
+                // (supprimé pour cacher le prix dans la vue sélectionnée)
+                
                 selectedView.classList.add('active');
                 
-                // DÉPLACER UNIQUEMENT BITCOIN VERS LA DROITE
                 if (cryptoId === 'bitcoin') {
                     selectedView.classList.add('bitcoin-selected');
                 } else {
                     selectedView.classList.remove('bitcoin-selected');
                 }
                 
-                // Initialiser le graphique sélectionné
                 initGraph(selectedCanvas, selectedCrypto, false);
-                
-                // Initialiser les contrôles de la vue sélectionnée
                 initSelectedViewControls();
                 
-                // Afficher le bouton retour
                 backBtn.classList.remove('hidden');
-                
-                // Démarrer la mise à jour automatique avec données réelles
-                startSelectedGraphUpdate();
             }
             
-            // Démarrer la mise à jour du graphique sélectionné
-            function startSelectedGraphUpdate() {
-                if (!selectedCrypto) return;
-                
-                const instance = graphInstances[selectedCrypto.id];
-                if (!instance) return;
-                
-                setInterval(() => {
-                    if (instance.isFrozen || instance.scrollOffset > 0) return;
-                    
-                    addNewCandle(instance);
-                    drawHeikinAshiChart(instance);
-                }, 2000);
-            }
-            
-            // Ajouter une nouvelle bougie
-            function addNewCandle(instance) {
+            // Ajouter une nouvelle bougie avec les données réelles
+            function addNewCandle(instance, price) {
                 const lastCandle = instance.historicalData[instance.historicalData.length - 1];
-                const volatility = (Math.random() - 0.5) * instance.currentPrice * 0.02;
-                const newClose = lastCandle.close + volatility;
                 
                 const newCandle = {
                     open: lastCandle.close,
-                    high: Math.max(lastCandle.close, newClose) + Math.random() * instance.currentPrice * 0.01,
-                    low: Math.min(lastCandle.close, newClose) - Math.random() * instance.currentPrice * 0.01,
-                    close: newClose,
+                    high: Math.max(lastCandle.close, price),
+                    low: Math.min(lastCandle.close, price),
+                    close: price,
                     timestamp: Date.now()
                 };
                 
                 instance.historicalData.push(newCandle);
-                instance.currentPrice = newClose;
+                instance.currentPrice = price;
                 
                 if (instance.historicalData.length > 200) {
                     instance.historicalData.shift();
@@ -578,33 +607,22 @@
                 backBtn.classList.add('hidden');
                 selectedCrypto = null;
                 
-                // Réinitialiser la position de la vue sélectionnée
                 selectedView.style.position = 'relative';
                 selectedView.style.left = '0px';
                 selectedView.style.top = '0px';
                 
-                // Redémarrer la rotation
                 carousel.classList.remove('carousel-paused');
-                
-                // Redémarrer la mise à jour du carousel
                 startCarouselUpdate();
             });
             
             // Démarrer la mise à jour automatique du carousel
             function startCarouselUpdate() {
-                carouselUpdateInterval = setInterval(() => {
-                    cryptos.forEach(crypto => {
-                        const instance = graphInstances[crypto.id];
-                        if (instance && !instance.isFrozen && instance.scrollOffset === 0) {
-                            addNewCandle(instance);
-                            drawHeikinAshiChart(instance);
-                        }
-                    });
-                }, 2000);
+                // Pas besoin de mise à jour automatique car les données viennent de l'API
+                // Cette fonction est conservée pour la compatibilité mais ne fait rien
             }
             
             // Initialiser l'application
             initCarouselGraphs();
             initAllDraggableElements();
-            startCarouselUpdate();
+            startApiUpdates(); // Démarrer les mises à jour de l'API toutes les 2 secondes
         });

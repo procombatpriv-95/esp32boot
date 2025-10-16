@@ -1,11 +1,30 @@
+ .contenu,
+.contenu *,
+.contenu *::before,
+.contenu *::after {
+
+    box-sizing: border-box;
+
+}
+
+        body {
+            background: white;
+            color: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+        }
+        
         .contenu {
             width: 100%;
-            max-width: 1200px;
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
+
+        .contenu .selected-view {
+            background: rgba(0, 0, 0, 0.7) !important;
+        }        
         
         .carousel-scene {
             width: 1000px;
@@ -135,13 +154,9 @@
             width: 30px;
             height: 30px;
             font-size: 14px;
-            
         }
 
         /* BOUTON FREEZE ACTIF */
-        .canvas-btn.freeze-btn.active {
-            background-color: deepskyblue;
-        }
 
         /* ÉTAT DÉSACTIVÉ */
         .canvas-btn:disabled {
@@ -179,63 +194,66 @@
             display: none;
             width: 700px;
             height: 400px;
-            background:#111216 !important;
-            background-color: rgba(17, 18, 22, 0.5) !important;
-            border-radius: 20px;
+            border-radius: 30px;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
             flex-direction: column;
             overflow: hidden;
             position: relative;
+            margin-bottom: 20px; 
+            background: rgba(0, 0, 0, 0.5) !important;
         }
         
         .selected-view.active {
             display: flex;
-
         }
         
         .selected-view canvas {
             width: 100%;
             height: 400px;
-            background:#111216;
-            background-color: rgba(17, 18, 22, 0.5);
             border-radius: 20px;
         }
         
         .selected-crypto-name {
             position: absolute;
-            top: 15px;
+            bottom: 10px !important;
             left: 0;
             width: 100%;
             text-align: center;
-            font-size: 24px;
-            font-weight: bold;
+            font-size: 10px !important;
             color: white;
             z-index: 10;
+            top: auto !important;
         }
         
         .selected-price-display {
-            display: none; /* CACHÉ DANS LA VUE SÉLECTIONNÉE */
+            display: none;
         }
         
-        .back-btn {
-            background: rgba(57, 211, 83, 0.9);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 30px;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
+.back-btn {
+    background: rgba(0, 0, 0, 0.4); /* Noir transparent */
+    color: skyblue; /* Couleur de la flèche */
+    border: 2px solid skyblue; /* Bordure sky blue */
+    padding: 12px 25px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: none; /* Pas d'ombre par défaut */
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.back-btn:hover {
+    background: skyblue; /* Remplissage au survol */
+    color: white; /* Flèche blanche au survol */
+    box-shadow: 0 0 15px skyblue, 0 0 30px rgba(135, 206, 235, 0.5); /* Effet brillant */
+    transform: translateY(-2px); /* Léger soulèvement */
+}
         
-        .back-btn:hover {
-            background: rgba(57, 211, 83, 1);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-        }
+
         
         .hidden {
             display: none !important;
@@ -245,27 +263,330 @@
             animation-play-state: paused;
         }
 
-        /* DÉPLACEMENT BITCOIN SÉLECTIONNÉ */
-        .selected-view.bitcoin-selected {
-            margin-left: 100px;
+        /* SUPPRIMER LE STATUT DE CONNEXION */
+        .connection-status {
+            display: none;
         }
 
-        .connection-status {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
+        /* LOADER NEWTON'S CRADLE */
+        .newtons-cradle {
+            --uib-size: 50px;
+            --uib-speed: 1.2s;
+            --uib-color: #39d353;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: var(--uib-size);
+            height: var(--uib-size);
             z-index: 1000;
         }
 
-        .connected {
-            background: #39d353;
+        .newtons-cradle__dot {
+            position: relative;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            width: 25%;
+            transform-origin: center top;
+        }
+
+        .newtons-cradle__dot::after {
+            content: '';
+            display: block;
+            width: 100%;
+            height: 25%;
+            border-radius: 50%;
+            background-color: var(--uib-color);
+        }
+
+        .newtons-cradle__dot:first-child {
+            animation: swing var(--uib-speed) linear infinite;
+        }
+
+        .newtons-cradle__dot:last-child {
+            animation: swing2 var(--uib-speed) linear infinite;
+        }
+
+        @keyframes swing {
+            0% {
+                transform: rotate(0deg);
+                animation-timing-function: ease-out;
+            }
+
+            25% {
+                transform: rotate(70deg);
+                animation-timing-function: ease-in;
+            }
+
+            50% {
+                transform: rotate(0deg);
+                animation-timing-function: linear;
+            }
+        }
+
+        @keyframes swing2 {
+            0% {
+                transform: rotate(0deg);
+                animation-timing-function: linear;
+            }
+
+            50% {
+                transform: rotate(0deg);
+                animation-timing-function: ease-out;
+            }
+
+            75% {
+                transform: rotate(-70deg);
+                animation-timing-function: ease-in;
+            }
+        }
+
+        /* NOUVEAU STYLE POUR LE PANEL D'INFORMATIONS */
+        .crypto-info-panel {
+            position: relative;
+            width: 700px;
+            background: rgba(0, 0, 0, 0.7) !important;
+            border-radius: 30px;
+            padding: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+
+            backdrop-filter: blur(10px);
+            cursor: move;
+            user-select: none;
+            height: 120px;
+            margin-top: 0;
+            resize: none;
+            overflow: hidden;
+        }
+
+        .crypto-info-panel.dragging {
+            cursor: grabbing;
+            opacity: 0.9;
+        }
+
+        .crypto-info-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+
+        }
+
+        .crypto-main-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .crypto-symbol {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .crypto-price {
+            font-size: 18px;
+            font-weight: bold;
+            color: #39d353;
+            margin-bottom: 5px;
+        }
+
+        .crypto-change {
+            font-size: 16px;
+            padding: 4px 12px;
+            border-radius: 22px;
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .positive {
+            background: rgba(57, 211, 83, 0.2);
+            color: #39d353;
+        }
+
+        .negative {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .crypto-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 150px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 14px;
             color: white;
         }
 
-        .disconnected {
-            background: #ff6b6b;
+        /* NOUVEAUX INDICATEURS DE PERFORMANCE - EN COLONNE */
+        .performance-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 120px;
+            margin: 0 20px;
+        }
+
+        .performance-indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .indicator-value {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .indicator-label {
+            font-size: 10px;
+            opacity: 0.8;
+        }
+
+        .performance-positive {
+            background: rgba(57, 211, 83, 0.2);
+            border: 1px solid rgba(57, 211, 83, 0.5);
+        }
+
+        .performance-negative {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid rgba(255, 107, 107, 0.5);
+        }
+
+        .performance-neutral {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* BOUTONS GRAPHIQUE LIGNE ET BOUGIE */
+        .graph-toggle-buttons {
+            position: absolute;
+            bottom: 10px;
+            left: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 101;
+        }
+
+        .graph-toggle-btn {
+            background: #292727;
+
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
             color: white;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .graph-toggle-btn.active {
+            background: #d33939;
+            border: 1px #d33939;
+        }
+
+        .graph-toggle-btn:hover {
+    box-shadow: 0 0 20px #d33939;
+    border-color: #d33939;
+    filter: brightness(1.3);
+    transform: translateY(-2px);
+        }
+
+        /* SUPPRIMER LA POIGNÉE DE REDIMENSIONNEMENT */
+        .resize-handle {
+            display: none !important;
+        }
+
+        /* CONTENEUR POUR LA VUE SÉLECTIONNÉE ET LE PANEL */
+        .selected-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* STYLES POUR LES BARRES VERTICALES DES MOIS */
+        .month-marker {
+            position: absolute;
+            bottom: 0;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .month-label {
+            position: absolute;
+            bottom: -20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 10px;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* AJOUTER DE L'ESPACE EN BAS POUR LES ÉTIQUETTES DES MOIS */
+        .selected-view canvas {
+            margin-bottom: 25px;
+        }
+
+        /* NOUVEAU STYLE POUR LES BOUTONS DANS CHAQUE CANVAS DU CAROUSEL */
+        .carousel-item-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 100;
+        }
+
+        .carousel-item-btn {
+            background: #111216;
+            border: 1px #111216;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            font-size: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .carousel-item-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .carousel-item-btn.active {
+            background: #d33939;
         }

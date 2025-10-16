@@ -34,7 +34,7 @@
             height: 100%;
             position: relative;
             transform-style: preserve-3d;
-            animation: rotate 20s infinite linear;
+            animation: rotate 15s infinite linear;
             transform: rotateY(-10deg);
         }
         

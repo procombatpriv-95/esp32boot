@@ -1069,7 +1069,3 @@ document.addEventListener('DOMContentLoaded', function() {
     initCarouselButtons();
     startApiUpdates();
 });
-            initCarouselGraphs();
-            initAllDraggableElements();
-            startApiUpdates(); // Démarrer les mises à jour de l'API toutes les 2 secondes
-        });

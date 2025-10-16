@@ -1,627 +1,1074 @@
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configuration des cryptomonnaies avec leurs symboles Binance
-            const cryptos = [
-                { 
-                    id: 'bitcoin', 
-                    name: 'Bitcoin (BTC)', 
-                    color: 'white',
-                    symbol: 'BTCUSDT',
-                    priceElement: 'btcPrice',
-                    size: '10px',
-                    position: '20px'
-                },
-                { 
-                    id: 'ethereum', 
-                    name: 'Ethereum (ETH)', 
-                    color: 'white',
-                    symbol: 'ETHUSDT',
-                    priceElement: 'ethPrice',
-                    size: '10px',
-                    position: '20px'
-                },
-                { 
-                    id: 'xrp', 
-                    name: 'XRP', 
-                    color: 'white',
-                    symbol: 'XRPUSDT',
-                    priceElement: 'xrpPrice',
-                    size: '10px',
-                    position: '20px'
-                },
-                { 
-                    id: 'litecoin', 
-                    name: 'Litecoin (LTC)', 
-                    color: 'white',
-                    symbol: 'LTCUSDT',
-                    priceElement: 'ltcPrice',
-                    size: '10px',
-                    position: '20px'
-                }
-            ];
-            
-            // Éléments du DOM
-            const carousel = document.getElementById('mainCarousel');
-            const carouselScene = document.getElementById('carouselScene');
-            const selectedView = document.getElementById('selectedView');
-            const selectedCanvas = document.getElementById('selectedCanvas');
-            const selectedCryptoName = document.getElementById('selectedCryptoName');
-            const backBtn = document.getElementById('backBtn');
-            const connectionStatus = document.getElementById('connectionStatus');
-            
-            // Variables d'état
-            let graphInstances = {};
-            let selectedCrypto = null;
-            let carouselUpdateInterval;
-            let apiUpdateInterval;
-            
-            // === API BINANCE AVEC INTERVALLE DE 2 SECONDES ===
-            function startApiUpdates() {
-                // Mettre à jour immédiatement au démarrage
-                fetchAllPrices();
-                
-                // Puis toutes les 2 secondes
-                apiUpdateInterval = setInterval(fetchAllPrices, 2000);
-            }
-            
-            function fetchAllPrices() {
-                cryptos.forEach(crypto => {
-                    fetchCryptoPrice(crypto);
-                });
-            }
-            
-            function fetchCryptoPrice(crypto) {
-                const url = `https://api.binance.com/api/v3/ticker/price?symbol=${crypto.symbol}`;
-                
-                fetch(url)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Erreur réseau');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        const price = parseFloat(data.price);
-                        updateCryptoPrice(crypto.id, price);
-                        connectionStatus.textContent = 'Connecté';
-                        connectionStatus.className = 'connection-status connected';
-                    })
-                    .catch(error => {
-                        console.error(`Erreur pour ${crypto.symbol}:`, error);
-                        connectionStatus.textContent = 'Erreur de connexion';
-                        connectionStatus.className = 'connection-status disconnected';
-                    });
-            }
-            
-            // Mettre à jour le prix d'une cryptomonnaie
-            function updateCryptoPrice(cryptoId, price) {
-                const instance = graphInstances[cryptoId];
-                if (!instance) return;
-                
-                // Mettre à jour le prix actuel
-                instance.currentPrice = price;
-                
-                // Mettre à jour l'affichage du prix DANS LE CAROUSEL SEULEMENT
-                const priceElement = document.getElementById(cryptos.find(c => c.id === cryptoId).priceElement);
-                if (priceElement) {
-                    priceElement.textContent = `$${price.toFixed(2)}`;
-                    priceElement.style.color = price > (instance.lastPrice || 0) ? '#39d353' : '#ff6b6b';
-                }
-                
-                // NE PAS METTRE À JOUR L'AFFICHAGE DU PRIX DANS LA VUE SÉLECTIONNÉE
-                // (supprimé pour cacher le prix dans la vue sélectionnée)
-                
-                // Ajouter une nouvelle bougie si pas gelé et pas en défilement
-                if (!instance.isFrozen && instance.scrollOffset === 0) {
-                    addNewCandle(instance, price);
-                    drawHeikinAshiChart(instance);
-                }
-                
-                instance.lastPrice = price;
-            }
-            
-            // === FONCTIONS POUR LE DRAG AND DROP ===
-            function initDragForElement(element) {
-                let isDragging = false;
-                let startX, startY;
-                let startLeft, startTop;
-                
-                element.addEventListener('mousedown', startDrag);
-                element.addEventListener('touchstart', startDragTouch);
-                
-                function startDrag(e) {
-                    if (e.target.classList.contains('canvas-btn')) {
-                        return;
-                    }
-                    
-                    isDragging = true;
-                    startX = e.clientX;
-                    startY = e.clientY;
-                    
-                    const rect = element.getBoundingClientRect();
-                    startLeft = parseInt(element.style.left) || 0;
-                    startTop = parseInt(element.style.top) || 0;
-                    
-                    element.classList.add('dragging');
-                    document.addEventListener('mousemove', onDrag);
-                    document.addEventListener('mouseup', stopDrag);
-                    e.preventDefault();
-                }
-                
-                function startDragTouch(e) {
-                    if (e.touches.length === 1) {
-                        const touch = e.touches[0];
-                        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                        if (targetElement && targetElement.classList.contains('canvas-btn')) {
-                            return;
-                        }
-                        
-                        isDragging = true;
-                        startX = touch.clientX;
-                        startY = touch.clientY;
-                        
-                        const rect = element.getBoundingClientRect();
-                        startLeft = parseInt(element.style.left) || 0;
-                        startTop = parseInt(element.style.top) || 0;
-                        
-                        element.classList.add('dragging');
-                        document.addEventListener('touchmove', onDragTouch);
-                        document.addEventListener('touchend', stopDrag);
-                        e.preventDefault();
-                    }
-                }
-                
-                function onDrag(e) {
-                    if (!isDragging) return;
-                    
-                    const dx = e.clientX - startX;
-                    const dy = e.clientY - startY;
-                    
-                    element.style.position = 'relative';
-                    element.style.left = (startLeft + dx) + 'px';
-                    element.style.top = (startTop + dy) + 'px';
-                }
-                
-                function onDragTouch(e) {
-                    if (!isDragging || e.touches.length !== 1) return;
-                    
-                    const dx = e.touches[0].clientX - startX;
-                    const dy = e.touches[0].clientY - startY;
-                    
-                    element.style.position = 'relative';
-                    element.style.left = (startLeft + dx) + 'px';
-                    element.style.top = (startTop + dy) + 'px';
-                }
-                
-                function stopDrag() {
-                    isDragging = false;
-                    element.classList.remove('dragging');
-                    document.removeEventListener('mousemove', onDrag);
-                    document.removeEventListener('touchmove', onDragTouch);
-                    document.removeEventListener('mouseup', stopDrag);
-                    document.removeEventListener('touchend', stopDrag);
-                }
-            }
+document.addEventListener('DOMContentLoaded', function() {
+    const cryptos = [
+        { 
+            id: 'bitcoin', 
+            name: 'Bitcoin (BTC)', 
+            color: 'white',
+            symbol: 'BTCUSDT',
+            priceElement: 'btcPrice'
+        },
+        { 
+            id: 'ethereum', 
+            name: 'Ethereum (ETH)', 
+            color: 'white',
+            symbol: 'ETHUSDT',
+            priceElement: 'ethPrice'
+        },
+        { 
+            id: 'xrp', 
+            name: 'XRP', 
+            color: 'white',
+            symbol: 'XRPUSDT',
+            priceElement: 'xrpPrice'
+        },
+        { 
+            id: 'litecoin', 
+            name: 'Litecoin (LTC)', 
+            color: 'white',
+            symbol: 'LTCUSDT',
+            priceElement: 'ltcPrice'
+        }
+    ];
+    
+    // Éléments du DOM
+    const carousel = document.getElementById('mainCarousel');
+    const carouselScene = document.getElementById('carouselScene');
+    const selectedView = document.getElementById('selectedView');
+    const selectedCanvas = document.getElementById('selectedCanvas');
+    const selectedCryptoName = document.getElementById('selectedCryptoName');
+    const backBtn = document.getElementById('backBtn');
+    const loader = document.getElementById('loader');
+    const cryptoInfoPanel = document.getElementById('cryptoInfoPanel');
+    const lineChartBtn = document.getElementById('lineChartBtn');
+    const candleChartBtn = document.getElementById('candleChartBtn');
+    const pcChartBtn = document.getElementById('pcChartBtn');
+    
+    // Variables d'état
+    let graphInstances = {};
+    let selectedCrypto = null;
+    let apiUpdateInterval;
+    let selectedChartType = 'candle';
+    
+    // Stocker le type de graphique pour chaque crypto dans le carousel
+    let carouselChartTypes = {
+        'bitcoin': 'candle',
+        'ethereum': 'candle',
+        'xrp': 'candle',
+        'litecoin': 'candle'
+    };
 
-            function initAllDraggableElements() {
-                initDragForElement(selectedView);
-            }
+    // Stocker les données 24h pour chaque crypto
+    let crypto24hData = {};
+    
+    // === GESTION DU DRAG DU PANEL ===
+    function initPanelDrag() {
+        let isDragging = false;
+        let startX, startY;
+        let startLeft, startTop;
+        
+        cryptoInfoPanel.addEventListener('mousedown', startDrag);
+        
+        function startDrag(e) {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = cryptoInfoPanel.offsetLeft;
+            startTop = cryptoInfoPanel.offsetTop;
             
-            // Initialiser les graphiques du carousel
-            function initCarouselGraphs() {
-                cryptos.forEach(crypto => {
-                    const canvas = document.getElementById(`${crypto.id}Canvas`);
-                    initGraph(canvas, crypto, true);
+            cryptoInfoPanel.classList.add('dragging');
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', stopDrag);
+            e.preventDefault();
+        }
+        
+        function onDrag(e) {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            cryptoInfoPanel.style.position = 'absolute';
+            cryptoInfoPanel.style.left = (startLeft + dx) + 'px';
+            cryptoInfoPanel.style.top = (startTop + dy) + 'px';
+            cryptoInfoPanel.style.width = '700px';
+            cryptoInfoPanel.style.height = '120px';
+        }
+        
+        function stopDrag() {
+            isDragging = false;
+            cryptoInfoPanel.classList.remove('dragging');
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+    }
+    
+    // === FONCTIONS POUR CALCULER LES PERFORMANCES ===
+    function calculatePerformanceChanges(instance) {
+        if (!instance.candles || instance.candles.length === 0) return;
+        
+        const currentPrice = instance.candles[instance.candles.length - 1].close;
+        
+        const threeMonthsAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
+        const threeMonthCandle = instance.candles.find(c => c.timestamp >= threeMonthsAgo);
+        const threeMonthChange = threeMonthCandle ? 
+            ((currentPrice - threeMonthCandle.close) / threeMonthCandle.close) * 100 : 0;
+        
+        const oneMonthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        const oneMonthCandle = instance.candles.find(c => c.timestamp >= oneMonthAgo);
+        const oneMonthChange = oneMonthCandle ? 
+            ((currentPrice - oneMonthCandle.close) / oneMonthCandle.close) * 100 : 0;
+        
+        const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        const oneWeekCandle = instance.candles.find(c => c.timestamp >= oneWeekAgo);
+        const oneWeekChange = oneWeekCandle ? 
+            ((currentPrice - oneWeekCandle.close) / oneWeekCandle.close) * 100 : 0;
+        
+        instance.performanceChanges = {
+            threeMonth: threeMonthChange,
+            oneMonth: oneMonthChange,
+            oneWeek: oneWeekChange
+        };
+        
+        updatePerformanceIndicators(instance);
+    }
+    
+    function updatePerformanceIndicators(instance) {
+        if (!instance.performanceChanges) return;
+        
+        const { threeMonth, oneMonth, oneWeek } = instance.performanceChanges;
+        
+        updateSingleIndicator('indicator3M', 'value3M', threeMonth);
+        updateSingleIndicator('indicator1M', 'value1M', oneMonth);
+        updateSingleIndicator('indicator1W', 'value1W', oneWeek);
+    }
+    
+    function updateSingleIndicator(indicatorId, valueId, change) {
+        const indicator = document.getElementById(indicatorId);
+        const valueElement = document.getElementById(valueId);
+        
+        if (!indicator || !valueElement) return;
+        
+        const sign = change >= 0 ? '+' : '';
+        valueElement.textContent = `${sign}${change.toFixed(2)}%`;
+        
+        if (change > 0) {
+            indicator.className = 'performance-indicator performance-positive';
+            valueElement.style.color = '#39d353';
+        } else if (change < 0) {
+            indicator.className = 'performance-indicator performance-negative';
+            valueElement.style.color = '#ff6b6b';
+        } else {
+            indicator.className = 'performance-indicator performance-neutral';
+            valueElement.style.color = 'white';
+        }
+    }
+    
+    // === FONCTION POUR DESSINER LES BARRES DES MOIS ===
+    function drawMonthMarkers(instance) {
+        const { ctx, candles, CSS_W, CSS_H } = instance;
+        
+        if (candles.length === 0) return;
+        
+        const margin = { top: 10, right: 10, bottom: 25, left: 50 };
+        const graphWidth = CSS_W - margin.left - margin.right;
+        const graphHeight = CSS_H - margin.top - margin.bottom;
+        
+        const threeMonthsAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
+        const recentCandles = candles.filter(candle => candle.timestamp >= threeMonthsAgo);
+        
+        if (recentCandles.length === 0) return;
+        
+        const startDate = new Date(recentCandles[0].timestamp);
+        const endDate = new Date(recentCandles[recentCandles.length - 1].timestamp);
+        const totalTimeRange = endDate - startDate;
+        
+        const monthPositions = getRealMonthPositions(startDate, endDate, graphWidth, margin.left, totalTimeRange);
+        
+        monthPositions.forEach(({ x, monthName }) => {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(x, margin.top);
+            ctx.lineTo(x, margin.top + graphHeight);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '11px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(monthName, x, margin.top + graphHeight + 5);
+        });
+    }
+    
+    function getRealMonthPositions(startDate, endDate, graphWidth, leftMargin, totalTimeRange) {
+        const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+        const positions = [];
+        
+        const currentMonth = new Date(startDate);
+        currentMonth.setDate(1);
+        currentMonth.setHours(0, 0, 0, 0);
+        
+        while (currentMonth <= endDate) {
+            const monthTimestamp = currentMonth.getTime();
+            const timePosition = (monthTimestamp - startDate) / totalTimeRange;
+            const x = leftMargin + (timePosition * graphWidth);
+            
+            if (x >= leftMargin && x <= leftMargin + graphWidth) {
+                const monthName = monthNames[currentMonth.getMonth()];
+                const year = currentMonth.getFullYear();
+                const displayName = currentMonth.getMonth() === 0 || positions.length === 0 
+                    ? `${monthName} ${year}` 
+                    : monthName;
+                
+                positions.push({
+                    x: x,
+                    monthName: displayName
                 });
             }
             
-            // Initialiser un graphique
-            function initGraph(canvas, crypto, isCarousel = false) {
-                const DPR = window.devicePixelRatio || 1;
-                
-                let CSS_W, CSS_H;
-                
-                if (isCarousel) {
-                    CSS_W = 400;
-                    CSS_H = 160;
-                } else {
-                    CSS_W = 700;
-                    CSS_H = 340;
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+        }
+        
+        return positions;
+    }
+    
+    // === API BINANCE - MODIFICATIONS POUR RÉCUPÉRER LES DONNÉES 24H ===
+    function startApiUpdates() {
+        fetchAllPrices();
+        fetchAll24hData(); // Nouvelle fonction pour récupérer les données 24h
+        apiUpdateInterval = setInterval(() => {
+            fetchAllPrices();
+            fetchAll24hData();
+        }, 2000);
+    }
+    
+    function fetchAllPrices() {
+        cryptos.forEach(crypto => {
+            fetchCryptoPrice(crypto);
+        });
+    }
+
+    // NOUVELLE FONCTION POUR RÉCUPÉRER LES DONNÉES 24H
+    function fetchAll24hData() {
+        cryptos.forEach(crypto => {
+            fetch24hData(crypto);
+        });
+    }
+
+    function fetch24hData(crypto) {
+        const url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${crypto.symbol}`;
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
                 }
-                
-                canvas.style.width = CSS_W + "px";
-                canvas.style.height = CSS_H + "px";
-                canvas.width = CSS_W * DPR;
-                canvas.height = CSS_H * DPR;
-                
-                const ctx = canvas.getContext('2d');
-                ctx.scale(DPR, DPR);
-                
-                // Générer des données initiales basées sur le prix actuel
-                const basePrice = getBasePrice(crypto.id);
-                const historicalData = generateInitialData(basePrice);
-                const currentPrice = basePrice;
-                
-                graphInstances[crypto.id] = {
-                    canvas: canvas,
-                    ctx: ctx,
-                    crypto: crypto,
-                    historicalData: historicalData,
-                    currentPrice: currentPrice,
-                    isFrozen: false,
-                    CSS_W: CSS_W,
-                    CSS_H: CSS_H,
-                    scrollOffset: 0,
-                    lastPrice: basePrice
+                return response.json();
+            })
+            .then(data => {
+                // Stocker les données 24h
+                crypto24hData[crypto.id] = {
+                    highPrice: parseFloat(data.highPrice),
+                    lowPrice: parseFloat(data.lowPrice),
+                    volume: parseFloat(data.volume),
+                    priceChange: parseFloat(data.priceChange),
+                    priceChangePercent: parseFloat(data.priceChangePercent)
                 };
                 
-                drawHeikinAshiChart(graphInstances[crypto.id]);
-                
-                if (isCarousel) {
-                    initCarouselControls(crypto.id);
+                // Mettre à jour le panel si cette crypto est sélectionnée
+                if (selectedCrypto && selectedCrypto.id === crypto.id) {
+                    updateCryptoInfoPanel(graphInstances[crypto.id]);
                 }
-                
-                return graphInstances[crypto.id];
-            }
-            
-            // Obtenir le prix de base selon la crypto
-            function getBasePrice(cryptoId) {
-                switch(cryptoId) {
-                    case 'bitcoin': return 50000;
-                    case 'ethereum': return 3000;
-                    case 'xrp': return 0.5;
-                    case 'litecoin': return 70;
-                    default: return 100;
-                }
-            }
-            
-            // Générer des données initiales pour Heikin-Ashi
-            function generateInitialData(basePrice) {
-                const data = [];
-                let price = basePrice;
-                
-                for (let i = 0; i < 200; i++) {
-                    const volatility = (Math.random() - 0.5) * basePrice * 0.03;
-                    const open = price;
-                    const close = price + volatility;
-                    const high = Math.max(open, close) + Math.random() * basePrice * 0.015;
-                    const low = Math.min(open, close) - Math.random() * basePrice * 0.015;
-                    
-                    data.push({
-                        open: open,
-                        high: high,
-                        low: low,
-                        close: close,
-                        timestamp: Date.now() - (200 - i) * 24 * 60 * 60 * 1000
-                    });
-                    
-                    price = close;
-                }
-                
-                return data;
-            }
-
-            // Dessiner le graphique Heikin-Ashi
-           function drawHeikinAshiChart(instance) {
-                const { ctx, historicalData, CSS_W, CSS_H, scrollOffset } = instance;
-                
-                ctx.clearRect(0, 0, CSS_W, CSS_H);
-                
-                if (historicalData.length === 0) return;
-                
-                // ⭐⭐ POSITION ORIGINALE POUR LE CAROUSEL ⭐⭐
-                let margin;
-                if (selectedCrypto && instance.crypto.id === selectedCrypto.id) {
-                    // Canvas sélectionné - position personnalisée
-                    switch(instance.crypto.id) {
-                        case 'bitcoin':
-                            margin = { top: 40, right: 20, bottom: 10, left: 60 };
-                            break;
-                        case 'ethereum':
-                            margin = { top: 40, right: 20, bottom: 10, left: 60 };
-                            break;
-                        case 'xrp':
-                            margin = { top: 40, right: 20, bottom: 10, left: 60 };
-                            break;
-                        case 'litecoin':
-                            margin = { top: 40, right: 20, bottom: 10, left: 60 };
-                            break;
-                        default:
-                            margin = { top: 40, right: 20, bottom: 10, left: 60 };
-                    }
-                } else {
-                    // ⭐⭐ CAROUSEL - POSITION ORIGINALE ⭐⭐
-                    margin = { top: 20, right: 20, bottom: 10, left: 60 };
-                }
-                
-                const graphWidth = CSS_W - margin.left - margin.right;
-                const graphHeight = CSS_H - margin.top - margin.bottom;
-                
-                // Déterminer les données visibles en fonction du défilement
-                let visibleData;
-                if (scrollOffset > 0) {
-                    const startIndex = Math.max(0, historicalData.length - 100 - scrollOffset);
-                    const endIndex = Math.min(historicalData.length, startIndex + 100);
-                    visibleData = historicalData.slice(startIndex, endIndex);
-                } else {
-                    visibleData = historicalData.slice(-100);
-                }
-                
-                if (visibleData.length === 0) return;
-                
-                const prices = visibleData.flatMap(d => [d.high, d.low]);
-                const minPrice = Math.min(...prices);
-                const maxPrice = Math.max(...prices);
-                const priceRange = maxPrice - minPrice || 1;
-                
-                // Dessiner la grille
-                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                ctx.lineWidth = 1;
-                
-                const verticalLines = 8;
-                for (let i = 0; i <= verticalLines; i++) {
-                    const x = margin.left + (i * graphWidth / verticalLines);
-                    ctx.beginPath();
-                    ctx.moveTo(x, margin.top);
-                    ctx.lineTo(x, margin.top + graphHeight);
-                    ctx.stroke();
-                }
-                
-                const horizontalLines = 6;
-                for (let i = 0; i <= horizontalLines; i++) {
-                    const y = margin.top + (i * graphHeight / horizontalLines);
-                    ctx.beginPath();
-                    ctx.moveTo(margin.left, y);
-                    ctx.lineTo(margin.left + graphWidth, y);
-                    ctx.stroke();
-                }
-                
-                // Dessiner les bougies Heikin-Ashi
-                const candleWidth = CSS_W > 600 ? 8 : 6;
-                const visibleCandles = Math.min(visibleData.length, Math.floor(graphWidth / (candleWidth + 2)));
-                
-                for (let i = 0; i < visibleCandles; i++) {
-                    const candle = visibleData[i];
-                    const x = margin.left + (i * (candleWidth + 2));
-                    
-                    const highY = margin.top + ((maxPrice - candle.high) / priceRange * graphHeight);
-                    const lowY = margin.top + ((maxPrice - candle.low) / priceRange * graphHeight);
-                    const openY = margin.top + ((maxPrice - candle.open) / priceRange * graphHeight);
-                    const closeY = margin.top + ((maxPrice - candle.close) / priceRange * graphHeight);
-                    
-                    const isBullish = candle.close >= candle.open;
-                    ctx.strokeStyle = isBullish ? '#39d353' : '#ff6b6b';
-                    ctx.fillStyle = isBullish ? '#39d353' : '#ff6b6b';
-                    
-                    // Dessiner la mèche
-                    ctx.beginPath();
-                    ctx.moveTo(x + candleWidth/2, highY);
-                    ctx.lineTo(x + candleWidth/2, lowY);
-                    ctx.stroke();
-                    
-                    // Dessiner le corps
-                    const bodyTop = Math.min(openY, closeY);
-                    const bodyHeight = Math.abs(openY - closeY);
-                    const bodyHeightMin = 1;
-                    
-                    ctx.fillRect(
-                        x, 
-                        bodyTop, 
-                        candleWidth, 
-                        Math.max(bodyHeight, bodyHeightMin)
-                    );
-                }
-                
-                // Dessiner les axes
-                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                ctx.lineWidth = 1;
-                ctx.fillStyle = 'rgba(255,255,255,0.7)';
-                ctx.font = CSS_W > 600 ? '14px Arial' : '10px Arial';
-                
-                // Axe Y
-                ctx.beginPath();
-                ctx.moveTo(margin.left, margin.top);
-                ctx.lineTo(margin.left, margin.top + graphHeight);
-                ctx.stroke();
-                
-                // Axe X
-                ctx.beginPath();
-                ctx.moveTo(margin.left, margin.top + graphHeight);
-                ctx.lineTo(margin.left + graphWidth, margin.top + graphHeight);
-                ctx.stroke();
-                
-                // Étiquettes Y
-                const yTicks = 4;
-                for (let i = 0; i <= yTicks; i++) {
-                    const value = minPrice + (i * priceRange / yTicks);
-                    const y = margin.top + graphHeight - (i * graphHeight / yTicks);
-                    
-                    ctx.textAlign = 'right';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('$' + value.toFixed(0), margin.left - 5, y);
-                }
-            }
-
-            // === FONCTIONS POUR LES BOUTONS ===
-            function initCarouselControls(cryptoId) {
-                const carouselItem = document.querySelector(`[data-crypto="${cryptoId}"]`);
-                const freezeBtn = carouselItem.querySelector('.freeze-btn');
-                const scrollLeftBtn = carouselItem.querySelector('.scroll-left-btn');
-                const scrollRightBtn = carouselItem.querySelector('.scroll-right-btn');
-                
-                updateScrollButtons(cryptoId);
-                
-                freezeBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const instance = graphInstances[cryptoId];
-                    if (instance) {
-                        instance.isFrozen = !instance.isFrozen;
-                        freezeBtn.classList.toggle('active', instance.isFrozen);
-                    }
-                });
-                
-                scrollLeftBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const instance = graphInstances[cryptoId];
-                    if (instance) {
-                        instance.scrollOffset += 10;
-                        updateScrollButtons(cryptoId);
-                        drawHeikinAshiChart(instance);
-                    }
-                });
-                
-                scrollRightBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const instance = graphInstances[cryptoId];
-                    if (instance) {
-                        instance.scrollOffset = 0;
-                        updateScrollButtons(cryptoId);
-                        drawHeikinAshiChart(instance);
-                    }
-                });
-                
-                const canvas = document.getElementById(`${cryptoId}Canvas`);
-                canvas.addEventListener('click', function(e) {
-                    selectCrypto(cryptoId);
-                });
-            }
-            
-            function updateScrollButtons(cryptoId) {
-                const carouselItem = document.querySelector(`[data-crypto="${cryptoId}"]`);
-                const scrollLeftBtn = carouselItem.querySelector('.scroll-left-btn');
-                const scrollRightBtn = carouselItem.querySelector('.scroll-right-btn');
-                const instance = graphInstances[cryptoId];
-                
-                if (scrollLeftBtn && scrollRightBtn && instance) {
-                    const maxScroll = Math.max(0, instance.historicalData.length - 100);
-                    scrollLeftBtn.disabled = instance.scrollOffset >= maxScroll;
-                    scrollRightBtn.disabled = instance.scrollOffset === 0;
-                }
-            }
-            
-            // Initialiser les contrôles de la vue sélectionnée
-            function initSelectedViewControls() {
-                const freezeBtn = document.getElementById('selectedFreezeBtn');
-                const scrollLeftBtn = selectedView.querySelector('.scroll-left-btn');
-                const scrollRightBtn = selectedView.querySelector('.scroll-right-btn');
-                
-                if (!selectedCrypto) return;
-                
-                const instance = graphInstances[selectedCrypto.id];
-                if (!instance) return;
-                
-                updateSelectedViewButtons();
-                
-                freezeBtn.addEventListener('click', function() {
-                    instance.isFrozen = !instance.isFrozen;
-                    freezeBtn.classList.toggle('active', instance.isFrozen);
-                });
-                
-                scrollLeftBtn.addEventListener('click', function() {
-                    instance.scrollOffset += 10;
-                    updateSelectedViewButtons();
-                    drawHeikinAshiChart(instance);
-                });
-                
-                scrollRightBtn.addEventListener('click', function() {
-                    instance.scrollOffset = 0;
-                    updateSelectedViewButtons();
-                    drawHeikinAshiChart(instance);
-                });
-            }
-            
-            function updateSelectedViewButtons() {
-                if (!selectedCrypto) return;
-                
-                const instance = graphInstances[selectedCrypto.id];
-                const scrollLeftBtn = selectedView.querySelector('.scroll-left-btn');
-                const scrollRightBtn = selectedView.querySelector('.scroll-right-btn');
-                
-                if (scrollLeftBtn && scrollRightBtn && instance) {
-                    const maxScroll = Math.max(0, instance.historicalData.length - 100);
-                    scrollLeftBtn.disabled = instance.scrollOffset >= maxScroll;
-                    scrollRightBtn.disabled = instance.scrollOffset === 0;
-                }
-            }
-            
-            // Sélectionner une cryptomonnaie
-            function selectCrypto(cryptoId) {
-                selectedCrypto = cryptos.find(c => c.id === cryptoId);
-                
-                carousel.classList.add('carousel-paused');
-                clearInterval(carouselUpdateInterval);
-                
-                carouselScene.classList.add('hidden');
-                
-                selectedCryptoName.textContent = selectedCrypto.name;
-                selectedCryptoName.style.fontSize = selectedCrypto.size;
-                selectedCryptoName.style.color = selectedCrypto.color;
-                selectedCryptoName.style.position = 'absolute';
-                selectedCryptoName.style.bottom = selectedCrypto.position;
-                selectedCryptoName.style.left = '0';
-                selectedCryptoName.style.width = '100%';
-                selectedCryptoName.style.textAlign = 'center';
-                selectedCryptoName.style.top = 'auto';
-                
-                // NE PAS METTRE À JOUR LE PRIX DANS LA VUE SÉLECTIONNÉE
-                // (supprimé pour cacher le prix dans la vue sélectionnée)
-                
-                selectedView.classList.add('active');
-                
-                if (cryptoId === 'bitcoin') {
-                    selectedView.classList.add('bitcoin-selected');
-                } else {
-                    selectedView.classList.remove('bitcoin-selected');
-                }
-                
-                initGraph(selectedCanvas, selectedCrypto, false);
-                initSelectedViewControls();
-                
-                backBtn.classList.remove('hidden');
-            }
-            
-            // Ajouter une nouvelle bougie avec les données réelles
-            function addNewCandle(instance, price) {
-                const lastCandle = instance.historicalData[instance.historicalData.length - 1];
-                
-                const newCandle = {
-                    open: lastCandle.close,
-                    high: Math.max(lastCandle.close, price),
-                    low: Math.min(lastCandle.close, price),
-                    close: price,
-                    timestamp: Date.now()
-                };
-                
-                instance.historicalData.push(newCandle);
-                instance.currentPrice = price;
-                
-                if (instance.historicalData.length > 200) {
-                    instance.historicalData.shift();
-                }
-            }
-            
-            // Retour au carousel
-            backBtn.addEventListener('click', function() {
-                selectedView.classList.remove('active');
-                selectedView.classList.remove('bitcoin-selected');
-                carouselScene.classList.remove('hidden');
-                backBtn.classList.add('hidden');
-                selectedCrypto = null;
-                
-                selectedView.style.position = 'relative';
-                selectedView.style.left = '0px';
-                selectedView.style.top = '0px';
-                
-                carousel.classList.remove('carousel-paused');
-                startCarouselUpdate();
+            })
+            .catch(error => {
+                console.error(`Erreur données 24h pour ${crypto.symbol}:`, error);
             });
+    }
+    
+    function fetchCryptoPrice(crypto) {
+        const url = `https://api.binance.com/api/v3/ticker/price?symbol=${crypto.symbol}`;
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const price = parseFloat(data.price);
+                updateCryptoPrice(crypto.id, price);
+            })
+            .catch(error => {
+                console.error(`Erreur pour ${crypto.symbol}:`, error);
+            });
+    }
+    
+    function fetchHistoricalData(cryptoId, isCarousel = false) {
+        const crypto = cryptos.find(c => c.id === cryptoId);
+        const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
+        const url = `https://api.binance.com/api/v3/klines?symbol=${crypto.symbol}&interval=1d&limit=180&startTime=${sixMonthsAgo}`;
+        
+        if (!isCarousel) {
+            loader.classList.remove('hidden');
+        }
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const candles = data.map(kline => ({
+                    open: parseFloat(kline[1]),
+                    high: parseFloat(kline[2]),
+                    low: parseFloat(kline[3]),
+                    close: parseFloat(kline[4]),
+                    volume: parseFloat(kline[5]),
+                    timestamp: kline[0]
+                }));
+                
+                const instance = graphInstances[cryptoId];
+                if (instance) {
+                    instance.candles = candles;
+                    calculateMonthlyChange(instance);
+                    calculatePerformanceChanges(instance);
+                    
+                    if (isCarousel) {
+                        const chartType = carouselChartTypes[cryptoId];
+                        redrawCarouselGraph(instance, chartType);
+                    } else {
+                        redrawSelectedGraph(instance, selectedChartType);
+                    }
+                }
+                if (!isCarousel) {
+                    loader.classList.add('hidden');
+                }
+            })
+            .catch(error => {
+                console.error(`Erreur historique pour ${crypto.symbol}:`, error);
+                if (!isCarousel) {
+                    loader.classList.add('hidden');
+                }
+            });
+    }
+
+    // FONCTIONS DE REDESSIN DES GRAPHIQUES
+    function redrawCarouselGraph(instance, chartType) {
+        if (chartType === 'line') {
+            drawLineChart(instance);
+        } else if (chartType === 'pc') {
+            drawPcChart(instance);
+        } else {
+            drawCandlestickChart(instance);
+        }
+        drawMonthMarkers(instance);
+    }
+
+    function redrawSelectedGraph(instance, chartType) {
+        if (chartType === 'line') {
+            drawLineChart(instance);
+        } else if (chartType === 'pc') {
+            drawPcChart(instance);
+        } else {
+            drawCandlestickChart(instance);
+        }
+        drawMonthMarkers(instance);
+    }
+
+    function calculateMonthlyChange(instance) {
+        if (!instance.candles || instance.candles.length < 30) return;
+        
+        const monthlyCandles = instance.candles.slice(-30);
+        const firstPrice = monthlyCandles[0].close;
+        const lastPrice = monthlyCandles[monthlyCandles.length - 1].close;
+        const change = ((lastPrice - firstPrice) / firstPrice) * 100;
+        
+        instance.monthlyChange = change;
+        
+        if (selectedCrypto && selectedCrypto.id === instance.crypto.id) {
+            updateCryptoInfoPanel(instance);
+        }
+    }
+    
+    // === MISE À JOUR DU PANEL D'INFORMATIONS AVEC LES DONNÉES 24H ===
+    function updateCryptoInfoPanel(instance) {
+        if (!instance.candles || instance.candles.length === 0) return;
+        
+        const currentCandle = instance.candles[instance.candles.length - 1];
+        const symbol = instance.crypto.symbol.replace('USDT', '');
+        const cryptoData24h = crypto24hData[instance.crypto.id];
+        
+        document.getElementById('infoSymbol').textContent = symbol;
+        document.getElementById('infoPrice').textContent = `$${currentCandle.close.toFixed(2)}`;
+        
+        // Variation mensuelle
+        const changeElement = document.getElementById('infoChange');
+        if (instance.monthlyChange !== undefined) {
+            const sign = instance.monthlyChange >= 0 ? '+' : '';
+            changeElement.textContent = `${sign}${instance.monthlyChange.toFixed(2)}% `;
             
-            // Démarrer la mise à jour automatique du carousel
-            function startCarouselUpdate() {
-                // Pas besoin de mise à jour automatique car les données viennent de l'API
-                // Cette fonction est conservée pour la compatibilité mais ne fait rien
+            if (instance.monthlyChange >= 0) {
+                changeElement.className = 'crypto-change positive';
+            } else {
+                changeElement.className = 'crypto-change negative';
+            }
+        }
+        
+        // Mettre à jour les données 24h High, Low et Volume si disponibles
+        if (cryptoData24h) {
+            document.getElementById('infoHigh').textContent = `$${cryptoData24h.highPrice.toFixed(2)}`;
+            document.getElementById('infoLow').textContent = `$${cryptoData24h.lowPrice.toFixed(2)}`;
+            
+            // Formater le volume
+            let formattedVolume;
+            if (cryptoData24h.volume >= 1000000) {
+                formattedVolume = `${(cryptoData24h.volume / 1000000).toFixed(2)}M`;
+            } else if (cryptoData24h.volume >= 1000) {
+                formattedVolume = `${(cryptoData24h.volume / 1000).toFixed(2)}K`;
+            } else {
+                formattedVolume = cryptoData24h.volume.toFixed(2);
+            }
+            document.getElementById('infoVolume').textContent = formattedVolume;
+        } else {
+            // Valeurs par défaut si les données ne sont pas encore chargées
+            document.getElementById('infoHigh').textContent = '$0.00';
+            document.getElementById('infoLow').textContent = '$0.00';
+            document.getElementById('infoVolume').textContent = '0';
+        }
+        
+        cryptoInfoPanel.classList.remove('hidden');
+    }
+    
+    function updateCryptoPrice(cryptoId, price) {
+        const instance = graphInstances[cryptoId];
+        if (!instance) return;
+        
+        instance.currentPrice = price;
+        
+        const priceElement = document.getElementById(cryptos.find(c => c.id === cryptoId).priceElement);
+        if (priceElement) {
+            priceElement.textContent = `$${price.toFixed(2)}`;
+            priceElement.style.color = price > (instance.lastPrice || 0) ? '#39d353' : '#ff6b6b';
+        }
+        
+        instance.lastPrice = price;
+        
+        // Mettre à jour le panel si cette crypto est sélectionnée
+        if (selectedCrypto && selectedCrypto.id === cryptoId) {
+            updateCryptoInfoPanel(instance);
+        }
+    }
+    
+    // === GESTION DES GRAPHIQUES ===
+    function initCarouselGraphs() {
+        cryptos.forEach(crypto => {
+            const canvas = document.getElementById(`${crypto.id}Canvas`);
+            initGraph(canvas, crypto, true);
+            fetchHistoricalData(crypto.id, true);
+        });
+    }
+    
+    function initGraph(canvas, crypto, isCarousel = false) {
+        const DPR = window.devicePixelRatio || 1;
+        
+        let CSS_W, CSS_H;
+        
+        if (isCarousel) {
+            CSS_W = 400;
+            CSS_H = 160;
+        } else {
+            CSS_W = 680;
+            CSS_H = 350;
+            
+            canvas.style.position = 'absolute';
+            canvas.style.left = '10px';
+            canvas.style.top = '10px';
+            canvas.style.zIndex = '1000';
+        }
+        
+        canvas.style.width = CSS_W + "px";
+        canvas.style.height = CSS_H + "px";
+        canvas.width = CSS_W * DPR;
+        canvas.height = CSS_H * DPR;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.scale(DPR, DPR);
+        
+        graphInstances[crypto.id] = {
+            canvas: canvas,
+            ctx: ctx,
+            crypto: crypto,
+            candles: [],
+            currentPrice: 0,
+            CSS_W: CSS_W,
+            CSS_H: CSS_H,
+            scrollOffset: 0,
+            lastPrice: 0,
+            monthlyChange: 0,
+            performanceChanges: null,
+            position: { x: 50, y: 50 }
+        };
+        
+        if (isCarousel) {
+            const canvasElement = document.getElementById(`${crypto.id}Canvas`);
+            canvasElement.addEventListener('click', function(e) {
+                selectCrypto(crypto.id);
+            });
+        }
+        
+        return graphInstances[crypto.id];
+    }
+    
+    function drawLineChart(instance) {
+        const { ctx, candles, CSS_W, CSS_H } = instance;
+        
+        ctx.clearRect(0, 0, CSS_W, CSS_H);
+        
+        if (candles.length === 0) return;
+        
+        const margin = { top: 10, right: 10, bottom: 25, left: 50 };
+        const graphWidth = CSS_W - margin.left - margin.right;
+        const graphHeight = CSS_H - margin.top - margin.bottom;
+        
+        const threeMonthsAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
+        const recentCandles = candles.filter(candle => candle.timestamp >= threeMonthsAgo);
+        
+        if (recentCandles.length === 0) return;
+        
+        const closes = recentCandles.map(c => c.close);
+        let minPrice = Math.min(...closes);
+        let maxPrice = Math.max(...closes);
+        
+        const priceRange = maxPrice - minPrice;
+        minPrice = minPrice - (priceRange * 0.02);
+        maxPrice = maxPrice + (priceRange * 0.02);
+        const adjustedPriceRange = maxPrice - minPrice;
+        
+        // Dessiner la grille
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        
+        for (let i = 0; i <= 4; i++) {
+            const y = margin.top + (i * graphHeight / 4);
+            ctx.beginPath();
+            ctx.moveTo(margin.left, y);
+            ctx.lineTo(margin.left + graphWidth, y);
+            ctx.stroke();
+        }
+        
+        // Dessiner la ligne
+        ctx.strokeStyle = '#39d353';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        const startDate = new Date(recentCandles[0].timestamp);
+        const endDate = new Date(recentCandles[recentCandles.length - 1].timestamp);
+        const totalTimeRange = endDate - startDate;
+        
+        for (let i = 0; i < recentCandles.length; i++) {
+            const candle = recentCandles[i];
+            const timePosition = (candle.timestamp - startDate) / totalTimeRange;
+            const x = margin.left + (timePosition * graphWidth);
+            const y = margin.top + ((maxPrice - candle.close) / adjustedPriceRange * graphHeight);
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        
+        ctx.stroke();
+        
+        // Remplir l'aire sous la courbe
+        ctx.fillStyle = 'rgba(57, 211, 83, 0.1)';
+        ctx.beginPath();
+        ctx.moveTo(margin.left, margin.top + graphHeight);
+        
+        for (let i = 0; i < recentCandles.length; i++) {
+            const candle = recentCandles[i];
+            const timePosition = (candle.timestamp - startDate) / totalTimeRange;
+            const x = margin.left + (timePosition * graphWidth);
+            const y = margin.top + ((maxPrice - candle.close) / adjustedPriceRange * graphHeight);
+            ctx.lineTo(x, y);
+        }
+        
+        ctx.lineTo(margin.left + graphWidth, margin.top + graphHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Axes et étiquettes
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'right';
+        
+        ctx.beginPath();
+        ctx.moveTo(margin.left, margin.top);
+        ctx.lineTo(margin.left, margin.top + graphHeight);
+        ctx.stroke();
+        
+        for (let i = 0; i <= 4; i++) {
+            const value = minPrice + (i * adjustedPriceRange / 4);
+            const y = margin.top + (i * graphHeight / 4);
+            
+            let formattedValue;
+            if (value >= 1000) {
+                formattedValue = `$${(value/1000).toFixed(1)}K`;
+            } else if (value >= 1) {
+                formattedValue = `$${value.toFixed(2)}`;
+            } else {
+                formattedValue = `$${value.toFixed(4)}`;
             }
             
-            // Initialiser l'application
+            ctx.fillText(formattedValue, margin.left - 5, y);
+        }
+    }
+    
+    function drawCandlestickChart(instance) {
+        const { ctx, candles, CSS_W, CSS_H } = instance;
+        
+        ctx.clearRect(0, 0, CSS_W, CSS_H);
+        
+        if (candles.length === 0) return;
+        
+        const margin = { top: 10, right: 10, bottom: 25, left: 50 };
+        const graphWidth = CSS_W - margin.left - margin.right;
+        const graphHeight = CSS_H - margin.top - margin.bottom;
+        
+        const threeMonthsAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
+        const recentCandles = candles.filter(candle => candle.timestamp >= threeMonthsAgo);
+        
+        if (recentCandles.length === 0) return;
+        
+        const highs = recentCandles.map(c => c.high);
+        const lows = recentCandles.map(c => c.low);
+        let minPrice = Math.min(...lows);
+        let maxPrice = Math.max(...highs);
+        
+        const priceRange = maxPrice - minPrice;
+        minPrice = minPrice - (priceRange * 0.02);
+        maxPrice = maxPrice + (priceRange * 0.02);
+        const adjustedPriceRange = maxPrice - minPrice;
+        
+        // Dessiner la grille
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        
+        for (let i = 0; i <= 4; i++) {
+            const y = margin.top + (i * graphHeight / 4);
+            ctx.beginPath();
+            ctx.moveTo(margin.left, y);
+            ctx.lineTo(margin.left + graphWidth, y);
+            ctx.stroke();
+        }
+        
+        const startDate = new Date(recentCandles[0].timestamp);
+        const endDate = new Date(recentCandles[recentCandles.length - 1].timestamp);
+        const totalTimeRange = endDate - startDate;
+        
+        const candleWidth = Math.max(2, (graphWidth / recentCandles.length) * 0.8);
+        
+        for (let i = 0; i < recentCandles.length; i++) {
+            const candle = recentCandles[i];
+            const timePosition = (candle.timestamp - startDate) / totalTimeRange;
+            const x = margin.left + (timePosition * graphWidth) - (candleWidth / 2);
+            
+            const highY = margin.top + ((maxPrice - candle.high) / adjustedPriceRange * graphHeight);
+            const lowY = margin.top + ((maxPrice - candle.low) / adjustedPriceRange * graphHeight);
+            const openY = margin.top + ((maxPrice - candle.open) / adjustedPriceRange * graphHeight);
+            const closeY = margin.top + ((maxPrice - candle.close) / adjustedPriceRange * graphHeight);
+            
+            const isBullish = candle.close >= candle.open;
+            
+            ctx.strokeStyle = isBullish ? '#39d353' : '#ff6b6b';
+            ctx.fillStyle = isBullish ? '#39d353' : '#ff6b6b';
+            
+            // Mèche
+            ctx.beginPath();
+            ctx.moveTo(x + candleWidth/2, highY);
+            ctx.lineTo(x + candleWidth/2, lowY);
+            ctx.stroke();
+            
+            // Corps
+            const bodyTop = Math.min(openY, closeY);
+            const bodyHeight = Math.max(1, Math.abs(openY - closeY));
+            
+            if (isBullish) {
+                ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
+            } else {
+                ctx.strokeRect(x, bodyTop, candleWidth, bodyHeight);
+            }
+        }
+        
+        // Axes et étiquettes
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'right';
+        
+        ctx.beginPath();
+        ctx.moveTo(margin.left, margin.top);
+        ctx.lineTo(margin.left, margin.top + graphHeight);
+        ctx.stroke();
+        
+        for (let i = 0; i <= 4; i++) {
+            const value = minPrice + (i * adjustedPriceRange / 4);
+            const y = margin.top + (i * graphHeight / 4);
+            
+            let formattedValue;
+            if (value >= 1000) {
+                formattedValue = `$${(value/1000).toFixed(1)}K`;
+            } else if (value >= 1) {
+                formattedValue = `$${value.toFixed(2)}`;
+            } else {
+                formattedValue = `$${value.toFixed(4)}`;
+            }
+            
+            ctx.fillText(formattedValue, margin.left - 5, y);
+        }
+    }
+
+    function drawPcChart(instance) {
+        const { ctx, candles, CSS_W, CSS_H } = instance;
+        
+        ctx.clearRect(0, 0, CSS_W, CSS_H);
+        
+        if (candles.length === 0) return;
+        
+        const margin = { top: 10, right: 10, bottom: 25, left: 50 };
+        const graphWidth = CSS_W - margin.left - margin.right;
+        const graphHeight = CSS_H - margin.top - margin.bottom;
+        
+        const threeMonthsAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
+        const recentCandles = candles.filter(candle => candle.timestamp >= threeMonthsAgo);
+        
+        if (recentCandles.length === 0) return;
+        
+        const closes = recentCandles.map(c => c.close);
+        let minPrice = Math.min(...closes);
+        let maxPrice = Math.max(...closes);
+        
+        const priceRange = maxPrice - minPrice;
+        minPrice = minPrice - (priceRange * 0.02);
+        maxPrice = maxPrice + (priceRange * 0.02);
+        const adjustedPriceRange = maxPrice - minPrice;
+        
+        // Dessiner la grille
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        
+        for (let i = 0; i <= 4; i++) {
+            const y = margin.top + (i * graphHeight / 4);
+            ctx.beginPath();
+            ctx.moveTo(margin.left, y);
+            ctx.lineTo(margin.left + graphWidth, y);
+            ctx.stroke();
+        }
+        
+        // Dessiner la ligne - STYLE PC
+        ctx.strokeStyle = 'lightblue';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        const startDate = new Date(recentCandles[0].timestamp);
+        const endDate = new Date(recentCandles[recentCandles.length - 1].timestamp);
+        const totalTimeRange = endDate - startDate;
+        
+        for (let i = 0; i < recentCandles.length; i++) {
+            const candle = recentCandles[i];
+            const timePosition = (candle.timestamp - startDate) / totalTimeRange;
+            const x = margin.left + (timePosition * graphWidth);
+            const y = margin.top + ((maxPrice - candle.close) / adjustedPriceRange * graphHeight);
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        
+        ctx.stroke();
+        
+        // Axes et étiquettes
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'right';
+        
+        ctx.beginPath();
+        ctx.moveTo(margin.left, margin.top);
+        ctx.lineTo(margin.left, margin.top + graphHeight);
+        ctx.stroke();
+        
+        for (let i = 0; i <= 4; i++) {
+            const value = minPrice + (i * adjustedPriceRange / 4);
+            const y = margin.top + (i * graphHeight / 4);
+            
+            let formattedValue;
+            if (value >= 1000) {
+                formattedValue = `$${(value/1000).toFixed(1)}K`;
+            } else if (value >= 1) {
+                formattedValue = `$${value.toFixed(2)}`;
+            } else {
+                formattedValue = `$${value.toFixed(4)}`;
+            }
+            
+            ctx.fillText(formattedValue, margin.left - 5, y);
+        }
+    }
+    
+    // === SÉLECTION CRYPTO ===
+    function selectCrypto(cryptoId) {
+        selectedCrypto = cryptos.find(c => c.id === cryptoId);
+        selectedView.style.background = '#111216';
+        selectedView.style.backgroundColor = 'rgba(17, 18, 22, 0.5)';   
+        carousel.classList.add('carousel-paused');
+        carouselScene.classList.add('hidden');
+        
+        selectedCryptoName.textContent = selectedCrypto.name;
+        selectedCryptoName.style.position = 'absolute';
+        selectedCryptoName.style.bottom = '10px';
+        selectedCryptoName.style.left = '0';
+        selectedCryptoName.style.width = '100%';
+        selectedCryptoName.style.textAlign = 'center';
+        selectedCryptoName.style.fontSize = '10px';
+        selectedCryptoName.style.color = 'white';
+        selectedCryptoName.style.zIndex = '10';
+        
+        selectedView.classList.add('active');
+        backBtn.classList.remove('hidden');
+        
+        selectedView.style.width = '700px';
+        selectedView.style.height = '400px';
+
+        initGraph(selectedCanvas, selectedCrypto, false);
+        
+        cryptoInfoPanel.style.position = 'relative';
+        cryptoInfoPanel.style.width = '700px';
+        cryptoInfoPanel.style.height = '120px';
+        cryptoInfoPanel.style.left = 'auto';
+        cryptoInfoPanel.style.top = 'auto';
+        
+        const originalInstance = graphInstances[selectedCrypto.id];
+        const newInstance = graphInstances[selectedCrypto.id];
+        if (originalInstance && newInstance) {
+            newInstance.candles = [...originalInstance.candles];
+            newInstance.currentPrice = originalInstance.currentPrice;
+            newInstance.lastPrice = originalInstance.lastPrice;
+            newInstance.monthlyChange = originalInstance.monthlyChange;
+            newInstance.performanceChanges = originalInstance.performanceChanges;
+            
+            redrawSelectedGraph(newInstance, selectedChartType);
+            updateCryptoInfoPanel(newInstance);
+            updatePerformanceIndicators(newInstance);
+        }
+        
+        if (!originalInstance || originalInstance.candles.length === 0) {
+            fetchHistoricalData(cryptoId);
+        }
+    }
+    
+    // === GESTION DES BOUTONS GRAPHIQUE ===
+    function initGraphToggleButtons() {
+        lineChartBtn.addEventListener('click', function() {
+            selectedChartType = 'line';
+            lineChartBtn.classList.add('active');
+            candleChartBtn.classList.remove('active');
+            pcChartBtn.classList.remove('active');
+            
+            if (selectedCrypto) {
+                const instance = graphInstances[selectedCrypto.id];
+                if (instance) {
+                    redrawSelectedGraph(instance, selectedChartType);
+                }
+            }
+        });
+        
+        candleChartBtn.addEventListener('click', function() {
+            selectedChartType = 'candle';
+            candleChartBtn.classList.add('active');
+            lineChartBtn.classList.remove('active');
+            pcChartBtn.classList.remove('active');
+            
+            if (selectedCrypto) {
+                const instance = graphInstances[selectedCrypto.id];
+                if (instance) {
+                    redrawSelectedGraph(instance, selectedChartType);
+                }
+            }
+        });
+
+        pcChartBtn.addEventListener('click', function() {
+            selectedChartType = 'pc';
+            pcChartBtn.classList.add('active');
+            lineChartBtn.classList.remove('active');
+            candleChartBtn.classList.remove('active');
+            
+            if (selectedCrypto) {
+                const instance = graphInstances[selectedCrypto.id];
+                if (instance) {
+                    redrawSelectedGraph(instance, selectedChartType);
+                }
+            }
+        });
+    }
+
+    // === GESTION DES BOUTONS CAROUSEL ===
+    function initCarouselButtons() {
+        document.querySelectorAll('.carousel-item-btn').forEach(btn => {
+            btn.replaceWith(btn.cloneNode(true));
+        });
+
+        document.querySelectorAll('.carousel-item-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                const cryptoId = this.getAttribute('data-crypto');
+                const chartType = this.getAttribute('data-type');
+                
+                carouselChartTypes[cryptoId] = chartType;
+                
+                const parentControls = this.parentElement;
+                parentControls.querySelectorAll('.carousel-item-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                const instance = graphInstances[cryptoId];
+                if (instance) {
+                    redrawCarouselGraph(instance, chartType);
+                }
+            });
+        });
+    }
+    
+    // === DRAG AND DROP ===
+    function initDragForElement(element) {
+        let isDragging = false;
+        let startX, startY;
+        let startLeft, startTop;
+        
+        element.addEventListener('mousedown', startDrag);
+        element.addEventListener('touchstart', startDragTouch);
+        
+        function startDrag(e) {
+            if (e.target.classList.contains('graph-toggle-btn')) {
+                return;
+            }
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            startLeft = parseInt(element.style.left) || 0;
+            startTop = parseInt(element.style.top) || 0;
+            
+            element.classList.add('dragging');
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', stopDrag);
+            e.preventDefault();
+        }
+        
+        function startDragTouch(e) {
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                if (targetElement && targetElement.classList.contains('graph-toggle-btn')) {
+                    return;
+                }
+                
+                isDragging = true;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                
+                startLeft = parseInt(element.style.left) || 0;
+                startTop = parseInt(element.style.top) || 0;
+                
+                element.classList.add('dragging');
+                document.addEventListener('touchmove', onDragTouch);
+                document.addEventListener('touchend', stopDrag);
+                e.preventDefault();
+            }
+        }
+        
+        function onDrag(e) {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            element.style.position = 'relative';
+            element.style.left = (startLeft + dx) + 'px';
+            element.style.top = (startTop + dy) + 'px';
+        }
+        
+        function onDragTouch(e) {
+            if (!isDragging || e.touches.length !== 1) return;
+            
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            
+            element.style.position = 'relative';
+            element.style.left = (startLeft + dx) + 'px';
+            element.style.top = (startTop + dy) + 'px';
+        }
+        
+        function stopDrag() {
+            isDragging = false;
+            element.classList.remove('dragging');
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('touchmove', onDragTouch);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchend', stopDrag);
+        }
+    }
+
+    function initAllDraggableElements() {
+        initDragForElement(selectedView);
+    }
+    
+    // Retour au carousel
+    backBtn.addEventListener('click', function() {
+        selectedView.classList.remove('active');
+        carouselScene.classList.remove('hidden');
+        backBtn.classList.add('hidden');
+        cryptoInfoPanel.classList.add('hidden');
+        selectedCrypto = null;
+        
+        selectedView.style.position = 'relative';
+        selectedView.style.left = '0px';
+        selectedView.style.top = '0px';
+        
+        carousel.classList.remove('carousel-paused');
+        
+        cryptos.forEach(crypto => {
+            const instance = graphInstances[crypto.id];
+            if (instance && instance.candles && instance.candles.length > 0) {
+                const chartType = carouselChartTypes[crypto.id];
+                redrawCarouselGraph(instance, chartType);
+            }
+        });
+        
+        initCarouselButtons();
+    });
+    
+    // Initialiser l'application
+    initCarouselGraphs();
+    initAllDraggableElements();
+    initPanelDrag();
+    initGraphToggleButtons();
+    initCarouselButtons();
+    startApiUpdates();
+});
             initCarouselGraphs();
             initAllDraggableElements();
             startApiUpdates(); // Démarrer les mises à jour de l'API toutes les 2 secondes

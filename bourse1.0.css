@@ -18,7 +18,7 @@
         }
 
         .contenu .selected-view {
-            background: rgba(0, 0, 0, 0.7) !important;
+            background: rgba(0, 0, 0, 0.6) !important;
         }        
         
         .carousel-scene {
@@ -344,13 +344,13 @@
         .crypto-info-panel {
             position: relative;
             width: 700px;
-            background: rgba(0, 0, 0, 0.7) !important;
+            background: rgba(0, 0, 0, 0.6) !important;
             border-radius: 30px;
             padding: 15px;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
             z-index: 100;
 
-            backdrop-filter: blur(10px);
+
             cursor: move;
             user-select: none;
             height: 120px;

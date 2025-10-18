@@ -6,14 +6,18 @@ const cursor = document.getElementById("cursor");
 let smoothX = window.innerWidth / 2;
 let smoothY = window.innerHeight / 2;
 let isMouseDown = false;
-let pinchThreshold = 0.130;
-let releaseThreshold = 0.085;
+let pinchThreshold = 0.08; // Seuil ajusté pour mieux fonctionner
+let releaseThreshold = 0.12; // Seuil de relâchement ajusté
 let pinchHistory = [];
 let pinchHistoryMaxLength = 5;
 let pinchFrames = 0;
 let releaseFrames = 0;
 let minPinchFrames = 2;
 let minReleaseFrames = 2;
+
+// Pour l'effet de ralentissement
+let slowDownRadius = 40;
+let currentSlowDownFactor = 1.0;
 
 // Lissage des mouvements
 function lerp(a, b, t) {
@@ -57,7 +61,7 @@ try {
 
 await setupCamera();
 
-// Détection du pincement avec hystérésis
+// Détection de pincement simplifiée et plus fiable
 function detectPinch(thumb, index) {
   const distThumbIndex = Math.hypot(thumb.x - index.x, thumb.y - index.y);
   
@@ -70,32 +74,43 @@ function detectPinch(thumb, index) {
   // Utiliser la moyenne pour plus de stabilité
   const avgDistance = pinchHistory.reduce((a, b) => a + b, 0) / pinchHistory.length;
   
-  // Détection avec hystérésis - deux seuils différents
-  let pinchDetected;
-  
+  // Détection avec hystérésis simple
   if (isMouseDown) {
-    pinchDetected = avgDistance < releaseThreshold;
+    // Relâcher seulement si la distance dépasse le seuil de relâchement
+    return avgDistance < releaseThreshold;
   } else {
-    pinchDetected = avgDistance < pinchThreshold;
+    // Pincer seulement si la distance est inférieure au seuil de pincement
+    return avgDistance < pinchThreshold;
+  }
+}
+
+// Fonction pour calculer le facteur de ralentissement
+function calculateSlowDownFactor(x, y) {
+  if (isMouseDown) return 1.0;
+  
+  const interactiveSelectors = ['button', 'input', 'textarea', 'select', 'a', '[onclick]', '[tabindex]'];
+  let minDistance = slowDownRadius;
+  
+  interactiveSelectors.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(element => {
+      const rect = element.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+      }
+    });
+  });
+  
+  if (minDistance < slowDownRadius) {
+    // Plus on est proche, plus on ralentit (de 1.0 à 0.3)
+    return Math.max(0.3, 1.0 - (minDistance / slowDownRadius) * 0.7);
   }
   
-  if (pinchDetected) {
-    pinchFrames++;
-    releaseFrames = 0;
-  } else {
-    releaseFrames++;
-    pinchFrames = 0;
-  }
-  
-  if (pinchFrames >= minPinchFrames) {
-    return true;
-  }
-  
-  if (releaseFrames >= minReleaseFrames) {
-    return false;
-  }
-  
-  return isMouseDown;
+  return 1.0;
 }
 
 async function predict() {
@@ -107,13 +122,18 @@ async function predict() {
     const index = landmarks[8];
     const thumb = landmarks[4];
 
-    // Coordonnées curseur
-    const x = window.innerWidth * (1 - index.x);
-    const y = window.innerHeight * index.y;
+    // Coordonnées curseur brutes
+    const rawX = window.innerWidth * (1 - index.x);
+    const rawY = window.innerHeight * index.y;
 
-    // Adoucissement
-    smoothX = lerp(smoothX, x, 0.7);
-    smoothY = lerp(smoothY, y, 0.7);
+    // Calculer le facteur de ralentissement
+    currentSlowDownFactor = calculateSlowDownFactor(rawX, rawY);
+    
+    // Adoucissement avec ralentissement
+    const lerpFactor = 0.7 * currentSlowDownFactor;
+    smoothX = lerp(smoothX, rawX, lerpFactor);
+    smoothY = lerp(smoothY, rawY, lerpFactor);
+    
     cursor.style.left = smoothX + "px";
     cursor.style.top = smoothY + "px";
 
@@ -124,6 +144,13 @@ async function predict() {
     if (!elUnderCursor) {
       requestAnimationFrame(predict);
       return;
+    }
+
+    // Changer la couleur du curseur selon l'état
+    if (isMouseDown) {
+      cursor.style.background = "green";
+    } else {
+      cursor.style.background = "rgba(0,128,255,0.9)";
     }
 
     // Pointer move
@@ -147,13 +174,16 @@ async function predict() {
       })
     );
 
-    // Clic
+    // Clic - logique simplifiée
     if (isPinching && !isMouseDown) {
       isMouseDown = true;
+      pinchFrames = 0;
+      releaseFrames = 0;
       cursor.style.background = "green";
-      cursor.style.transform = "translate(-50%, -50%) scale(0.7)";
       
-      // Émettre les événements de souris pour le drag
+      console.log("Pincement détecté - mousedown");
+      
+      // Émettre les événements de souris
       elUnderCursor.dispatchEvent(
         new MouseEvent("mousedown", {
           bubbles: true,
@@ -164,7 +194,6 @@ async function predict() {
         })
       );
       
-      // Émettre aussi l'événement pointerdown
       elUnderCursor.dispatchEvent(
         new PointerEvent("pointerdown", {
           bubbles: true,
@@ -178,8 +207,11 @@ async function predict() {
       
     } else if (!isPinching && isMouseDown) {
       isMouseDown = false;
+      pinchFrames = 0;
+      releaseFrames = 0;
       cursor.style.background = "rgba(0,128,255,0.9)";
-      cursor.style.transform = "translate(-50%, -50%) scale(1)";
+      
+      console.log("Relâchement détecté - mouseup");
       
       // Émettre les événements de souris pour le relâchement
       elUnderCursor.dispatchEvent(
@@ -192,7 +224,6 @@ async function predict() {
         })
       );
       
-      // Émettre aussi l'événement pointerup
       elUnderCursor.dispatchEvent(
         new PointerEvent("pointerup", {
           bubbles: true,
@@ -204,30 +235,31 @@ async function predict() {
         })
       );
       
-      // Déclencher un clic seulement si ce n'est pas un drag
+      // Déclencher un clic
       setTimeout(() => {
-        if (!isMouseDown) {
-          elUnderCursor.dispatchEvent(
-            new MouseEvent("click", {
-              bubbles: true,
-              cancelable: true,
-              clientX: smoothX,
-              clientY: smoothY
-            })
-          );
-        }
+        elUnderCursor.dispatchEvent(
+          new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            clientX: smoothX,
+            clientY: smoothY
+          })
+        );
+        console.log("Clic émis");
       }, 10);
     }
     
   } else {
-    // Réinitialiser les compteurs si on perd la main
+    // Réinitialiser si on perd la main
     pinchFrames = 0;
     releaseFrames = 0;
+    if (isMouseDown) {
+      isMouseDown = false;
+      cursor.style.background = "rgba(0,128,255,0.9)";
+    }
   }
 
   requestAnimationFrame(predict);
 }
 
 predict();
-
-

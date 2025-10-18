@@ -137,45 +137,86 @@ async function predict() {
       })
     );
 
+    // Mouse move (pour compatibilité avec les anciens systèmes)
+    elUnderCursor.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        cancelable: true,
+        clientX: smoothX,
+        clientY: smoothY
+      })
+    );
+
     // Clic
     if (isPinching && !isMouseDown) {
       isMouseDown = true;
       cursor.style.background = "green";
       cursor.style.transform = "translate(-50%, -50%) scale(0.7)";
       
+      // Émettre les événements de souris pour le drag
+      elUnderCursor.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          cancelable: true,
+          clientX: smoothX,
+          clientY: smoothY,
+          button: 0
+        })
+      );
+      
+      // Émettre aussi l'événement pointerdown
       elUnderCursor.dispatchEvent(
         new PointerEvent("pointerdown", {
           bubbles: true,
           cancelable: true,
           clientX: smoothX,
           clientY: smoothY,
-          pointerType: "mouse"
+          pointerType: "mouse",
+          button: 0
         })
       );
+      
     } else if (!isPinching && isMouseDown) {
       isMouseDown = false;
       cursor.style.background = "rgba(0,128,255,0.9)";
       cursor.style.transform = "translate(-50%, -50%) scale(1)";
       
+      // Émettre les événements de souris pour le relâchement
+      elUnderCursor.dispatchEvent(
+        new MouseEvent("mouseup", {
+          bubbles: true,
+          cancelable: true,
+          clientX: smoothX,
+          clientY: smoothY,
+          button: 0
+        })
+      );
+      
+      // Émettre aussi l'événement pointerup
       elUnderCursor.dispatchEvent(
         new PointerEvent("pointerup", {
           bubbles: true,
           cancelable: true,
           clientX: smoothX,
           clientY: smoothY,
-          pointerType: "mouse"
+          pointerType: "mouse",
+          button: 0
         })
       );
       
-      // Déclencher un clic
-      elUnderCursor.dispatchEvent(
-        new MouseEvent("click", {
-          bubbles: true,
-          cancelable: true,
-          clientX: smoothX,
-          clientY: smoothY
-        })
-      );
+      // Déclencher un clic seulement si ce n'est pas un drag
+      setTimeout(() => {
+        if (!isMouseDown) {
+          elUnderCursor.dispatchEvent(
+            new MouseEvent("click", {
+              bubbles: true,
+              cancelable: true,
+              clientX: smoothX,
+              clientY: smoothY
+            })
+          );
+        }
+      }, 10);
     }
     
   } else {
@@ -188,3 +229,4 @@ async function predict() {
 }
 
 predict();
+

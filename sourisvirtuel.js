@@ -2,13 +2,12 @@ import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@m
 
 const video = document.getElementById("camera");
 const cursor = document.getElementById("cursor");
-const status = document.getElementById("status");
 
 let smoothX = window.innerWidth / 2;
 let smoothY = window.innerHeight / 2;
 let isMouseDown = false;
-let pinchThreshold = 0.130; // Seuil de détection de pincement
-let releaseThreshold = 0.085; // Seuil de relâchement
+let pinchThreshold = 0.130;
+let releaseThreshold = 0.085;
 let pinchHistory = [];
 let pinchHistoryMaxLength = 5;
 let pinchFrames = 0;
@@ -32,7 +31,6 @@ async function setupCamera() {
       video.onloadedmetadata = () => resolve(video);
     });
   } catch (error) {
-    status.textContent = "Erreur caméra: " + error.message;
     console.error("Erreur caméra:", error);
     throw error;
   }
@@ -53,10 +51,7 @@ try {
     runningMode: "VIDEO",
     numHands: 1
   });
-  
-  status.textContent = "Modèle chargé";
 } catch (error) {
-  status.textContent = "Erreur modèle: " + error.message;
   console.error("Erreur modèle:", error);
 }
 
@@ -79,10 +74,8 @@ function detectPinch(thumb, index) {
   let pinchDetected;
   
   if (isMouseDown) {
-    // Si on est déjà en état pincé, on reste pincé jusqu'à ce que la distance dépasse le seuil de relâchement
     pinchDetected = avgDistance < releaseThreshold;
   } else {
-    // Si on n'est pas pincé, on déclenche seulement si la distance est inférieure au seuil de pincement
     pinchDetected = avgDistance < pinchThreshold;
   }
   
@@ -94,17 +87,14 @@ function detectPinch(thumb, index) {
     pinchFrames = 0;
   }
   
-  // Ne déclencher le pincement qu'après plusieurs frames de détection
   if (pinchFrames >= minPinchFrames) {
     return true;
   }
   
-  // Ne relâcher qu'après plusieurs frames sans détection
   if (releaseFrames >= minReleaseFrames) {
     return false;
   }
   
-  // Maintenir l'état précédent pendant la période de transition
   return isMouseDown;
 }
 
@@ -127,7 +117,7 @@ async function predict() {
     cursor.style.left = smoothX + "px";
     cursor.style.top = smoothY + "px";
 
-    // Détection du pincement (clic)
+    // Détection du pincement
     const isPinching = detectPinch(thumb, index);
     
     const elUnderCursor = document.elementFromPoint(smoothX, smoothY);
@@ -136,7 +126,7 @@ async function predict() {
       return;
     }
 
-    // Pointer move (toujours envoyé)
+    // Pointer move
     elUnderCursor.dispatchEvent(
       new PointerEvent("pointermove", {
         bubbles: true,
@@ -147,12 +137,11 @@ async function predict() {
       })
     );
 
-    // Clic ou drag
+    // Clic
     if (isPinching && !isMouseDown) {
       isMouseDown = true;
       cursor.style.background = "green";
       cursor.style.transform = "translate(-50%, -50%) scale(0.7)";
-      status.textContent = "Pincement détecté";
       
       elUnderCursor.dispatchEvent(
         new PointerEvent("pointerdown", {
@@ -167,7 +156,6 @@ async function predict() {
       isMouseDown = false;
       cursor.style.background = "rgba(0,128,255,0.9)";
       cursor.style.transform = "translate(-50%, -50%) scale(1)";
-      status.textContent = "Main détectée";
       
       elUnderCursor.dispatchEvent(
         new PointerEvent("pointerup", {
@@ -191,7 +179,6 @@ async function predict() {
     }
     
   } else {
-    status.textContent = "Aucune main détectée";
     // Réinitialiser les compteurs si on perd la main
     pinchFrames = 0;
     releaseFrames = 0;

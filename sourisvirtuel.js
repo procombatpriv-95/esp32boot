@@ -15,6 +15,12 @@ let releaseFrames = 0;
 let minPinchFrames = 2;
 let minReleaseFrames = 2;
 
+// Pour l'aimant des boutons
+let magnetActive = true;
+let magnetRadius = 30; // Rayon d'attraction en pixels
+let lastElementUnderCursor = null;
+let isOverInteractiveElement = false;
+
 // Lissage des mouvements
 function lerp(a, b, t) {
   return a + (b - a) * t;
@@ -98,6 +104,54 @@ function detectPinch(thumb, index) {
   return isMouseDown;
 }
 
+// Fonction pour trouver l'élément interactif le plus proche
+function findNearestInteractiveElement(x, y) {
+  const interactiveSelectors = ['button', 'input', 'textarea', 'select', 'a', '[onclick]', '[tabindex]'];
+  let nearestElement = null;
+  let minDistance = magnetRadius;
+  
+  interactiveSelectors.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(element => {
+      const rect = element.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestElement = element;
+      }
+    });
+  });
+  
+  return nearestElement;
+}
+
+// Fonction pour calculer la position avec aimant
+function applyMagnetEffect(x, y) {
+  if (!magnetActive || isMouseDown) return { x, y };
+  
+  const nearestElement = findNearestInteractiveElement(x, y);
+  if (nearestElement) {
+    const rect = nearestElement.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Appliquer un effet d'aimant progressif
+    const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+    const magnetStrength = 1 - (distance / magnetRadius);
+    
+    if (magnetStrength > 0) {
+      const newX = lerp(x, centerX, magnetStrength * 0.7);
+      const newY = lerp(y, centerY, magnetStrength * 0.7);
+      return { x: newX, y: newY };
+    }
+  }
+  
+  return { x, y };
+}
+
 async function predict() {
   const nowInMs = performance.now();
   const result = handLandmarker.detectForVideo(video, nowInMs);
@@ -107,13 +161,17 @@ async function predict() {
     const index = landmarks[8];
     const thumb = landmarks[4];
 
-    // Coordonnées curseur
-    const x = window.innerWidth * (1 - index.x);
-    const y = window.innerHeight * index.y;
+    // Coordonnées curseur brutes
+    const rawX = window.innerWidth * (1 - index.x);
+    const rawY = window.innerHeight * index.y;
 
+    // Appliquer l'effet d'aimant
+    const magnetCoords = applyMagnetEffect(rawX, rawY);
+    
     // Adoucissement
-    smoothX = lerp(smoothX, x, 0.7);
-    smoothY = lerp(smoothY, y, 0.7);
+    smoothX = lerp(smoothX, magnetCoords.x, 0.7);
+    smoothY = lerp(smoothY, magnetCoords.y, 0.7);
+    
     cursor.style.left = smoothX + "px";
     cursor.style.top = smoothY + "px";
 
@@ -124,6 +182,21 @@ async function predict() {
     if (!elUnderCursor) {
       requestAnimationFrame(predict);
       return;
+    }
+
+    // Vérifier si on est sur un élément interactif
+    const isInteractive = elUnderCursor.matches('button, input, textarea, select, a, [onclick], [tabindex]');
+    
+    // Changer l'apparence du curseur selon l'élément
+    if (isInteractive && !isMouseDown) {
+      cursor.style.transform = "translate(-50%, -50%) scale(1.3)";
+      cursor.style.background = "rgba(255,165,0,0.9)"; // Orange pour indiquer l'interaction
+    } else if (isMouseDown) {
+      cursor.style.transform = "translate(-50%, -50%) scale(0.7)";
+      cursor.style.background = "green";
+    } else {
+      cursor.style.transform = "translate(-50%, -50%) scale(1)";
+      cursor.style.background = "rgba(0,128,255,0.9)";
     }
 
     // Pointer move
@@ -229,4 +302,3 @@ async function predict() {
 }
 
 predict();
-

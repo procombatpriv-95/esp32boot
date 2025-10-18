@@ -68,11 +68,3 @@
       object-fit: cover;
       border-radius: 30px;
     }
-    
-    .hidden {
-      display: none !important;
-    }
-    
-    .visible {
-      display: block !important;
-    }

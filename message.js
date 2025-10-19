@@ -79,8 +79,39 @@ function addNotification(message) {
   }, 4200);
 }
 
+// -------------------------
+// ✉️ Fonction pour envoyer un message
+// -------------------------
+async function drawText() {
+  const noteInput = document.getElementById('noteInput');
+  const message = noteInput.value.trim();
+  
+  if (!message) return;
 
+  try {
+    // Envoyer le message au serveur
+    await fetch('/getText2', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: message })
+    });
 
+    // Ajouter le message localement (en bleu à droite)
+    savedLines.push(message);
+    localStorage.setItem('savedLines', JSON.stringify(savedLines));
+    
+    // Vider l'input
+    noteInput.value = '';
+    
+    // Redessiner avec le nouveau message
+    redrawTextDiv(true);
+    
+  } catch(e) {
+    console.error("Erreur envoi message:", e);
+  }
+}
 
 // -------------------------
 // 📡 Récupération des nouveaux messages
@@ -108,7 +139,6 @@ async function fetchText() {
   }
 }
 
-
 // -------------------------
 // 🧹 Vérifie le signal de reset/clear
 // -------------------------
@@ -123,10 +153,9 @@ async function checkClearSignal() {
     console.error("Erreur check clear:", e);
   }
 }
-setInterval(checkClearSignal, 2000);
 
 // -------------------------
-// ✏️ Affiche les messages dans le DIV
+// ✏️ Affiche les messages dans le DIV (MODIFIÉ)
 // -------------------------
 function redrawTextDiv(autoScroll = true) {
   const div = document.getElementById('textdiv');
@@ -150,13 +179,21 @@ function redrawTextDiv(autoScroll = true) {
   savedLines.forEach(msg => {
     const bubble = document.createElement("div");
     bubble.innerText = msg;
-    bubble.style.background = "#666";
+    
+    // ✅ DÉTERMINER LA COULEUR ET L'ALIGNEMENT
+    // Les messages reçus (gris à gauche) vs messages envoyés (bleu à droite)
+    // Pour simplifier, on considère que le dernier message est celui qu'on vient d'envoyer
+    const isMyMessage = !displayedNotifications.has(msg);
+    
+    bubble.style.background = isMyMessage ? "#007bff" : "#666"; // Bleu pour mes messages, gris pour les autres
     bubble.style.borderRadius = "15px";
-    bubble.style.display = "inline-block";  // ✅ largeur auto
-    bubble.style.maxWidth = "180px";        // ✅ largeur max
-    bubble.style.padding = "8px 12px";      // ✅ espace texte-bord
+    bubble.style.display = "inline-block";
+    bubble.style.maxWidth = "180px";
+    bubble.style.padding = "8px 12px";
     bubble.style.wordWrap = "break-word";
-    bubble.style.marginRight = "auto";      // ✅ garde bulles alignées à gauche
+    bubble.style.marginLeft = isMyMessage ? "auto" : "0"; // ✅ À droite pour mes messages
+    bubble.style.marginRight = isMyMessage ? "0" : "auto"; // ✅ À gauche pour les autres
+    
     div.appendChild(bubble);
   });
 
@@ -180,15 +217,25 @@ window.addEventListener('load', function () {
     displayedNotifications = new Set(JSON.parse(savedDisplayed));
   }
 
-const textDiv = document.getElementById("textdiv");
-if (textDiv) {
-  textDiv.addEventListener("scroll", () => {
-    // si l’utilisateur scrolle manuellement, on désactive l’auto-scroll
-    redrawTextDiv(false);
-  });
-}
+  const textDiv = document.getElementById("textdiv");
+  if (textDiv) {
+    textDiv.addEventListener("scroll", () => {
+      // si l'utilisateur scrolle manuellement, on désactive l'auto-scroll
+      redrawTextDiv(false);
+    });
+  }
 
+  // Ajouter l'événement Enter sur l'input
+  const noteInput = document.getElementById('noteInput');
+  if (noteInput) {
+    noteInput.addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        drawText();
+      }
+    });
+  }
 
   fetchText();
   setInterval(fetchText, 3000);
+  setInterval(checkClearSignal, 2000);
 });

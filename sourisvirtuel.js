@@ -6,21 +6,21 @@ const cursor = document.getElementById("cursor");
 let smoothX = window.innerWidth / 2;
 let smoothY = window.innerHeight / 2;
 let isMouseDown = false;
-let pinchThreshold = 0.07; // Seuil plus bas pour plus de précision
-let releaseThreshold = 0.10; // Seuil de relâchement ajusté
+let pinchThreshold = 0.07;
+let releaseThreshold = 0.10;
 let pinchHistory = [];
-let pinchHistoryMaxLength = 7; // Historique plus long pour plus de stabilité
+let pinchHistoryMaxLength = 7;
 let pinchFrames = 0;
 let releaseFrames = 0;
 let minPinchFrames = 2;
 let minReleaseFrames = 2;
 
 // Pour l'effet de ralentissement
-let slowDownRadius = 50; // Rayon plus large
+let slowDownRadius = 50;
 let currentSlowDownFactor = 1.0;
 let isNearInteractiveElement = false;
 
-// Lissage des mouvements avec différentes vitesses
+// Lissage des mouvements
 function lerp(a, b, t) {
   return a + (b - a) * t;
 }
@@ -62,7 +62,7 @@ try {
 
 await setupCamera();
 
-// Détection de pincement améliorée avec stabilité
+// Détection de pincement stable
 function detectPinch(thumb, index) {
   const distThumbIndex = Math.hypot(thumb.x - index.x, thumb.y - index.y);
   
@@ -104,11 +104,11 @@ function detectPinch(thumb, index) {
   return isMouseDown;
 }
 
-// Fonction pour calculer le facteur de ralentissement amélioré
+// Fonction pour calculer le facteur de ralentissement
 function calculateSlowDownFactor(x, y) {
   if (isMouseDown) return 1.0;
   
-  const interactiveSelectors = ['button', '.draggable', 'canvas', 'input', 'textarea', 'select', 'a', '[onclick]', '[tabindex]'];
+  const interactiveSelectors = ['button', 'input', 'textarea', 'select', 'a', '[onclick]', '[tabindex]'];
   let minDistance = slowDownRadius;
   isNearInteractiveElement = false;
   
@@ -137,76 +137,13 @@ function calculateSlowDownFactor(x, y) {
   });
   
   if (isNearInteractiveElement) {
-    // Ralentissement progressif et plus prononcé
+    // Ralentissement progressif
     const slowDownIntensity = 1 - (minDistance / slowDownRadius);
-    return Math.max(0.2, 1.0 - slowDownIntensity * 0.8); // De 1.0 à 0.2
+    return Math.max(0.2, 1.0 - slowDownIntensity * 0.8);
   }
   
   return 1.0;
 }
-
-// Système de drag and drop fluide
-function makeElementDraggable(element) {
-  let isDragging = false;
-  let startX, startY;
-  let startLeft = 0, startTop = 0;
-
-  // Initialiser la position
-  const rect = element.getBoundingClientRect();
-  if (element.style.position !== 'absolute') {
-    element.style.position = 'absolute';
-    element.style.left = rect.left + 'px';
-    element.style.top = rect.top + 'px';
-  }
-
-  function startDrag(e) {
-    isDragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    
-    // Récupérer la position actuelle
-    startLeft = parseInt(element.style.left) || 0;
-    startTop = parseInt(element.style.top) || 0;
-    
-    element.classList.add('dragging');
-    document.addEventListener('mousemove', onDrag);
-    document.addEventListener('mouseup', stopDrag);
-    e.preventDefault();
-  }
-
-  function onDrag(e) {
-    if (!isDragging) return;
-    
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    
-    element.style.left = (startLeft + dx) + 'px';
-    element.style.top = (startTop + dy) + 'px';
-  }
-
-  function stopDrag() {
-    isDragging = false;
-    element.classList.remove('dragging');
-    document.removeEventListener('mousemove', onDrag);
-    document.removeEventListener('mouseup', stopDrag);
-  }
-
-  // Écouter les événements
-  element.addEventListener('mousedown', startDrag);
-  element.addEventListener('pointerdown', startDrag);
-}
-
-// Initialiser les éléments draggables
-function initDraggableElements() {
-  const draggables = document.querySelectorAll('.draggable');
-  draggables.forEach(makeElementDraggable);
-  
-  const canvas = document.getElementById('myCanvas');
-  makeElementDraggable(canvas);
-}
-
-// Initialiser le drag and drop
-initDraggableElements();
 
 async function predict() {
   const nowInMs = performance.now();
@@ -227,10 +164,8 @@ async function predict() {
     // Adoucissement adaptatif avec ralentissement
     let lerpFactor;
     if (isNearInteractiveElement) {
-      // Ralentissement important près des éléments interactifs
       lerpFactor = 0.4 * currentSlowDownFactor;
     } else {
-      // Vitesse normale ailleurs
       lerpFactor = 0.7;
     }
     
@@ -249,7 +184,7 @@ async function predict() {
       return;
     }
 
-    // Feedback visuel amélioré
+    // Feedback visuel
     if (isMouseDown) {
       cursor.style.background = "green";
       cursor.style.transform = "translate(-50%, -50%) scale(0.8)";
@@ -261,7 +196,7 @@ async function predict() {
       cursor.style.transform = "translate(-50%, -50%) scale(1)";
     }
 
-    // Émettre les événements de souris seulement si nécessaire
+    // Émettre les événements de souris
     if (!isMouseDown || (isMouseDown && currentSlowDownFactor < 0.5)) {
       // Mouse move
       elUnderCursor.dispatchEvent(
@@ -285,13 +220,13 @@ async function predict() {
       );
     }
 
-    // Gestion du clic et du drag
+    // Gestion du clic
     if (isPinching && !isMouseDown) {
       isMouseDown = true;
       cursor.style.background = "green";
       cursor.style.transform = "translate(-50%, -50%) scale(0.8)";
       
-      // Émettre les événements de souris pour commencer le drag
+      // Émettre les événements de souris pour commencer le clic
       const mouseDownEvent = new MouseEvent("mousedown", {
         bubbles: true,
         cancelable: true,
@@ -319,7 +254,7 @@ async function predict() {
       cursor.style.transform = isNearInteractiveElement ? 
         "translate(-50%, -50%) scale(1.2)" : "translate(-50%, -50%) scale(1)";
       
-      // Émettre les événements de souris pour terminer le drag
+      // Émettre les événements de souris pour terminer le clic
       const mouseUpEvent = new MouseEvent("mouseup", {
         bubbles: true,
         cancelable: true,
@@ -340,7 +275,7 @@ async function predict() {
       elUnderCursor.dispatchEvent(mouseUpEvent);
       elUnderCursor.dispatchEvent(pointerUpEvent);
       
-      // Déclencher un clic seulement si ce n'est pas un drag
+      // Déclencher un clic
       setTimeout(() => {
         const clickEvent = new MouseEvent("click", {
           bubbles: true,
@@ -352,7 +287,7 @@ async function predict() {
       }, 10);
     }
     
-    // Pendant le drag, continuer à émettre des événements de mouvement
+    // Pendant le clic maintenu, continuer à émettre des événements de mouvement
     if (isMouseDown) {
       document.dispatchEvent(
         new MouseEvent("mousemove", {

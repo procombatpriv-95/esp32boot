@@ -1,7 +1,29 @@
 import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.4";
 
+// Appliquer les styles directement via JavaScript
+document.body.style.margin = '0';
+document.body.style.padding = '20px';
+document.body.style.background = '#1a1a1a';
+document.body.style.userSelect = 'none';
+document.body.style.fontFamily = 'Arial, sans-serif';
+document.body.style.color = 'white';
+document.body.style.overflow = 'hidden';
+
 const video = document.getElementById("camera");
+video.style.display = 'none';
+
 const cursor = document.getElementById("cursor");
+cursor.style.position = 'fixed';
+cursor.style.width = '12px';
+cursor.style.height = '12px';
+cursor.style.background = 'rgba(0, 200, 255, 0.95)';
+cursor.style.borderRadius = '50%';
+cursor.style.transform = 'translate(-50%, -50%)';
+cursor.style.pointerEvents = 'none';
+cursor.style.zIndex = '9999';
+cursor.style.transition = 'all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+cursor.style.boxShadow = '0 0 0 1px rgba(255, 255, 255, 0.8), 0 0 10px rgba(0, 200, 255, 0.6)';
+cursor.style.mixBlendMode = 'difference';
 
 // Variables optimisées pour la précision
 let smoothX = window.innerWidth / 2;
@@ -10,21 +32,21 @@ let isMouseDown = false;
 
 // Paramètres de détection de pincement ultra-précis
 const PINCH_CONFIG = {
-  threshold: 0.045,        // Seuil très bas pour détection précise
-  releaseThreshold: 0.065, // Hystérésis pour stabilité
-  historyLength: 10,       // Historique long pour stabilité
-  minFrames: 4,            // Plus de frames pour confirmation
-  minReleaseFrames: 3      // Plus de frames pour confirmer le relâchement
+  threshold: 0.045,
+  releaseThreshold: 0.065,
+  historyLength: 10,
+  minFrames: 4,
+  minReleaseFrames: 3
 };
 
 // Paramètres de lissage et mouvement
 const MOVEMENT_CONFIG = {
-  baseLerp: 0.82,          // Lissage agressif pour stabilité
-  slowLerp: 0.35,          // Lissage très fort près des éléments
-  predictionStrength: 0.15, // Légère prédiction de mouvement
-  slowDownRadius: 60,      // Grand rayon de détection
-  maxSpeed: 50,            // Limite de vitesse pour éviter les saccades
-  noiseReduction: 0.8      // Réduction du bruit
+  baseLerp: 0.82,
+  slowLerp: 0.35,
+  predictionStrength: 0.15,
+  slowDownRadius: 60,
+  maxSpeed: 50,
+  noiseReduction: 0.8
 };
 
 let pinchHistory = [];
@@ -37,7 +59,6 @@ let lastY = smoothY;
 
 // Lissage avancé avec courbe d'accélération
 function advancedLerp(a, b, t) {
-  // Courbe ease-out pour plus de naturel
   const easedT = 1 - Math.pow(1 - t, 2);
   return a + (b - a) * easedT;
 }
@@ -52,14 +73,10 @@ class SimpleKalmanFilter {
   }
   
   update(measurement) {
-    // Prédiction
     const predictedError = this.error + this.processNoise;
-    
-    // Mise à jour
     const kalmanGain = predictedError / (predictedError + this.measurementNoise);
     this.estimated = this.estimated + kalmanGain * (measurement - this.estimated);
     this.error = (1 - kalmanGain) * predictedError;
-    
     return this.estimated;
   }
 }
@@ -117,29 +134,45 @@ try {
 
 await setupCamera();
 
+// Fonction pour mettre à jour l'apparence du curseur
+function updateCursorAppearance(state) {
+  switch(state) {
+    case 'pinching':
+      cursor.style.background = 'rgba(0, 255, 100, 0.95)';
+      cursor.style.transform = 'translate(-50%, -50%) scale(1.4)';
+      cursor.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 1), 0 0 15px rgba(0, 255, 100, 0.8)';
+      break;
+    case 'slowing':
+      cursor.style.background = 'rgba(255, 200, 0, 0.95)';
+      cursor.style.transform = 'translate(-50%, -50%) scale(1.8)';
+      cursor.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 1), 0 0 20px rgba(255, 200, 0, 0.8)';
+      break;
+    default:
+      cursor.style.background = 'rgba(0, 200, 255, 0.95)';
+      cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+      cursor.style.boxShadow = '0 0 0 1px rgba(255, 255, 255, 0.8), 0 0 10px rgba(0, 200, 255, 0.6)';
+  }
+}
+
 // Détection de pincement ultra-précise avec validation multiple
 function detectPinch(thumb, index, landmarks) {
   const distThumbIndex = Math.hypot(thumb.x - index.x, thumb.y - index.y);
   
-  // Ajout à l'historique avec gestion de la taille
   pinchHistory.push(distThumbIndex);
   if (pinchHistory.length > PINCH_CONFIG.historyLength) {
     pinchHistory.shift();
   }
   
-  // Utilisation de la médiane tronquée pour plus de robustesse
   const sorted = [...pinchHistory].sort((a, b) => a - b);
   const trimCount = Math.floor(pinchHistory.length * 0.2);
   const trimmed = sorted.slice(trimCount, -trimCount);
   const medianDistance = trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
   
-  // Validation supplémentaire avec d'autres points de la main
-  const thumbMcp = landmarks[2];  // Base du pouce
-  const indexMcp = landmarks[5];  // Base de l'index
+  const thumbMcp = landmarks[2];
+  const indexMcp = landmarks[5];
   const palmDistance = Math.hypot(thumbMcp.x - indexMcp.x, thumbMcp.y - indexMcp.y);
   const relativeDistance = medianDistance / (palmDistance + 0.001);
   
-  // Détection avec hystérésis et validation multiple
   let pinchDetected;
   
   if (isMouseDown) {
@@ -148,7 +181,6 @@ function detectPinch(thumb, index, landmarks) {
     pinchDetected = medianDistance < PINCH_CONFIG.threshold && relativeDistance < 0.18;
   }
   
-  // Comptage de frames pour stabilité
   if (pinchDetected) {
     pinchFrames++;
     releaseFrames = 0;
@@ -176,7 +208,6 @@ function calculateVelocity(x, y, deltaTime) {
   velocityX = (velocityX * 0.7 + deltaX / deltaTime * 0.3) * MOVEMENT_CONFIG.noiseReduction;
   velocityY = (velocityY * 0.7 + deltaY / deltaTime * 0.3) * MOVEMENT_CONFIG.noiseReduction;
   
-  // Limitation de vitesse
   const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
   if (speed > MOVEMENT_CONFIG.maxSpeed) {
     velocityX = (velocityX / speed) * MOVEMENT_CONFIG.maxSpeed;
@@ -201,7 +232,6 @@ function calculateSlowDownFactor(x, y) {
     if (element.matches('button, input, textarea, select, a, [onclick], [tabindex], [role="button"]')) {
       const rect = element.getBoundingClientRect();
       
-      // Distance au bord le plus proche
       const distLeft = Math.abs(x - rect.left);
       const distRight = Math.abs(x - rect.right);
       const distTop = Math.abs(y - rect.top);
@@ -214,7 +244,6 @@ function calculateSlowDownFactor(x, y) {
         isNear = true;
       }
       
-      // Si directement sur l'élément, ralentissement maximum
       if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
         minDistance = 0;
         isNear = true;
@@ -236,7 +265,7 @@ let lastTime = performance.now();
 
 async function predict() {
   const currentTime = performance.now();
-  const deltaTime = Math.min((currentTime - lastTime) / 16.67, 2.0); // Normalisé à ~60FPS
+  const deltaTime = Math.min((currentTime - lastTime) / 16.67, 2.0);
   lastTime = currentTime;
 
   const nowInMs = performance.now();
@@ -247,39 +276,30 @@ async function predict() {
     const index = landmarks[8];
     const thumb = landmarks[4];
 
-    // Coordonnées brutes avec inversion horizontale
     const rawX = window.innerWidth * (1 - index.x);
     const rawY = window.innerHeight * index.y;
 
-    // Application du filtre de Kalman
     const filteredX = kalmanX.update(rawX);
     const filteredY = kalmanY.update(rawY);
 
-    // Calcul de la vitesse
     calculateVelocity(filteredX, filteredY, deltaTime);
 
-    // Calcul du ralentissement
     const { factor: slowDownFactor, isNear } = calculateSlowDownFactor(filteredX, filteredY);
 
-    // Lissage adaptatif avec prédiction
     let lerpFactor = isNear ? MOVEMENT_CONFIG.slowLerp : MOVEMENT_CONFIG.baseLerp;
     
-    // Ajustement dynamique basé sur la vitesse
     const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
     lerpFactor = Math.max(lerpFactor, 0.5 - speed * 0.01);
     
-    // Application du lissage avec prédiction
     const predictedX = filteredX + velocityX * MOVEMENT_CONFIG.predictionStrength;
     const predictedY = filteredY + velocityY * MOVEMENT_CONFIG.predictionStrength;
     
     smoothX = advancedLerp(smoothX, predictedX, lerpFactor * slowDownFactor);
     smoothY = advancedLerp(smoothY, predictedY, lerpFactor * slowDownFactor);
     
-    // Mise à jour position curseur
     cursor.style.left = smoothX + "px";
     cursor.style.top = smoothY + "px";
 
-    // Détection de pincement
     const isPinching = detectPinch(thumb, index, landmarks);
     
     const elUnderCursor = document.elementFromPoint(smoothX, smoothY);
@@ -288,9 +308,14 @@ async function predict() {
       return;
     }
 
-    // Gestion des états du curseur
-    cursor.classList.toggle('pinching', isMouseDown);
-    cursor.classList.toggle('slowing', isNear && !isMouseDown);
+    // Mise à jour de l'apparence du curseur
+    if (isMouseDown) {
+      updateCursorAppearance('pinching');
+    } else if (isNear) {
+      updateCursorAppearance('slowing');
+    } else {
+      updateCursorAppearance('normal');
+    }
 
     // Émission des événements avec optimisation
     if (!isMouseDown || (isMouseDown && slowDownFactor < 0.5)) {
@@ -344,7 +369,6 @@ async function predict() {
       
       upEvents.forEach(event => elUnderCursor.dispatchEvent(event));
       
-      // Émission du clic avec vérification
       setTimeout(() => {
         if (!isMouseDown) {
           elUnderCursor.dispatchEvent(new MouseEvent("click", {
@@ -373,10 +397,9 @@ async function predict() {
     }
     
   } else {
-    // Reset en cas de perte de main
     if (isMouseDown) {
       isMouseDown = false;
-      cursor.classList.remove('pinching');
+      updateCursorAppearance('normal');
     }
     pinchFrames = 0;
     releaseFrames = 0;
@@ -386,8 +409,4 @@ async function predict() {
 }
 
 // Démarrage
-predict();
-  requestAnimationFrame(predict);
-}
-
 predict();

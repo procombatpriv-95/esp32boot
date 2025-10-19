@@ -1,12 +1,19 @@
 import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.4";
 
 // Appliquer les styles directement via JavaScript
-
+document.body.style.margin = '0';
+document.body.style.padding = '20px';
+document.body.style.background = '#1a1a1a';
+document.body.style.userSelect = 'none';
+document.body.style.fontFamily = 'Arial, sans-serif';
+document.body.style.color = 'white';
+document.body.style.overflow = 'hidden';
 
 const video = document.getElementById("camera");
 video.style.display = 'none';
 
 const cursor = document.getElementById("cursor");
+// Styles de base du curseur - Z-INDEX TOUJOURS À 9999
 cursor.style.position = 'fixed';
 cursor.style.width = '12px';
 cursor.style.height = '12px';
@@ -128,8 +135,11 @@ try {
 
 await setupCamera();
 
-// Fonction pour mettre à jour l'apparence du curseur
+// Fonction pour mettre à jour l'apparence du curseur - Z-INDEX TOUJOURS À 9999
 function updateCursorAppearance(state) {
+  // TOUJOURS réappliquer le z-index à 9999
+  cursor.style.zIndex = '9999';
+  
   switch(state) {
     case 'pinching':
       cursor.style.background = 'rgba(0, 255, 100, 0.95)';
@@ -302,7 +312,7 @@ async function predict() {
       return;
     }
 
-    // Mise à jour de l'apparence du curseur
+    // Mise à jour de l'apparence du curseur - Z-INDEX TOUJOURS À 9999
     if (isMouseDown) {
       updateCursorAppearance('pinching');
     } else if (isNear) {
@@ -310,6 +320,9 @@ async function predict() {
     } else {
       updateCursorAppearance('normal');
     }
+
+    // S'assurer que le z-index reste à 9999 à chaque frame
+    cursor.style.zIndex = '9999';
 
     // Émission des événements avec optimisation
     if (!isMouseDown || (isMouseDown && slowDownFactor < 0.5)) {

@@ -90,7 +90,7 @@ async function drawText() {
 
   try {
     // Envoyer le message au serveur
-    await fetch('/getText2', {
+    await fetch('http://quickchat.local/getText2', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ async function fetchText() {
     localStorage.setItem('savedLines', JSON.stringify(savedLines));
     redrawTextDiv();
   } catch(e) {
-    console.error("Erreur fetch /getText:", e);
+    console.error("Erreur fetch http://quickchat.local/getText:", e);
   }
 }
 

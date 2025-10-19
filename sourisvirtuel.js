@@ -1,13 +1,7 @@
 import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.4";
 
 // Appliquer les styles directement via JavaScript
-document.body.style.margin = '0';
-document.body.style.padding = '20px';
-document.body.style.background = '#1a1a1a';
-document.body.style.userSelect = 'none';
-document.body.style.fontFamily = 'Arial, sans-serif';
-document.body.style.color = 'white';
-document.body.style.overflow = 'hidden';
+
 
 const video = document.getElementById("camera");
 video.style.display = 'none';

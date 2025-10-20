@@ -1,286 +1,419 @@
-let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
-let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
+import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.4";
 
-let textDivScroll = 0;
-let textDivScrollMax = 0;
-const TEXT_SCROLL_STEP = 20;
+// Appliquer les styles directement via JavaScript
+document.body.style.margin = '0';
+document.body.style.padding = '20px';
+document.body.style.background = '#1a1a1a';
+document.body.style.userSelect = 'none';
+document.body.style.fontFamily = 'Arial, sans-serif';
+document.body.style.color = 'white';
+document.body.style.overflow = 'hidden';
 
-// -------------------------
-// ✏️ Fonction pour envoyer le message
-// -------------------------
-async function drawText() {
-  const input = document.getElementById('noteInput');
-  const message = input.value.trim();
-  
-  if (message === '') return;
+const video = document.getElementById("camera");
+video.style.display = 'none';
 
-  // Ajouter le message localement à droite en bleu
-  const messageObj = { 
-    text: message, 
-    type: 'sent', // Pour identifier les messages envoyés
-    timestamp: Date.now()
-  };
+const cursor = document.getElementById("cursor");
+// Styles de base du curseur - Z-INDEX TOUJOURS À 9999
+cursor.style.position = 'fixed';
+cursor.style.width = '12px';
+cursor.style.height = '12px';
+cursor.style.background = 'rgba(0, 200, 255, 0.95)';
+cursor.style.borderRadius = '50%';
+cursor.style.transform = 'translate(-50%, -50%)';
+cursor.style.pointerEvents = 'none';
+cursor.style.zIndex = '9999';
+cursor.style.transition = 'all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+cursor.style.boxShadow = '0 0 0 1px rgba(255, 255, 255, 0.8), 0 0 10px rgba(0, 200, 255, 0.6)';
+cursor.style.mixBlendMode = 'difference';
+
+// Variables optimisées pour la précision
+let smoothX = window.innerWidth / 2;
+let smoothY = window.innerHeight / 2;
+let isMouseDown = false;
+
+// Paramètres de détection de pincement ultra-précis
+const PINCH_CONFIG = {
+  threshold: 0.065,
+  releaseThreshold: 0.065,
+  historyLength: 10,
+  minFrames: 4,
+  minReleaseFrames: 3
+};
+
+// Paramètres de lissage et mouvement
+const MOVEMENT_CONFIG = {
+  baseLerp: 0.82,
+  slowLerp: 0.35,
+  predictionStrength: 0.15,
+  slowDownRadius: 60,
+  maxSpeed: 50,
+  noiseReduction: 0.8
+};
+
+let pinchHistory = [];
+let pinchFrames = 0;
+let releaseFrames = 0;
+let velocityX = 0;
+let velocityY = 0;
+let lastX = smoothX;
+let lastY = smoothY;
+
+// Lissage avancé avec courbe d'accélération
+function advancedLerp(a, b, t) {
+  const easedT = 1 - Math.pow(1 - t, 2);
+  return a + (b - a) * easedT;
+}
+
+// Filtre de Kalman simplifié pour réduction du bruit
+class SimpleKalmanFilter {
+  constructor(processNoise = 0.008, measurementNoise = 0.1) {
+    this.processNoise = processNoise;
+    this.measurementNoise = measurementNoise;
+    this.estimated = 0;
+    this.error = 1;
+  }
   
-  savedLines.push(messageObj);
-  localStorage.setItem('savedLines', JSON.stringify(savedLines));
-  
-  // Réafficher les messages
-  redrawTextDiv();
-  
-  // Envoyer le message à l'ESP32
+  update(measurement) {
+    const predictedError = this.error + this.processNoise;
+    const kalmanGain = predictedError / (predictedError + this.measurementNoise);
+    this.estimated = this.estimated + kalmanGain * (measurement - this.estimated);
+    this.error = (1 - kalmanGain) * predictedError;
+    return this.estimated;
+  }
+}
+
+// Création des filtres pour chaque axe
+const kalmanX = new SimpleKalmanFilter();
+const kalmanY = new SimpleKalmanFilter();
+
+// Setup caméra optimisé
+async function setupCamera() {
   try {
-    await fetch('http://quickchat.local/getText2', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: 'text=' + encodeURIComponent(message)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { 
+        width: { ideal: 1280 },
+        height: { ideal: 720 }, 
+        frameRate: { ideal: 60 },
+        facingMode: "user" 
+      }
     });
-    console.log('Message envoyé avec succès');
+    video.srcObject = stream;
+    return new Promise(resolve => {
+      video.onloadedmetadata = () => {
+        video.play();
+        resolve(video);
+      };
+    });
   } catch (error) {
-    console.error('Erreur envoi message:', error);
+    console.error("Erreur caméra:", error);
+    throw error;
+  }
+}
+
+// Chargement optimisé de MediaPipe
+let handLandmarker;
+try {
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.4/wasm"
+  );
+
+  handLandmarker = await HandLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath:
+        "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+      delegate: "GPU"
+    },
+    runningMode: "VIDEO",
+    numHands: 1,
+    minHandDetectionConfidence: 0.7,
+    minHandPresenceConfidence: 0.7,
+    minTrackingConfidence: 0.7
+  });
+} catch (error) {
+  console.error("Erreur modèle:", error);
+}
+
+await setupCamera();
+
+// Fonction pour mettre à jour l'apparence du curseur - Z-INDEX TOUJOURS À 9999
+function updateCursorAppearance(state) {
+  // TOUJOURS réappliquer le z-index à 9999
+  cursor.style.zIndex = '9999';
+  
+  switch(state) {
+    case 'pinching':
+      cursor.style.background = 'rgba(0, 255, 100, 0.95)';
+      cursor.style.transform = 'translate(-50%, -50%) scale(1.4)';
+      cursor.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 1), 0 0 15px rgba(0, 255, 100, 0.8)';
+      break;
+    case 'slowing':
+      cursor.style.background = 'rgba(255, 200, 0, 0.95)';
+      cursor.style.transform = 'translate(-50%, -50%) scale(1.8)';
+      cursor.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 1), 0 0 20px rgba(255, 200, 0, 0.8)';
+      break;
+    default:
+      cursor.style.background = 'rgba(0, 200, 255, 0.95)';
+      cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+      cursor.style.boxShadow = '0 0 0 1px rgba(255, 255, 255, 0.8), 0 0 10px rgba(0, 200, 255, 0.6)';
+  }
+}
+
+// Détection de pincement ultra-précise avec validation multiple
+function detectPinch(thumb, index, landmarks) {
+  const distThumbIndex = Math.hypot(thumb.x - index.x, thumb.y - index.y);
+  
+  pinchHistory.push(distThumbIndex);
+  if (pinchHistory.length > PINCH_CONFIG.historyLength) {
+    pinchHistory.shift();
   }
   
-  // Vider le champ de saisie
-  input.value = '';
-  input.focus();
-}
-
-// -------------------------
-// 🔔 Fonction pour afficher une notification animée
-// -------------------------
-function addNotification(message) {
-  const container = document.getElementById("notification-container");
-  if (!container) return;
-
-  // ✅ Limite à 3 notifs visibles
-  if (container.children.length >= 1) {
-    container.removeChild(container.firstChild); // supprime la plus ancienne
+  const sorted = [...pinchHistory].sort((a, b) => a - b);
+  const trimCount = Math.floor(pinchHistory.length * 0.2);
+  const trimmed = sorted.slice(trimCount, -trimCount);
+  const medianDistance = trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
+  
+  const thumbMcp = landmarks[2];
+  const indexMcp = landmarks[5];
+  const palmDistance = Math.hypot(thumbMcp.x - indexMcp.x, thumbMcp.y - indexMcp.y);
+  const relativeDistance = medianDistance / (palmDistance + 0.001);
+  
+  let pinchDetected;
+  
+  if (isMouseDown) {
+    pinchDetected = medianDistance < PINCH_CONFIG.releaseThreshold && relativeDistance < 0.25;
+  } else {
+    pinchDetected = medianDistance < PINCH_CONFIG.threshold && relativeDistance < 0.18;
   }
-
-  // Rangée qui force l'alignement à droite
-  const row = document.createElement("div");
-  row.style.display = "flex";
-  row.style.justifyContent = "flex-end";
-  row.style.width = "100%";
-  row.style.marginTop = "8px";
-  container.appendChild(row);
-
-  const notif = document.createElement("div");
-  notif.style.width = "20px";
-  notif.style.height = "20px";
-  notif.style.borderRadius = "50%";
-  notif.style.opacity = "0";
-  notif.style.display = "flex";
-  notif.style.justifyContent = "center";
-  notif.style.alignItems = "center";
-  notif.style.background = "rgba(50,50,50,0.3)";
-  notif.style.color = "white";
-  notif.style.fontFamily = "Arial, sans-serif";
-  notif.style.fontSize = "14px";
-  notif.style.overflow = "hidden";
-
-  row.appendChild(notif);
-
-  // Étape 1 : apparition du rond
-  setTimeout(() => { notif.style.opacity = "1"; }, 50);
-
-  // Étape 2 : transformation en bulle
-  setTimeout(() => {
-    notif.style.transition = "width 1.5s ease, height 1.5s ease, border-radius 1.5s ease";
-    notif.style.width = "200px";
-    notif.style.height = "auto";
-    notif.style.padding = "10px 14px";
-    notif.style.borderRadius = "20px";
-  }, 2000);
-
-  // Étape 3 : pause avant texte "Notification:"
-  setTimeout(() => {
-    notif.innerHTML = "<strong>Notification:</strong>&nbsp;";
-  }, 4000);
-
-  // Étape 4 : écriture progressive
-  setTimeout(() => {
-    let i = 0;
-    const len = Math.max(1, message.length);
-    const interval = 1500 / len;
-
-    function typeWriter() {
-      if (i < message.length) {
-        const ch = message.charAt(i);
-        notif.innerHTML += (ch === " " ? "&nbsp;" : ch);
-        i++;
-        setTimeout(typeWriter, interval);
-      } else {
-        // reste 2 minutes avant suppression automatique
-        setTimeout(() => row.remove(), 1200000);
-      }
-    }
-    typeWriter();
-  }, 4200);
+  
+  if (pinchDetected) {
+    pinchFrames++;
+    releaseFrames = 0;
+  } else {
+    releaseFrames++;
+    pinchFrames = 0;
+  }
+  
+  if (pinchFrames >= PINCH_CONFIG.minFrames) {
+    return true;
+  }
+  
+  if (releaseFrames >= PINCH_CONFIG.minReleaseFrames) {
+    return false;
+  }
+  
+  return isMouseDown;
 }
 
-// -------------------------
-// 📡 Récupération des nouveaux messages
-// -------------------------
-async function fetchText() {
-  try {
-    const res = await fetch("/getText");
-    const newLines = await res.json();
+// Calcul de vitesse pour lissage adaptatif
+function calculateVelocity(x, y, deltaTime) {
+  const deltaX = x - lastX;
+  const deltaY = y - lastY;
+  
+  velocityX = (velocityX * 0.7 + deltaX / deltaTime * 0.3) * MOVEMENT_CONFIG.noiseReduction;
+  velocityY = (velocityY * 0.7 + deltaY / deltaTime * 0.3) * MOVEMENT_CONFIG.noiseReduction;
+  
+  const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+  if (speed > MOVEMENT_CONFIG.maxSpeed) {
+    velocityX = (velocityX / speed) * MOVEMENT_CONFIG.maxSpeed;
+    velocityY = (velocityY / speed) * MOVEMENT_CONFIG.maxSpeed;
+  }
+  
+  lastX = x;
+  lastY = y;
+  
+  return { vx: velocityX, vy: velocityY };
+}
 
-    newLines.forEach(line => {
-      // Vérifier si c'est un nouveau message (string simple)
-      const isNewString = typeof line === 'string' && !savedLines.some(msg => 
-        typeof msg === 'string' ? msg === line : msg.text === line
-      );
+// Détection de proximité avancée
+function calculateSlowDownFactor(x, y) {
+  if (isMouseDown) return { factor: 1.0, isNear: false };
+  
+  const elements = document.elementsFromPoint(x, y);
+  let isNear = false;
+  let minDistance = MOVEMENT_CONFIG.slowDownRadius;
+  
+  for (const element of elements) {
+    if (element.matches('button, input, textarea, select, a, [onclick], [tabindex], [role="button"]')) {
+      const rect = element.getBoundingClientRect();
       
-      // Vérifier si c'est un nouvel objet message
-      const isNewObject = typeof line === 'object' && !savedLines.some(msg => 
-        typeof msg === 'object' && msg.text === line.text
-      );
-
-      if (isNewString || isNewObject) {
-        // Les messages reçus n'ont pas de type 'sent', donc ils apparaîtront à gauche
-        savedLines.push(line);
-        
-        // Notification uniquement pour les messages reçus (pas les envoyés)
-        if (!displayedNotifications.has(typeof line === 'string' ? line : line.text)) {
-          addNotification(typeof line === 'string' ? line : line.text);
-          displayedNotifications.add(typeof line === 'string' ? line : line.text);
-          localStorage.setItem('displayedNotifications', JSON.stringify([...displayedNotifications]));
-        }
+      const distLeft = Math.abs(x - rect.left);
+      const distRight = Math.abs(x - rect.right);
+      const distTop = Math.abs(y - rect.top);
+      const distBottom = Math.abs(y - rect.bottom);
+      
+      const minEdgeDist = Math.min(distLeft, distRight, distTop, distBottom);
+      
+      if (minEdgeDist < minDistance) {
+        minDistance = minEdgeDist;
+        isNear = true;
       }
-    });
-
-    localStorage.setItem('savedLines', JSON.stringify(savedLines));
-    redrawTextDiv();
-  } catch(e) {
-    console.error("Erreur fetch /getText:", e);
+      
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        minDistance = 0;
+        isNear = true;
+        break;
+      }
+    }
   }
+  
+  if (isNear) {
+    const intensity = 1 - (minDistance / MOVEMENT_CONFIG.slowDownRadius);
+    const factor = Math.max(0.15, 1.0 - intensity * 0.85);
+    return { factor, isNear };
+  }
+  
+  return { factor: 1.0, isNear: false };
 }
 
-// -------------------------
-// 🧹 Vérifie le signal de reset/clear
-// -------------------------
-async function checkClearSignal() {
-  try {
-    const res = await fetch("/getText");
-    const data = await res.json();
-    
-    // Convertir les strings simples en objets pour la cohérence
-    const normalizedData = data.map(item => 
-      typeof item === 'string' ? { text: item, type: 'received' } : item
-    );
-    
-    // Garder les messages envoyés locaux qui ne sont pas dans les données reçues
-    const localSentMessages = savedLines.filter(msg => 
-      typeof msg === 'object' && msg.type === 'sent'
-    );
-    
-    savedLines = [...normalizedData, ...localSentMessages];
-    localStorage.setItem('savedLines', JSON.stringify(savedLines));
-    redrawTextDiv();
-  } catch(e) {
-    console.error("Erreur check clear:", e);
-  }
-}
-setInterval(checkClearSignal, 2000);
+let lastTime = performance.now();
 
-// -------------------------
-// ✏️ Affiche les messages dans le DIV
-// -------------------------
-function redrawTextDiv(autoScroll = true) {
-  const div = document.getElementById('textdiv');
-  if (!div) return;
+async function predict() {
+  const currentTime = performance.now();
+  const deltaTime = Math.min((currentTime - lastTime) / 16.67, 2.0);
+  lastTime = currentTime;
 
-  const wasAtBottom = div.scrollHeight - div.scrollTop <= div.clientHeight + 5;
+  const nowInMs = performance.now();
+  const result = handLandmarker.detectForVideo(video, nowInMs);
 
-  div.style.width = "250px";
-  div.style.height = "351px";
-  div.style.overflowY = "auto";
-  div.style.background = "rgba(255, 255, 255, 0)";
-  div.style.color = "white";
-  div.style.font = "20px Arial";
-  div.style.padding = "10px";
-  div.style.display = "flex";
-  div.style.flexDirection = "column";
-  div.style.gap = "10px";
+  if (result.landmarks && result.landmarks.length > 0) {
+    const landmarks = result.landmarks[0];
+    const index = landmarks[8];
+    const thumb = landmarks[4];
 
-  div.innerHTML = "";
+    const rawX = window.innerWidth * (1 - index.x);
+    const rawY = window.innerHeight * index.y;
 
-  savedLines.forEach(msg => {
-    const bubble = document.createElement("div");
+    const filteredX = kalmanX.update(rawX);
+    const filteredY = kalmanY.update(rawY);
+
+    calculateVelocity(filteredX, filteredY, deltaTime);
+
+    const { factor: slowDownFactor, isNear } = calculateSlowDownFactor(filteredX, filteredY);
+
+    let lerpFactor = isNear ? MOVEMENT_CONFIG.slowLerp : MOVEMENT_CONFIG.baseLerp;
     
-    // Déterminer si c'est un message envoyé ou reçu
-    const isSent = msg.type === 'sent' || msg.hasOwnProperty('type');
+    const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+    lerpFactor = Math.max(lerpFactor, 0.5 - speed * 0.01);
     
-    bubble.innerText = typeof msg === 'string' ? msg : msg.text;
+    const predictedX = filteredX + velocityX * MOVEMENT_CONFIG.predictionStrength;
+    const predictedY = filteredY + velocityY * MOVEMENT_CONFIG.predictionStrength;
     
-    if (isSent) {
-      // Message envoyé - à droite en bleu
-      bubble.style.background = "#007bff"; // Bleu
-      bubble.style.borderRadius = "15px";
-      bubble.style.padding = "8px 12px";
-      bubble.style.maxWidth = "180px";
-      bubble.style.wordWrap = "break-word";
-      bubble.style.marginLeft = "auto"; // Aligne à droite
-      bubble.style.marginRight = "0";
-      bubble.style.color = "white";
+    smoothX = advancedLerp(smoothX, predictedX, lerpFactor * slowDownFactor);
+    smoothY = advancedLerp(smoothY, predictedY, lerpFactor * slowDownFactor);
+    
+    cursor.style.left = smoothX + "px";
+    cursor.style.top = smoothY + "px";
+
+    const isPinching = detectPinch(thumb, index, landmarks);
+    
+    const elUnderCursor = document.elementFromPoint(smoothX, smoothY);
+    if (!elUnderCursor) {
+      requestAnimationFrame(predict);
+      return;
+    }
+
+    // Mise à jour de l'apparence du curseur - Z-INDEX TOUJOURS À 9999
+    if (isMouseDown) {
+      updateCursorAppearance('pinching');
+    } else if (isNear) {
+      updateCursorAppearance('slowing');
     } else {
-      // Message reçu - à gauche en gris
-      bubble.style.background = "#666";
-      bubble.style.borderRadius = "15px";
-      bubble.style.padding = "8px 12px";
-      bubble.style.maxWidth = "180px";
-      bubble.style.wordWrap = "break-word";
-      bubble.style.marginRight = "auto"; // Aligne à gauche
-      bubble.style.color = "white";
+      updateCursorAppearance('normal');
+    }
+
+    // S'assurer que le z-index reste à 9999 à chaque frame
+    cursor.style.zIndex = '9999';
+
+    // Émission des événements avec optimisation
+    if (!isMouseDown || (isMouseDown && slowDownFactor < 0.5)) {
+      const moveEvents = [
+        new MouseEvent("mousemove", {
+          bubbles: true, cancelable: true,
+          clientX: smoothX, clientY: smoothY
+        }),
+        new PointerEvent("pointermove", {
+          bubbles: true, cancelable: true,
+          clientX: smoothX, clientY: smoothY,
+          pointerType: "mouse"
+        })
+      ];
+      
+      moveEvents.forEach(event => elUnderCursor.dispatchEvent(event));
+    }
+
+    // Gestion précise du clic
+    if (isPinching && !isMouseDown) {
+      isMouseDown = true;
+      
+      const downEvents = [
+        new MouseEvent("mousedown", {
+          bubbles: true, cancelable: true,
+          clientX: smoothX, clientY: smoothY, button: 0
+        }),
+        new PointerEvent("pointerdown", {
+          bubbles: true, cancelable: true,
+          clientX: smoothX, clientY: smoothY,
+          pointerType: "mouse", button: 0
+        })
+      ];
+      
+      downEvents.forEach(event => elUnderCursor.dispatchEvent(event));
+      
+    } else if (!isPinching && isMouseDown) {
+      isMouseDown = false;
+      
+      const upEvents = [
+        new MouseEvent("mouseup", {
+          bubbles: true, cancelable: true,
+          clientX: smoothX, clientY: smoothY, button: 0
+        }),
+        new PointerEvent("pointerup", {
+          bubbles: true, cancelable: true,
+          clientX: smoothX, clientY: smoothY,
+          pointerType: "mouse", button: 0
+        })
+      ];
+      
+      upEvents.forEach(event => elUnderCursor.dispatchEvent(event));
+      
+      setTimeout(() => {
+        if (!isMouseDown) {
+          elUnderCursor.dispatchEvent(new MouseEvent("click", {
+            bubbles: true, cancelable: true,
+            clientX: smoothX, clientY: smoothY
+          }));
+        }
+      }, 8);
     }
     
-    div.appendChild(bubble);
-  });
-
-  if (autoScroll && wasAtBottom) {
-    div.scrollTop = div.scrollHeight;
+    // Événements pendant le maintien
+    if (isMouseDown) {
+      const dragEvents = [
+        new MouseEvent("mousemove", {
+          bubbles: true, cancelable: true,
+          clientX: smoothX, clientY: smoothY
+        }),
+        new PointerEvent("pointermove", {
+          bubbles: true, cancelable: true,
+          clientX: smoothX, clientY: smoothY,
+          pointerType: "mouse"
+        })
+      ];
+      
+      dragEvents.forEach(event => document.dispatchEvent(event));
+    }
+    
+  } else {
+    if (isMouseDown) {
+      isMouseDown = false;
+      updateCursorAppearance('normal');
+    }
+    pinchFrames = 0;
+    releaseFrames = 0;
   }
+
+  requestAnimationFrame(predict);
 }
 
-// -------------------------
-// ⚡ Init au chargement
-// -------------------------
-window.addEventListener('load', function () {
-  const saved = localStorage.getItem("savedLines");
-  if (saved) {
-    // Convertir les anciens messages strings en objets
-    savedLines = JSON.parse(saved).map(msg => 
-      typeof msg === 'string' ? { text: msg, type: 'received' } : msg
-    );
-    redrawTextDiv();
-  }
-
-  const savedDisplayed = localStorage.getItem("displayedNotifications");
-  if (savedDisplayed) {
-    displayedNotifications = new Set(JSON.parse(savedDisplayed));
-  }
-
-  const textDiv = document.getElementById("textdiv");
-  if (textDiv) {
-    textDiv.addEventListener("scroll", () => {
-      // si l'utilisateur scrolle manuellement, on désactive l'auto-scroll
-      redrawTextDiv(false);
-    });
-  }
-
-  // Permettre l'envoi avec la touche Entrée
-  const noteInput = document.getElementById('noteInput');
-  if (noteInput) {
-    noteInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        drawText();
-      }
-    });
-  }
-
-  fetchText();
-  setInterval(fetchText, 3000);
-});
+// Démarrage
+predict();

@@ -1,6 +1,6 @@
 let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
-let myMessages = new Set(JSON.parse(localStorage.getItem('myMessages')) || []); // Messages que J'AI envoyés
+let myMessages = new Set(JSON.parse(localStorage.getItem('myMessages')) || []);
 
 let textDivScroll = 0;
 let textDivScrollMax = 0;
@@ -74,7 +74,7 @@ function addNotification(message) {
 }
 
 // -------------------------
-// ✉️ Fonction pour ENVOYER un message (BLEU À DROITE)
+// ✉️ Fonction pour ENVOYER un message
 // -------------------------
 function drawText() {
   const noteInput = document.getElementById('noteInput');
@@ -86,7 +86,7 @@ function drawText() {
   myMessages.add(message);
   localStorage.setItem('myMessages', JSON.stringify([...myMessages]));
   
-  // 2. AJOUTER AUX MESSAGES (affichage immédiat)
+  // 2. AJOUTER AUX MESSAGES (SEULEMENT SI PAS DÉJÀ PRÉSENT)
   if (!savedLines.includes(message)) {
     savedLines.push(message);
     localStorage.setItem('savedLines', JSON.stringify(savedLines));
@@ -98,7 +98,7 @@ function drawText() {
   // 4. AFFICHER IMMÉDIATEMENT (BLEU À DROITE)
   redrawTextDiv(true);
   
-  // 5. ENVOYER À L'AUTRE ESP32 (SANS ATTENDRE LA RÉPONSE)
+  // 5. ENVOYER À L'AUTRE ESP32
   fetch('http://quickchat.local/getText2', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -108,36 +108,36 @@ function drawText() {
     console.log("Message envoyé à ESP32 2");
   })
   .catch(e => {
-    console.log("ESP32 2 non trouvé, mais message affiché quand même");
+    console.log("ESP32 2 non trouvé, mais message affiché");
   });
 }
 
 // -------------------------
-// 📡 Récupération des messages REÇUS (GRIS À GAUCHE)
+// 📡 Récupération des messages REÇUS
 // -------------------------
 function fetchText() {
   fetch("/getText")
     .then(res => res.json())
     .then(newLines => {
-      let hasNewMessages = false;
+      // FILTRER SEULEMENT LES NOUVEAUX MESSAGES QUI NE SONT PAS LES MIENS
+      const newReceivedMessages = newLines.filter(line => 
+        !savedLines.includes(line) && !myMessages.has(line)
+      );
       
-      newLines.forEach(line => {
-        // AJOUTER SEULEMENT SI CE N'EST PAS UN MESSAGE QUE J'AI ENVOYÉ
-        if (!savedLines.includes(line) && !myMessages.has(line)) {
+      if (newReceivedMessages.length > 0) {
+        // AJOUTER LES NOUVEAUX MESSAGES REÇUS
+        newReceivedMessages.forEach(line => {
           savedLines.push(line);
-          hasNewMessages = true;
-        }
+          
+          // NOTIFICATION SEULEMENT POUR LES VRAIS MESSAGES REÇUS
+          if (!displayedNotifications.has(line)) {
+            addNotification(line);
+            displayedNotifications.add(line);
+          }
+        });
         
-        // NOTIFICATION SEULEMENT POUR LES MESSAGES REÇUS
-        if (!displayedNotifications.has(line) && !myMessages.has(line)) {
-          addNotification(line);
-          displayedNotifications.add(line);
-          localStorage.setItem('displayedNotifications', JSON.stringify([...displayedNotifications]));
-        }
-      });
-
-      if (hasNewMessages) {
         localStorage.setItem('savedLines', JSON.stringify(savedLines));
+        localStorage.setItem('displayedNotifications', JSON.stringify([...displayedNotifications]));
         redrawTextDiv();
       }
     })
@@ -168,21 +168,26 @@ function redrawTextDiv(autoScroll = true) {
 
   div.innerHTML = "";
 
+  // FILTRER ET S'ASSURER QUE TOUS LES MESSAGES SONT DES STRINGS
   savedLines.forEach(msg => {
+    // S'ASSURER QUE msg EST UNE STRING
+    const messageText = typeof msg === 'string' ? msg : 
+                       (msg && msg.text ? msg.text : String(msg));
+    
     const bubble = document.createElement("div");
-    bubble.innerText = msg;
+    bubble.innerText = messageText;
     
-    // ✅ DÉTERMINATION CORRECTE
-    const isMyMessage = myMessages.has(msg); // Vrai seulement pour MES messages
+    // DÉTERMINATION CORRECTE - UNIQUEMENT BASÉE SUR myMessages
+    const isMyMessage = myMessages.has(messageText);
     
-    bubble.style.background = isMyMessage ? "#007bff" : "#666"; // Bleu pour MOI, gris pour les autres
+    bubble.style.background = isMyMessage ? "#007bff" : "#666";
     bubble.style.borderRadius = "15px";
     bubble.style.display = "inline-block";
     bubble.style.maxWidth = "180px";
     bubble.style.padding = "8px 12px";
     bubble.style.wordWrap = "break-word";
-    bubble.style.marginLeft = isMyMessage ? "auto" : "0"; // À droite pour MOI
-    bubble.style.marginRight = isMyMessage ? "0" : "auto"; // À gauche pour les autres
+    bubble.style.marginLeft = isMyMessage ? "auto" : "0";
+    bubble.style.marginRight = isMyMessage ? "0" : "auto";
     
     div.appendChild(bubble);
   });
@@ -199,7 +204,11 @@ window.addEventListener('load', function () {
   // Charger les données
   const saved = localStorage.getItem("savedLines");
   if (saved) {
-    savedLines = JSON.parse(saved);
+    // S'ASSURER QUE TOUS LES ÉLÉMENTS SONT DES STRINGS
+    savedLines = JSON.parse(saved).map(msg => 
+      typeof msg === 'string' ? msg : 
+      (msg && msg.text ? msg.text : String(msg))
+    );
   }
 
   const savedDisplayed = localStorage.getItem("displayedNotifications");
@@ -233,7 +242,12 @@ window.addEventListener('load', function () {
     });
   }
 
-  // Démarrer la récupération des messages
+  // SUPPRIMER checkClearSignal QUI CAUSAIT LA DISPARITION
   fetchText();
   setInterval(fetchText, 3000);
+  
+  // SAUVEGARDER myMessages RÉGULIÈREMENT
+  setInterval(() => {
+    localStorage.setItem("myMessages", JSON.stringify([...myMessages]));
+  }, 1000);
 });

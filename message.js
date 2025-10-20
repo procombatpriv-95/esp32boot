@@ -70,7 +70,7 @@ function addNotification(message) {
 }
 
 // -------------------------
-// ✉️ Fonction pour envoyer un message
+// ✉️ Fonction pour envoyer un message (MODIFIÉE POUR LIMITER À 3)
 // -------------------------
 async function drawText() {
   const noteInput = document.getElementById('noteInput');
@@ -94,6 +94,13 @@ async function drawText() {
       timestamp: Date.now(),
       isMyMessage: true
     });
+    
+    // LIMITER À 3 MESSAGES BLEUS MAXIMUM
+    if (myMessages.length > 3) {
+      // Garder seulement les 3 messages les plus récents
+      myMessages = myMessages.slice(-3);
+    }
+    
     localStorage.setItem('myMessages', JSON.stringify(myMessages));
     
     // Vider l'input
@@ -176,7 +183,7 @@ function redrawTextDiv(autoScroll = true) {
   // COMBINER TOUS LES MESSAGES
   const allMessages = [];
 
-  // Convertir savedLines
+  // Convertir savedLines (messages gris - illimités)
   savedLines.forEach(msg => {
     if (typeof msg === 'string') {
       allMessages.push({
@@ -189,7 +196,7 @@ function redrawTextDiv(autoScroll = true) {
     }
   });
 
-  // Convertir myMessages
+  // Convertir myMessages (messages bleus - limités à 3)
   myMessages.forEach(msg => {
     if (typeof msg === 'string') {
       allMessages.push({
@@ -231,7 +238,7 @@ function redrawTextDiv(autoScroll = true) {
 }
 
 // -------------------------
-// ⚡ Init au chargement
+// ⚡ Init au chargement (MODIFIÉE POUR LIMITER À 3)
 // -------------------------
 window.addEventListener('load', function () {
   // Charger et migrer les données
@@ -259,9 +266,14 @@ window.addEventListener('load', function () {
         timestamp: Date.now(),
         isMyMessage: true
       }));
-      localStorage.setItem('myMessages', JSON.stringify(myMessages));
     } else {
       myMessages = parsed;
+    }
+    
+    // LIMITER À 3 MESSAGES BLEUS AU CHARGEMENT
+    if (myMessages.length > 3) {
+      myMessages = myMessages.slice(-3);
+      localStorage.setItem('myMessages', JSON.stringify(myMessages));
     }
   }
 

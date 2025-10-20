@@ -1,5 +1,5 @@
 let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
-let myMessages = JSON.parse(localStorage.getItem('myMessages')) || []; // NOUVELLE VARIABLE POUR VOS MESSAGES
+let myMessages = JSON.parse(localStorage.getItem('myMessages')) || [];
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
 
 let textDivScroll = 0;
@@ -13,12 +13,10 @@ function addNotification(message) {
   const container = document.getElementById("notification-container");
   if (!container) return;
 
-  // ✅ Limite à 3 notifs visibles
   if (container.children.length >= 1) {
-    container.removeChild(container.firstChild); // supprime la plus ancienne
+    container.removeChild(container.firstChild);
   }
 
-  // Rangée qui force l'alignement à droite
   const row = document.createElement("div");
   row.style.display = "flex";
   row.style.justifyContent = "flex-end";
@@ -42,10 +40,7 @@ function addNotification(message) {
 
   row.appendChild(notif);
 
-  // Étape 1 : apparition du rond
   setTimeout(() => { notif.style.opacity = "1"; }, 50);
-
-  // Étape 2 : transformation en bulle
   setTimeout(() => {
     notif.style.transition = "width 1.5s ease, height 1.5s ease, border-radius 1.5s ease";
     notif.style.width = "200px";
@@ -53,18 +48,13 @@ function addNotification(message) {
     notif.style.padding = "10px 14px";
     notif.style.borderRadius = "20px";
   }, 2000);
-
-  // Étape 3 : pause avant texte "Notification:"
   setTimeout(() => {
     notif.innerHTML = "<strong>Notification:</strong>&nbsp;";
   }, 4000);
-
-  // Étape 4 : écriture progressive
   setTimeout(() => {
     let i = 0;
     const len = Math.max(1, message.length);
     const interval = 1500 / len;
-
     function typeWriter() {
       if (i < message.length) {
         const ch = message.charAt(i);
@@ -72,7 +62,6 @@ function addNotification(message) {
         i++;
         setTimeout(typeWriter, interval);
       } else {
-        // reste 2 minutes avant suppression automatique
         setTimeout(() => row.remove(), 1200000);
       }
     }
@@ -81,7 +70,7 @@ function addNotification(message) {
 }
 
 // -------------------------
-// ✉️ Fonction pour envoyer un message (MODIFIÉE)
+// ✉️ Fonction pour envoyer un message
 // -------------------------
 async function drawText() {
   const noteInput = document.getElementById('noteInput');
@@ -99,7 +88,7 @@ async function drawText() {
       body: JSON.stringify({ message: message })
     });
 
-    // AJOUTER LE MESSAGE À myMessages AU LIEU DE savedLines
+    // AJOUTER LE MESSAGE À myMessages
     myMessages.push(message);
     localStorage.setItem('myMessages', JSON.stringify(myMessages));
     
@@ -156,7 +145,7 @@ async function checkClearSignal() {
 }
 
 // -------------------------
-// ✏️ Affiche les messages dans le DIV (MODIFIÉE)
+// ✏️ Affiche les messages dans le DIV (MODIFIÉE POUR L'ORDRE)
 // -------------------------
 function redrawTextDiv(autoScroll = true) {
   const div = document.getElementById('textdiv');
@@ -177,36 +166,42 @@ function redrawTextDiv(autoScroll = true) {
 
   div.innerHTML = "";
 
-  // AFFICHER LES MESSAGES REÇUS (savedLines) EN GRIS À GAUCHE
+  // CRÉER UN TABLEAU COMBINÉ AVEC TOUS LES MESSAGES
+  const allMessages = [];
+  
+  // Ajouter les messages reçus (savedLines) avec leur type
   savedLines.forEach(msg => {
-    const bubble = document.createElement("div");
-    bubble.innerText = msg;
-    
-    bubble.style.background = "#666"; // GRIS
-    bubble.style.borderRadius = "15px";
-    bubble.style.display = "inline-block";
-    bubble.style.maxWidth = "180px";
-    bubble.style.padding = "8px 12px";
-    bubble.style.wordWrap = "break-word";
-    bubble.style.marginLeft = "0"; // À GAUCHE
-    bubble.style.marginRight = "auto";
-    
-    div.appendChild(bubble);
+    allMessages.push({
+      text: msg,
+      isMyMessage: false, // Message reçu
+      timestamp: Date.now() // Utiliser un timestamp pour l'ordre
+    });
+  });
+  
+  // Ajouter vos messages (myMessages) avec leur type
+  myMessages.forEach(msg => {
+    allMessages.push({
+      text: msg,
+      isMyMessage: true, // Votre message
+      timestamp: Date.now()
+    });
   });
 
-  // AFFICHER VOS MESSAGES (myMessages) EN BLEU À DROITE
-  myMessages.forEach(msg => {
+  // TRIER LES MESSAGES PAR ORDRE CHRONOLOGIQUE (simplifié)
+  // Dans une vraie application, vous utiliseriez de vrais timestamps
+  allMessages.forEach((message, index) => {
     const bubble = document.createElement("div");
-    bubble.innerText = msg;
+    bubble.innerText = message.text;
     
-    bubble.style.background = "#007bff"; // BLEU
+    bubble.style.background = message.isMyMessage ? "#007bff" : "#666";
     bubble.style.borderRadius = "15px";
     bubble.style.display = "inline-block";
     bubble.style.maxWidth = "180px";
     bubble.style.padding = "8px 12px";
     bubble.style.wordWrap = "break-word";
-    bubble.style.marginLeft = "auto"; // À DROITE
-    bubble.style.marginRight = "0";
+    bubble.style.marginLeft = message.isMyMessage ? "auto" : "0";
+    bubble.style.marginRight = message.isMyMessage ? "0" : "auto";
+    bubble.style.marginBottom = "10px";
     
     div.appendChild(bubble);
   });
@@ -217,7 +212,7 @@ function redrawTextDiv(autoScroll = true) {
 }
 
 // -------------------------
-// ⚡ Init au chargement (MODIFIÉE)
+// ⚡ Init au chargement
 // -------------------------
 window.addEventListener('load', function () {
   const saved = localStorage.getItem("savedLines");
@@ -225,7 +220,6 @@ window.addEventListener('load', function () {
     savedLines = JSON.parse(saved);
   }
 
-  // CHARGER myMessages AU DÉMARRAGE
   const savedMyMessages = localStorage.getItem("myMessages");
   if (savedMyMessages) {
     myMessages = JSON.parse(savedMyMessages);
@@ -241,12 +235,10 @@ window.addEventListener('load', function () {
   const textDiv = document.getElementById("textdiv");
   if (textDiv) {
     textDiv.addEventListener("scroll", () => {
-      // si l'utilisateur scrolle manuellement, on désactive l'auto-scroll
       redrawTextDiv(false);
     });
   }
 
-  // Ajouter l'événement Enter sur l'input
   const noteInput = document.getElementById('noteInput');
   if (noteInput) {
     noteInput.addEventListener('keypress', function(event) {

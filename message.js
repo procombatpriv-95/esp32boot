@@ -70,7 +70,7 @@ function addNotification(message) {
 }
 
 // -------------------------
-// ✉️ Fonction pour envoyer un message
+// ✉️ Fonction pour envoyer un message (MODIFIÉE POUR TIMESTAMP)
 // -------------------------
 async function drawText() {
   const noteInput = document.getElementById('noteInput');
@@ -88,8 +88,12 @@ async function drawText() {
       body: JSON.stringify({ message: message })
     });
 
-    // AJOUTER LE MESSAGE À myMessages
-    myMessages.push(message);
+    // AJOUTER LE MESSAGE À myMessages AVEC TIMESTAMP
+    myMessages.push({
+      text: message,
+      timestamp: Date.now(),
+      isMyMessage: true
+    });
     localStorage.setItem('myMessages', JSON.stringify(myMessages));
     
     // Vider l'input
@@ -104,7 +108,7 @@ async function drawText() {
 }
 
 // -------------------------
-// 📡 Récupération des nouveaux messages
+// 📡 Récupération des nouveaux messages (MODIFIÉE POUR TIMESTAMP)
 // -------------------------
 async function fetchText() {
   try {
@@ -112,9 +116,20 @@ async function fetchText() {
     const newLines = await res.json();
 
     newLines.forEach(line => {
-      if (!savedLines.includes(line)) {
-        savedLines.push(line);
+      // Vérifier si le message n'existe pas déjà dans savedLines
+      const exists = savedLines.some(msg => 
+        typeof msg === 'string' ? msg === line : msg.text === line
+      );
+      
+      if (!exists) {
+        // Ajouter avec timestamp
+        savedLines.push({
+          text: line,
+          timestamp: Date.now(),
+          isMyMessage: false
+        });
       }
+      
       if (!displayedNotifications.has(line)) {
         addNotification(line);
         displayedNotifications.add(line);
@@ -130,13 +145,21 @@ async function fetchText() {
 }
 
 // -------------------------
-// 🧹 Vérifie le signal de reset/clear
+// 🧹 Vérifie le signal de reset/clear (MODIFIÉE POUR TIMESTAMP)
 // -------------------------
 async function checkClearSignal() {
   try {
     const res = await fetch("/getText");
     const data = await res.json();
-    savedLines = data; // remplace complètement les anciens messages
+    
+    // Convertir les nouveaux messages en objets avec timestamp
+    const newSavedLines = data.map(line => ({
+      text: line,
+      timestamp: Date.now(),
+      isMyMessage: false
+    }));
+    
+    savedLines = newSavedLines;
     localStorage.setItem('savedLines', JSON.stringify(savedLines));
     redrawTextDiv();
   } catch(e) {
@@ -145,7 +168,7 @@ async function checkClearSignal() {
 }
 
 // -------------------------
-// ✏️ Affiche les messages dans le DIV (MODIFIÉE POUR L'ORDRE)
+// ✏️ Affiche les messages dans le DIV (CORRIGÉE POUR L'ORDRE)
 // -------------------------
 function redrawTextDiv(autoScroll = true) {
   const div = document.getElementById('textdiv');
@@ -166,30 +189,40 @@ function redrawTextDiv(autoScroll = true) {
 
   div.innerHTML = "";
 
-  // CRÉER UN TABLEAU COMBINÉ AVEC TOUS LES MESSAGES
+  // CONVERTIR TOUS LES MESSAGES EN FORMAT STANDARD
   const allMessages = [];
-  
-  // Ajouter les messages reçus (savedLines) avec leur type
+
+  // Convertir savedLines (peut contenir des strings ou des objets)
   savedLines.forEach(msg => {
-    allMessages.push({
-      text: msg,
-      isMyMessage: false, // Message reçu
-      timestamp: Date.now() // Utiliser un timestamp pour l'ordre
-    });
-  });
-  
-  // Ajouter vos messages (myMessages) avec leur type
-  myMessages.forEach(msg => {
-    allMessages.push({
-      text: msg,
-      isMyMessage: true, // Votre message
-      timestamp: Date.now()
-    });
+    if (typeof msg === 'string') {
+      allMessages.push({
+        text: msg,
+        timestamp: Date.now(), // timestamp par défaut pour les anciens messages
+        isMyMessage: false
+      });
+    } else {
+      allMessages.push(msg);
+    }
   });
 
-  // TRIER LES MESSAGES PAR ORDRE CHRONOLOGIQUE (simplifié)
-  // Dans une vraie application, vous utiliseriez de vrais timestamps
-  allMessages.forEach((message, index) => {
+  // Convertir myMessages (doit déjà être des objets)
+  myMessages.forEach(msg => {
+    if (typeof msg === 'string') {
+      allMessages.push({
+        text: msg,
+        timestamp: Date.now(), // timestamp par défaut pour les anciens messages
+        isMyMessage: true
+      });
+    } else {
+      allMessages.push(msg);
+    }
+  });
+
+  // TRIER PAR TIMESTAMP (le plus ancien en premier, le plus récent en dernier)
+  allMessages.sort((a, b) => a.timestamp - b.timestamp);
+
+  // AFFICHER DANS L'ORDRE CHRONOLOGIQUE
+  allMessages.forEach(message => {
     const bubble = document.createElement("div");
     bubble.innerText = message.text;
     
@@ -212,17 +245,40 @@ function redrawTextDiv(autoScroll = true) {
 }
 
 // -------------------------
-// ⚡ Init au chargement
+// ⚡ Init au chargement (MODIFIÉE POUR MIGRATION)
 // -------------------------
 window.addEventListener('load', function () {
+  // Charger et migrer les données si nécessaire
   const saved = localStorage.getItem("savedLines");
   if (saved) {
-    savedLines = JSON.parse(saved);
+    const parsed = JSON.parse(saved);
+    // Si c'est un tableau de strings, le convertir en objets
+    if (parsed.length > 0 && typeof parsed[0] === 'string') {
+      savedLines = parsed.map(text => ({
+        text: text,
+        timestamp: Date.now(),
+        isMyMessage: false
+      }));
+      localStorage.setItem('savedLines', JSON.stringify(savedLines));
+    } else {
+      savedLines = parsed;
+    }
   }
 
   const savedMyMessages = localStorage.getItem("myMessages");
   if (savedMyMessages) {
-    myMessages = JSON.parse(savedMyMessages);
+    const parsed = JSON.parse(savedMyMessages);
+    // Si c'est un tableau de strings, le convertir en objets
+    if (parsed.length > 0 && typeof parsed[0] === 'string') {
+      myMessages = parsed.map(text => ({
+        text: text,
+        timestamp: Date.now(),
+        isMyMessage: true
+      }));
+      localStorage.setItem('myMessages', JSON.stringify(myMessages));
+    } else {
+      myMessages = parsed;
+    }
   }
 
   const savedDisplayed = localStorage.getItem("displayedNotifications");

@@ -70,7 +70,7 @@ function addNotification(message) {
 }
 
 // -------------------------
-// ✉️ Fonction pour envoyer un message (MODIFIÉE POUR TIMESTAMP)
+// ✉️ Fonction pour envoyer un message
 // -------------------------
 async function drawText() {
   const noteInput = document.getElementById('noteInput');
@@ -108,13 +108,15 @@ async function drawText() {
 }
 
 // -------------------------
-// 📡 Récupération des nouveaux messages (MODIFIÉE POUR TIMESTAMP)
+// 📡 Récupération des nouveaux messages (MODIFIÉE)
 // -------------------------
 async function fetchText() {
   try {
     const res = await fetch("/getText");
     const newLines = await res.json();
 
+    let updated = false;
+    
     newLines.forEach(line => {
       // Vérifier si le message n'existe pas déjà dans savedLines
       const exists = savedLines.some(msg => 
@@ -128,6 +130,7 @@ async function fetchText() {
           timestamp: Date.now(),
           isMyMessage: false
         });
+        updated = true;
       }
       
       if (!displayedNotifications.has(line)) {
@@ -137,38 +140,22 @@ async function fetchText() {
       }
     });
 
-    localStorage.setItem('savedLines', JSON.stringify(savedLines));
-    redrawTextDiv();
+    if (updated) {
+      localStorage.setItem('savedLines', JSON.stringify(savedLines));
+      redrawTextDiv();
+    }
   } catch(e) {
     console.error("Erreur fetch /getText:", e);
   }
 }
 
 // -------------------------
-// 🧹 Vérifie le signal de reset/clear (MODIFIÉE POUR TIMESTAMP)
+// 🧹 Vérifie le signal de reset/clear (SUPPRIMÉE)
 // -------------------------
-async function checkClearSignal() {
-  try {
-    const res = await fetch("/getText");
-    const data = await res.json();
-    
-    // Convertir les nouveaux messages en objets avec timestamp
-    const newSavedLines = data.map(line => ({
-      text: line,
-      timestamp: Date.now(),
-      isMyMessage: false
-    }));
-    
-    savedLines = newSavedLines;
-    localStorage.setItem('savedLines', JSON.stringify(savedLines));
-    redrawTextDiv();
-  } catch(e) {
-    console.error("Erreur check clear:", e);
-  }
-}
+// CETTE FONCTION CAUSAIT LE PROBLÈME - ELLE EST MAINTENANT SUPPRIMÉE
 
 // -------------------------
-// ✏️ Affiche les messages dans le DIV (CORRIGÉE POUR L'ORDRE)
+// ✏️ Affiche les messages dans le DIV
 // -------------------------
 function redrawTextDiv(autoScroll = true) {
   const div = document.getElementById('textdiv');
@@ -189,15 +176,15 @@ function redrawTextDiv(autoScroll = true) {
 
   div.innerHTML = "";
 
-  // CONVERTIR TOUS LES MESSAGES EN FORMAT STANDARD
+  // COMBINER TOUS LES MESSAGES
   const allMessages = [];
 
-  // Convertir savedLines (peut contenir des strings ou des objets)
+  // Convertir savedLines
   savedLines.forEach(msg => {
     if (typeof msg === 'string') {
       allMessages.push({
         text: msg,
-        timestamp: Date.now(), // timestamp par défaut pour les anciens messages
+        timestamp: Date.now(),
         isMyMessage: false
       });
     } else {
@@ -205,12 +192,12 @@ function redrawTextDiv(autoScroll = true) {
     }
   });
 
-  // Convertir myMessages (doit déjà être des objets)
+  // Convertir myMessages
   myMessages.forEach(msg => {
     if (typeof msg === 'string') {
       allMessages.push({
         text: msg,
-        timestamp: Date.now(), // timestamp par défaut pour les anciens messages
+        timestamp: Date.now(),
         isMyMessage: true
       });
     } else {
@@ -218,10 +205,10 @@ function redrawTextDiv(autoScroll = true) {
     }
   });
 
-  // TRIER PAR TIMESTAMP (le plus ancien en premier, le plus récent en dernier)
+  // TRIER PAR TIMESTAMP (plus ancien en premier)
   allMessages.sort((a, b) => a.timestamp - b.timestamp);
 
-  // AFFICHER DANS L'ORDRE CHRONOLOGIQUE
+  // AFFICHER DANS L'ORDRE
   allMessages.forEach(message => {
     const bubble = document.createElement("div");
     bubble.innerText = message.text;
@@ -245,14 +232,13 @@ function redrawTextDiv(autoScroll = true) {
 }
 
 // -------------------------
-// ⚡ Init au chargement (MODIFIÉE POUR MIGRATION)
+// ⚡ Init au chargement
 // -------------------------
 window.addEventListener('load', function () {
-  // Charger et migrer les données si nécessaire
+  // Charger et migrer les données
   const saved = localStorage.getItem("savedLines");
   if (saved) {
     const parsed = JSON.parse(saved);
-    // Si c'est un tableau de strings, le convertir en objets
     if (parsed.length > 0 && typeof parsed[0] === 'string') {
       savedLines = parsed.map(text => ({
         text: text,
@@ -268,7 +254,6 @@ window.addEventListener('load', function () {
   const savedMyMessages = localStorage.getItem("myMessages");
   if (savedMyMessages) {
     const parsed = JSON.parse(savedMyMessages);
-    // Si c'est un tableau de strings, le convertir en objets
     if (parsed.length > 0 && typeof parsed[0] === 'string') {
       myMessages = parsed.map(text => ({
         text: text,
@@ -306,5 +291,5 @@ window.addEventListener('load', function () {
 
   fetchText();
   setInterval(fetchText, 3000);
-  setInterval(checkClearSignal, 2000);
+  // SUPPRIMÉ : setInterval(checkClearSignal, 2000);
 });

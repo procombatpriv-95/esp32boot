@@ -41,6 +41,46 @@
     });
 
     function drawText() {
-        // Votre fonction pour ajouter du texte
-        console.log("Bouton cliqué");
+        const noteInput = document.getElementById('noteInput');
+        const text = noteInput.value.trim();
+        
+        if (text) {
+            // Ajouter le message de l'utilisateur
+            addMessage(text, 'user');
+            
+            // Simuler une réponse après un délai
+            setTimeout(() => {
+                addMessage('Message gris de getText', 'other');
+            }, 1000);
+            
+            // Vider le champ de saisie
+            noteInput.value = '';
+        }
+    }
+
+    function addMessage(text, type) {
+        const messageContainer = document.querySelector('.message-container');
+        const messageDiv = document.createElement('div');
+        
+        messageDiv.className = `message message-${type}`;
+        
+        const now = new Date();
+        const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
+                          now.getMinutes().toString().padStart(2, '0');
+        
+        messageDiv.innerHTML = `
+            <div>${text}</div>
+            <div class="message-time">${timeString}</div>
+        `;
+        
+        messageContainer.appendChild(messageDiv);
+        
+        // Scroll vers le bas
+        const textdiv = document.getElementById('textdiv');
+        textdiv.scrollTop = textdiv.scrollHeight;
+    }
+
+    // Fonction pour simuler getText()
+    function getText() {
+        return "Message gris de getText";
     }

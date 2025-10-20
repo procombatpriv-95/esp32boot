@@ -1,4 +1,5 @@
 let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
+let myMessages = JSON.parse(localStorage.getItem('myMessages')) || []; // NOUVELLE VARIABLE POUR VOS MESSAGES
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
 
 let textDivScroll = 0;
@@ -80,7 +81,7 @@ function addNotification(message) {
 }
 
 // -------------------------
-// ✉️ Fonction pour envoyer un message
+// ✉️ Fonction pour envoyer un message (MODIFIÉE)
 // -------------------------
 async function drawText() {
   const noteInput = document.getElementById('noteInput');
@@ -98,9 +99,9 @@ async function drawText() {
       body: JSON.stringify({ message: message })
     });
 
-    // Ajouter le message localement (en bleu à droite)
-    savedLines.push(message);
-    localStorage.setItem('savedLines', JSON.stringify(savedLines));
+    // AJOUTER LE MESSAGE À myMessages AU LIEU DE savedLines
+    myMessages.push(message);
+    localStorage.setItem('myMessages', JSON.stringify(myMessages));
     
     // Vider l'input
     noteInput.value = '';
@@ -155,7 +156,7 @@ async function checkClearSignal() {
 }
 
 // -------------------------
-// ✏️ Affiche les messages dans le DIV (MODIFIÉ)
+// ✏️ Affiche les messages dans le DIV (MODIFIÉE)
 // -------------------------
 function redrawTextDiv(autoScroll = true) {
   const div = document.getElementById('textdiv');
@@ -176,23 +177,36 @@ function redrawTextDiv(autoScroll = true) {
 
   div.innerHTML = "";
 
+  // AFFICHER LES MESSAGES REÇUS (savedLines) EN GRIS À GAUCHE
   savedLines.forEach(msg => {
     const bubble = document.createElement("div");
     bubble.innerText = msg;
     
-    // ✅ DÉTERMINER LA COULEUR ET L'ALIGNEMENT
-    // Les messages reçus (gris à gauche) vs messages envoyés (bleu à droite)
-    // Pour simplifier, on considère que le dernier message est celui qu'on vient d'envoyer
-    const isMyMessage = !displayedNotifications.has(msg);
-    
-    bubble.style.background = isMyMessage ? "#007bff" : "#666"; // Bleu pour mes messages, gris pour les autres
+    bubble.style.background = "#666"; // GRIS
     bubble.style.borderRadius = "15px";
     bubble.style.display = "inline-block";
     bubble.style.maxWidth = "180px";
     bubble.style.padding = "8px 12px";
     bubble.style.wordWrap = "break-word";
-    bubble.style.marginLeft = isMyMessage ? "auto" : "0"; // ✅ À droite pour mes messages
-    bubble.style.marginRight = isMyMessage ? "0" : "auto"; // ✅ À gauche pour les autres
+    bubble.style.marginLeft = "0"; // À GAUCHE
+    bubble.style.marginRight = "auto";
+    
+    div.appendChild(bubble);
+  });
+
+  // AFFICHER VOS MESSAGES (myMessages) EN BLEU À DROITE
+  myMessages.forEach(msg => {
+    const bubble = document.createElement("div");
+    bubble.innerText = msg;
+    
+    bubble.style.background = "#007bff"; // BLEU
+    bubble.style.borderRadius = "15px";
+    bubble.style.display = "inline-block";
+    bubble.style.maxWidth = "180px";
+    bubble.style.padding = "8px 12px";
+    bubble.style.wordWrap = "break-word";
+    bubble.style.marginLeft = "auto"; // À DROITE
+    bubble.style.marginRight = "0";
     
     div.appendChild(bubble);
   });
@@ -203,19 +217,26 @@ function redrawTextDiv(autoScroll = true) {
 }
 
 // -------------------------
-// ⚡ Init au chargement
+// ⚡ Init au chargement (MODIFIÉE)
 // -------------------------
 window.addEventListener('load', function () {
   const saved = localStorage.getItem("savedLines");
   if (saved) {
     savedLines = JSON.parse(saved);
-    redrawTextDiv();
+  }
+
+  // CHARGER myMessages AU DÉMARRAGE
+  const savedMyMessages = localStorage.getItem("myMessages");
+  if (savedMyMessages) {
+    myMessages = JSON.parse(savedMyMessages);
   }
 
   const savedDisplayed = localStorage.getItem("displayedNotifications");
   if (savedDisplayed) {
     displayedNotifications = new Set(JSON.parse(savedDisplayed));
   }
+
+  redrawTextDiv();
 
   const textDiv = document.getElementById("textdiv");
   if (textDiv) {

@@ -1,6 +1,6 @@
 let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
-let myMessages = new Set(); // Pour distinguer mes messages des messages reçus
+let myMessages = new Set(JSON.parse(localStorage.getItem('myMessages')) || []); // Messages que J'AI envoyés
 
 let textDivScroll = 0;
 let textDivScrollMax = 0;
@@ -74,7 +74,7 @@ function addNotification(message) {
 }
 
 // -------------------------
-// ✉️ Fonction pour envoyer un message - CORRIGÉE
+// ✉️ Fonction pour ENVOYER un message (BLEU À DROITE)
 // -------------------------
 function drawText() {
   const noteInput = document.getElementById('noteInput');
@@ -82,36 +82,38 @@ function drawText() {
   
   if (!message) return;
 
-  // Marquer comme message envoyé
+  // 1. MARQUER COMME MESSAGE ENVOYÉ
   myMessages.add(message);
-  savedLines.push(message);
-  localStorage.setItem('savedLines', JSON.stringify(savedLines));
+  localStorage.setItem('myMessages', JSON.stringify([...myMessages]));
   
-  // Vider l'input
+  // 2. AJOUTER AUX MESSAGES (affichage immédiat)
+  if (!savedLines.includes(message)) {
+    savedLines.push(message);
+    localStorage.setItem('savedLines', JSON.stringify(savedLines));
+  }
+  
+  // 3. VIDER L'INPUT
   noteInput.value = '';
   
-  // Redessiner immédiatement (message bleu à droite)
+  // 4. AFFICHER IMMÉDIATEMENT (BLEU À DROITE)
   redrawTextDiv(true);
   
-  // Envoyer au serveur
-  fetch('/getText2', {
+  // 5. ENVOYER À L'AUTRE ESP32 (SANS ATTENDRE LA RÉPONSE)
+  fetch('http://quickchat.local/getText2', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: message })
   })
-  .then(response => response.json())
-  .then(data => {
-    console.log("Message envoyé avec succès");
+  .then(response => {
+    console.log("Message envoyé à ESP32 2");
   })
   .catch(e => {
-    console.error("Erreur envoi message:", e);
+    console.log("ESP32 2 non trouvé, mais message affiché quand même");
   });
 }
 
 // -------------------------
-// 📡 Récupération des nouveaux messages - CORRIGÉE
+// 📡 Récupération des messages REÇUS (GRIS À GAUCHE)
 // -------------------------
 function fetchText() {
   fetch("/getText")
@@ -120,10 +122,13 @@ function fetchText() {
       let hasNewMessages = false;
       
       newLines.forEach(line => {
-        if (!savedLines.includes(line)) {
+        // AJOUTER SEULEMENT SI CE N'EST PAS UN MESSAGE QUE J'AI ENVOYÉ
+        if (!savedLines.includes(line) && !myMessages.has(line)) {
           savedLines.push(line);
           hasNewMessages = true;
         }
+        
+        // NOTIFICATION SEULEMENT POUR LES MESSAGES REÇUS
         if (!displayedNotifications.has(line) && !myMessages.has(line)) {
           addNotification(line);
           displayedNotifications.add(line);
@@ -142,7 +147,7 @@ function fetchText() {
 }
 
 // -------------------------
-// ✏️ Affiche les messages dans le DIV - CORRIGÉE
+// ✏️ AFFICHAGE CORRECT DES MESSAGES
 // -------------------------
 function redrawTextDiv(autoScroll = true) {
   const div = document.getElementById('textdiv');
@@ -167,17 +172,17 @@ function redrawTextDiv(autoScroll = true) {
     const bubble = document.createElement("div");
     bubble.innerText = msg;
     
-    // ✅ CORRECTION : Utiliser myMessages pour une distinction claire
-    const isMyMessage = myMessages.has(msg);
+    // ✅ DÉTERMINATION CORRECTE
+    const isMyMessage = myMessages.has(msg); // Vrai seulement pour MES messages
     
-    bubble.style.background = isMyMessage ? "#007bff" : "#666"; // Bleu pour mes messages, gris pour les autres
+    bubble.style.background = isMyMessage ? "#007bff" : "#666"; // Bleu pour MOI, gris pour les autres
     bubble.style.borderRadius = "15px";
     bubble.style.display = "inline-block";
     bubble.style.maxWidth = "180px";
     bubble.style.padding = "8px 12px";
     bubble.style.wordWrap = "break-word";
-    bubble.style.marginLeft = isMyMessage ? "auto" : "0"; // ✅ À droite pour mes messages
-    bubble.style.marginRight = isMyMessage ? "0" : "auto"; // ✅ À gauche pour les autres
+    bubble.style.marginLeft = isMyMessage ? "auto" : "0"; // À droite pour MOI
+    bubble.style.marginRight = isMyMessage ? "0" : "auto"; // À gauche pour les autres
     
     div.appendChild(bubble);
   });
@@ -188,10 +193,10 @@ function redrawTextDiv(autoScroll = true) {
 }
 
 // -------------------------
-// ⚡ Init au chargement - CORRIGÉE
+// ⚡ INITIALISATION
 // -------------------------
 window.addEventListener('load', function () {
-  // Charger les données sauvegardées
+  // Charger les données
   const saved = localStorage.getItem("savedLines");
   if (saved) {
     savedLines = JSON.parse(saved);
@@ -202,7 +207,6 @@ window.addEventListener('load', function () {
     displayedNotifications = new Set(JSON.parse(savedDisplayed));
   }
 
-  // Charger myMessages depuis le localStorage
   const savedMyMessages = localStorage.getItem("myMessages");
   if (savedMyMessages) {
     myMessages = new Set(JSON.parse(savedMyMessages));
@@ -219,7 +223,7 @@ window.addEventListener('load', function () {
     });
   }
 
-  // Ajouter l'événement Enter sur l'input
+  // Enter pour envoyer
   const noteInput = document.getElementById('noteInput');
   if (noteInput) {
     noteInput.addEventListener('keypress', function(event) {
@@ -229,12 +233,7 @@ window.addEventListener('load', function () {
     });
   }
 
-  // Sauvegarder myMessages périodiquement
-  setInterval(() => {
-    localStorage.setItem("myMessages", JSON.stringify([...myMessages]));
-  }, 1000);
-
-  // Démarrer les intervalles
+  // Démarrer la récupération des messages
   fetchText();
   setInterval(fetchText, 3000);
 });

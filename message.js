@@ -89,19 +89,15 @@ function drawText() {
   
   if (!message) return;
 
-  console.log("Envoi du message:", message);
+  console.log("🟢 ENVOI MESSAGE:", message);
   
   // 1. MARQUER COMME MESSAGE ENVOYÉ
   myMessages.add(message);
   localStorage.setItem('myMessages', JSON.stringify([...myMessages]));
-  console.log("myMessages après ajout:", [...myMessages]);
   
-  // 2. AJOUTER AUX MESSAGES (uniquement si pas déjà présent)
-  if (!savedLines.includes(message)) {
-    savedLines.push(message);
-    localStorage.setItem('savedLines', JSON.stringify(savedLines));
-    console.log("savedLines après ajout:", savedLines);
-  }
+  // 2. AJOUTER AUX MESSAGES
+  savedLines.push(message);
+  localStorage.setItem('savedLines', JSON.stringify(savedLines));
   
   // 3. VIDER L'INPUT
   noteInput.value = '';
@@ -109,12 +105,12 @@ function drawText() {
   // 4. AFFICHER IMMÉDIATEMENT (BLEU À DROITE)
   redrawTextDiv(true);
   
-  // 5. ENVOYER À L'AUTRE ESP32 (optionnel)
+  // 5. ENVOYER À L'AUTRE ESP32
   fetch('/getText2', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: message })
-  }).catch(e => console.log("Erreur envoi ESP32:", e));
+  }).catch(e => console.log("❌ Erreur envoi ESP32"));
 }
 
 // -------------------------
@@ -124,17 +120,16 @@ function fetchText() {
   fetch("/getText")
     .then(res => res.json())
     .then(newLines => {
-      console.log("Messages reçus de /getText:", newLines);
+      console.log("📥 MESSAGES REÇUS:", newLines);
       
       let updated = false;
       newLines.forEach(line => {
-        // Ajouter seulement si c'est un nouveau message ET que ce n'est pas mon message
+        // Ajouter seulement si nouveau ET pas mon message
         if (!savedLines.includes(line) && !myMessages.has(line)) {
           savedLines.push(line);
           updated = true;
-          console.log("Nouveau message reçu:", line);
+          console.log("➕ NOUVEAU MESSAGE REÇU:", line);
           
-          // Notification
           if (!displayedNotifications.has(line)) {
             addNotification(line);
             displayedNotifications.add(line);
@@ -146,10 +141,10 @@ function fetchText() {
       if (updated) {
         localStorage.setItem('savedLines', JSON.stringify(savedLines));
         redrawTextDiv();
-        console.log("savedLines après mise à jour:", savedLines);
+        console.log("💾 savedLines SAUVEGARDÉ:", savedLines);
       }
     })
-    .catch(e => console.error("Erreur fetch /getText:", e));
+    .catch(e => console.error("❌ Erreur fetch /getText"));
 }
 
 // -------------------------
@@ -174,15 +169,15 @@ function redrawTextDiv(autoScroll = true) {
 
   div.innerHTML = "";
 
-  console.log("Affichage des messages. Total:", savedLines.length);
-  console.log("myMessages:", [...myMessages]);
+  console.log("🎨 AFFICHAGE - Total messages:", savedLines.length);
+  console.log("🎨 myMessages:", [...myMessages]);
 
   savedLines.forEach(msg => {
     const bubble = document.createElement("div");
     bubble.innerText = msg;
     
     const isMyMessage = myMessages.has(msg);
-    console.log(`Message: "${msg}", estMonMessage: ${isMyMessage}`);
+    console.log(`💬 "${msg}" → ${isMyMessage ? "BLEU À DROITE" : "GRIS À GAUCHE"}`);
     
     bubble.style.background = isMyMessage ? "#007bff" : "#666";
     bubble.style.borderRadius = "15px";
@@ -206,19 +201,19 @@ function redrawTextDiv(autoScroll = true) {
 // ⚡ Init au chargement
 // -------------------------
 window.addEventListener('load', function () {
-  console.log("=== DÉMARRAGE ===");
+  console.log("🚀 DÉMARRAGE DE L'APPLICATION");
   
   // Charger les données
   const saved = localStorage.getItem("savedLines");
   if (saved) {
     savedLines = JSON.parse(saved);
-    console.log("savedLines chargés:", savedLines);
+    console.log("📂 savedLines CHARGÉ:", savedLines);
   }
 
   const savedMyMessages = localStorage.getItem("myMessages");
   if (savedMyMessages) {
     myMessages = new Set(JSON.parse(savedMyMessages));
-    console.log("myMessages chargés:", [...myMessages]);
+    console.log("📂 myMessages CHARGÉ:", [...myMessages]);
   }
 
   const savedDisplayed = localStorage.getItem("displayedNotifications");
@@ -233,12 +228,11 @@ window.addEventListener('load', function () {
   const textDiv = document.getElementById("textdiv");
   if (textDiv) {
     textDiv.addEventListener("scroll", () => {
-      // si l'utilisateur scrolle manuellement, on désactive l'auto-scroll
       redrawTextDiv(false);
     });
   }
 
-  // Ajouter l'événement Enter sur l'input
+  // Enter pour envoyer
   const noteInput = document.getElementById('noteInput');
   if (noteInput) {
     noteInput.addEventListener('keypress', function(event) {
@@ -252,5 +246,6 @@ window.addEventListener('load', function () {
   fetchText();
   setInterval(fetchText, 3000);
   
-  console.log("=== INITIALISATION TERMINÉE ===");
+  console.log("✅ INITIALISATION TERMINÉE");
+  console.log("=== TESTEZ MAINTENANT : Écrivez un message ===");
 });

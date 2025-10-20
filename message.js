@@ -108,7 +108,7 @@ async function drawText() {
 }
 
 // -------------------------
-// 📡 Récupération des nouveaux messages (MODIFIÉE)
+// 📡 Récupération des nouveaux messages
 // -------------------------
 async function fetchText() {
   try {
@@ -150,12 +150,7 @@ async function fetchText() {
 }
 
 // -------------------------
-// 🧹 Vérifie le signal de reset/clear (SUPPRIMÉE)
-// -------------------------
-// CETTE FONCTION CAUSAIT LE PROBLÈME - ELLE EST MAINTENANT SUPPRIMÉE
-
-// -------------------------
-// ✏️ Affiche les messages dans le DIV
+// ✏️ Affiche les messages dans le DIV (AVEC Z-INDEX)
 // -------------------------
 function redrawTextDiv(autoScroll = true) {
   const div = document.getElementById('textdiv');
@@ -173,6 +168,8 @@ function redrawTextDiv(autoScroll = true) {
   div.style.display = "flex";
   div.style.flexDirection = "column";
   div.style.gap = "10px";
+  div.style.zIndex = "7000"; // Z-INDEX DU DIV PRINCIPAL
+  div.style.position = "relative"; // Nécessaire pour z-index
 
   div.innerHTML = "";
 
@@ -222,6 +219,8 @@ function redrawTextDiv(autoScroll = true) {
     bubble.style.marginLeft = message.isMyMessage ? "auto" : "0";
     bubble.style.marginRight = message.isMyMessage ? "0" : "auto";
     bubble.style.marginBottom = "10px";
+    bubble.style.zIndex = "7200"; // Z-INDEX DES BULLES
+    bubble.style.position = "relative"; // Nécessaire pour z-index
     
     div.appendChild(bubble);
   });
@@ -291,5 +290,4 @@ window.addEventListener('load', function () {
 
   fetchText();
   setInterval(fetchText, 3000);
-  // SUPPRIMÉ : setInterval(checkClearSignal, 2000);
 });

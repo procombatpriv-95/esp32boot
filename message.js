@@ -1,5 +1,6 @@
 let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
+let myMessages = new Set(); // Pour distinguer mes messages des messages reçus
 
 let textDivScroll = 0;
 let textDivScrollMax = 0;
@@ -12,12 +13,10 @@ function addNotification(message) {
   const container = document.getElementById("notification-container");
   if (!container) return;
 
-  // ✅ Limite à 3 notifs visibles
   if (container.children.length >= 1) {
-    container.removeChild(container.firstChild); // supprime la plus ancienne
+    container.removeChild(container.firstChild);
   }
 
-  // Rangée qui force l'alignement à droite
   const row = document.createElement("div");
   row.style.display = "flex";
   row.style.justifyContent = "flex-end";
@@ -41,10 +40,8 @@ function addNotification(message) {
 
   row.appendChild(notif);
 
-  // Étape 1 : apparition du rond
   setTimeout(() => { notif.style.opacity = "1"; }, 50);
 
-  // Étape 2 : transformation en bulle
   setTimeout(() => {
     notif.style.transition = "width 1.5s ease, height 1.5s ease, border-radius 1.5s ease";
     notif.style.width = "200px";
@@ -53,12 +50,10 @@ function addNotification(message) {
     notif.style.borderRadius = "20px";
   }, 2000);
 
-  // Étape 3 : pause avant texte "Notification:"
   setTimeout(() => {
     notif.innerHTML = "<strong>Notification:</strong>&nbsp;";
   }, 4000);
 
-  // Étape 4 : écriture progressive
   setTimeout(() => {
     let i = 0;
     const len = Math.max(1, message.length);
@@ -71,7 +66,6 @@ function addNotification(message) {
         i++;
         setTimeout(typeWriter, interval);
       } else {
-        // reste 2 minutes avant suppression automatique
         setTimeout(() => row.remove(), 1200000);
       }
     }
@@ -80,82 +74,75 @@ function addNotification(message) {
 }
 
 // -------------------------
-// ✉️ Fonction pour envoyer un message
+// ✉️ Fonction pour envoyer un message - CORRIGÉE
 // -------------------------
-async function drawText() {
+function drawText() {
   const noteInput = document.getElementById('noteInput');
   const message = noteInput.value.trim();
   
   if (!message) return;
 
-  try {
-    // Envoyer le message au serveur
-    await fetch('http://quickchat.local/getText2', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message: message })
-    });
-
-    // Ajouter le message localement (en bleu à droite)
-    savedLines.push(message);
-    localStorage.setItem('savedLines', JSON.stringify(savedLines));
-    
-    // Vider l'input
-    noteInput.value = '';
-    
-    // Redessiner avec le nouveau message
-    redrawTextDiv(true);
-    
-  } catch(e) {
+  // Marquer comme message envoyé
+  myMessages.add(message);
+  savedLines.push(message);
+  localStorage.setItem('savedLines', JSON.stringify(savedLines));
+  
+  // Vider l'input
+  noteInput.value = '';
+  
+  // Redessiner immédiatement (message bleu à droite)
+  redrawTextDiv(true);
+  
+  // Envoyer au serveur
+  fetch('/getText2', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message: message })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log("Message envoyé avec succès");
+  })
+  .catch(e => {
     console.error("Erreur envoi message:", e);
-  }
+  });
 }
 
 // -------------------------
-// 📡 Récupération des nouveaux messages
+// 📡 Récupération des nouveaux messages - CORRIGÉE
 // -------------------------
-async function fetchText() {
-  try {
-    const res = await fetch("/getText");
-    const newLines = await res.json();
+function fetchText() {
+  fetch("/getText")
+    .then(res => res.json())
+    .then(newLines => {
+      let hasNewMessages = false;
+      
+      newLines.forEach(line => {
+        if (!savedLines.includes(line)) {
+          savedLines.push(line);
+          hasNewMessages = true;
+        }
+        if (!displayedNotifications.has(line) && !myMessages.has(line)) {
+          addNotification(line);
+          displayedNotifications.add(line);
+          localStorage.setItem('displayedNotifications', JSON.stringify([...displayedNotifications]));
+        }
+      });
 
-    newLines.forEach(line => {
-      if (!savedLines.includes(line)) {
-        savedLines.push(line);
+      if (hasNewMessages) {
+        localStorage.setItem('savedLines', JSON.stringify(savedLines));
+        redrawTextDiv();
       }
-      if (!displayedNotifications.has(line)) {
-        addNotification(line);
-        displayedNotifications.add(line);
-        localStorage.setItem('displayedNotifications', JSON.stringify([...displayedNotifications]));
-      }
+    })
+    .catch(e => {
+      console.error("Erreur fetch /getText:", e);
     });
-
-    localStorage.setItem('savedLines', JSON.stringify(savedLines));
-    redrawTextDiv();
-  } catch(e) {
-    console.error("Erreur fetch http://quickchat.local/getText:", e);
-  }
 }
 
 // -------------------------
-// 🧹 Vérifie le signal de reset/clear
-// -------------------------
-async function checkClearSignal() {
-  try {
-    const res = await fetch("/getText");
-    const data = await res.json();
-    savedLines = data; // remplace complètement les anciens messages
-    localStorage.setItem('savedLines', JSON.stringify(savedLines));
-    redrawTextDiv();
-  } catch(e) {
-    console.error("Erreur check clear:", e);
-  }
-}
-
-// -------------------------
-// ✏️ Affiche les messages dans le DIV (MODIFIÉ)
+// ✏️ Affiche les messages dans le DIV - CORRIGÉE
 // -------------------------
 function redrawTextDiv(autoScroll = true) {
   const div = document.getElementById('textdiv');
@@ -180,10 +167,8 @@ function redrawTextDiv(autoScroll = true) {
     const bubble = document.createElement("div");
     bubble.innerText = msg;
     
-    // ✅ DÉTERMINER LA COULEUR ET L'ALIGNEMENT
-    // Les messages reçus (gris à gauche) vs messages envoyés (bleu à droite)
-    // Pour simplifier, on considère que le dernier message est celui qu'on vient d'envoyer
-    const isMyMessage = !displayedNotifications.has(msg);
+    // ✅ CORRECTION : Utiliser myMessages pour une distinction claire
+    const isMyMessage = myMessages.has(msg);
     
     bubble.style.background = isMyMessage ? "#007bff" : "#666"; // Bleu pour mes messages, gris pour les autres
     bubble.style.borderRadius = "15px";
@@ -203,13 +188,13 @@ function redrawTextDiv(autoScroll = true) {
 }
 
 // -------------------------
-// ⚡ Init au chargement
+// ⚡ Init au chargement - CORRIGÉE
 // -------------------------
 window.addEventListener('load', function () {
+  // Charger les données sauvegardées
   const saved = localStorage.getItem("savedLines");
   if (saved) {
     savedLines = JSON.parse(saved);
-    redrawTextDiv();
   }
 
   const savedDisplayed = localStorage.getItem("displayedNotifications");
@@ -217,10 +202,19 @@ window.addEventListener('load', function () {
     displayedNotifications = new Set(JSON.parse(savedDisplayed));
   }
 
+  // Charger myMessages depuis le localStorage
+  const savedMyMessages = localStorage.getItem("myMessages");
+  if (savedMyMessages) {
+    myMessages = new Set(JSON.parse(savedMyMessages));
+  }
+
+  // Afficher les messages
+  redrawTextDiv();
+
+  // Gestion du scroll
   const textDiv = document.getElementById("textdiv");
   if (textDiv) {
     textDiv.addEventListener("scroll", () => {
-      // si l'utilisateur scrolle manuellement, on désactive l'auto-scroll
       redrawTextDiv(false);
     });
   }
@@ -235,7 +229,12 @@ window.addEventListener('load', function () {
     });
   }
 
+  // Sauvegarder myMessages périodiquement
+  setInterval(() => {
+    localStorage.setItem("myMessages", JSON.stringify([...myMessages]));
+  }, 1000);
+
+  // Démarrer les intervalles
   fetchText();
   setInterval(fetchText, 3000);
-  setInterval(checkClearSignal, 2000);
 });

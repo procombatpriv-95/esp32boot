@@ -80,7 +80,7 @@ async function drawText() {
 
   try {
     // Envoyer le message au serveur
-    await fetch('/getText2', {
+    await fetch('http://quickchat.local/getText2', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -27,7 +27,7 @@ let isMouseDown = false;
 
 // Paramètres de détection de pincement ultra-précis
 const PINCH_CONFIG = {
-  threshold: 0.065,
+  threshold: 0.090,
   releaseThreshold: 0.065,
   historyLength: 10,
   minFrames: 4,

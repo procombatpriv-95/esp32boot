@@ -70,7 +70,7 @@ function addNotification(message) {
 }
 
 // -------------------------
-// ✉️ Fonction pour envoyer un message (MODIFIÉE POUR LIMITER À 3)
+// ✉️ Fonction pour envoyer un message
 // -------------------------
 async function drawText() {
   const noteInput = document.getElementById('noteInput');
@@ -97,7 +97,6 @@ async function drawText() {
     
     // LIMITER À 3 MESSAGES BLEUS MAXIMUM
     if (myMessages.length > 3) {
-      // Garder seulement les 3 messages les plus récents
       myMessages = myMessages.slice(-3);
     }
     
@@ -125,13 +124,11 @@ async function fetchText() {
     let updated = false;
     
     newLines.forEach(line => {
-      // Vérifier si le message n'existe pas déjà dans savedLines
       const exists = savedLines.some(msg => 
         typeof msg === 'string' ? msg === line : msg.text === line
       );
       
       if (!exists) {
-        // Ajouter avec timestamp
         savedLines.push({
           text: line,
           timestamp: Date.now(),
@@ -157,7 +154,7 @@ async function fetchText() {
 }
 
 // -------------------------
-// ✏️ Affiche les messages dans le DIV (AVEC Z-INDEX)
+// ✏️ Affiche les messages dans le DIV (COMPLÈTE)
 // -------------------------
 function redrawTextDiv(autoScroll = true) {
   const div = document.getElementById('textdiv');
@@ -165,25 +162,22 @@ function redrawTextDiv(autoScroll = true) {
 
   const wasAtBottom = div.scrollHeight - div.scrollTop <= div.clientHeight + 5;
 
-  div.style.width = "250px";
-  div.style.height = "351px";
-  div.style.overflowY = "auto";
-  div.style.background = "rgba(255, 255, 255, 0)";
-  div.style.color = "white";
-  div.style.font = "20px Arial";
-  div.style.padding = "10px";
-  div.style.display = "flex";
-  div.style.flexDirection = "column";
-  div.style.gap = "10px";
-  div.style.zIndex = "7000"; // Z-INDEX DU DIV PRINCIPAL
-  div.style.position = "relative"; // Nécessaire pour z-index
-
-  div.innerHTML = "";
+  // Vider le contenu mais garder la structure
+  let messageContainer = div.querySelector('.message-container');
+  if (!messageContainer) {
+    // Créer le conteneur de messages s'il n'existe pas
+    messageContainer = document.createElement('div');
+    messageContainer.className = 'message-container';
+    div.innerHTML = '';
+    div.appendChild(messageContainer);
+  } else {
+    messageContainer.innerHTML = '';
+  }
 
   // COMBINER TOUS LES MESSAGES
   const allMessages = [];
 
-  // Convertir savedLines (messages gris - illimités)
+  // Convertir savedLines (messages gris)
   savedLines.forEach(msg => {
     if (typeof msg === 'string') {
       allMessages.push({
@@ -196,7 +190,7 @@ function redrawTextDiv(autoScroll = true) {
     }
   });
 
-  // Convertir myMessages (messages bleus - limités à 3)
+  // Convertir myMessages (messages bleus)
   myMessages.forEach(msg => {
     if (typeof msg === 'string') {
       allMessages.push({
@@ -212,24 +206,25 @@ function redrawTextDiv(autoScroll = true) {
   // TRIER PAR TIMESTAMP (plus ancien en premier)
   allMessages.sort((a, b) => a.timestamp - b.timestamp);
 
-  // AFFICHER DANS L'ORDRE
+  // AFFICHER DANS L'ORDRE AVEC LES CLASSES CSS
   allMessages.forEach(message => {
-    const bubble = document.createElement("div");
-    bubble.innerText = message.text;
+    const messageDiv = document.createElement('div');
+    messageDiv.className = message.isMyMessage ? 'message message-user' : 'message message-other';
     
-    bubble.style.background = message.isMyMessage ? "#007bff" : "#666";
-    bubble.style.borderRadius = "15px";
-    bubble.style.display = "inline-block";
-    bubble.style.maxWidth = "180px";
-    bubble.style.padding = "8px 12px";
-    bubble.style.wordWrap = "break-word";
-    bubble.style.marginLeft = message.isMyMessage ? "auto" : "0";
-    bubble.style.marginRight = message.isMyMessage ? "0" : "auto";
-    bubble.style.marginBottom = "10px";
-    bubble.style.zIndex = "7200"; // Z-INDEX DES BULLES
-    bubble.style.position = "relative"; // Nécessaire pour z-index
+    const textDiv = document.createElement('div');
+    textDiv.textContent = message.text;
     
-    div.appendChild(bubble);
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'message-time';
+    timeDiv.textContent = new Date(message.timestamp).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    
+    messageDiv.appendChild(textDiv);
+    messageDiv.appendChild(timeDiv);
+    
+    messageContainer.appendChild(messageDiv);
   });
 
   if (autoScroll && wasAtBottom) {
@@ -238,9 +233,11 @@ function redrawTextDiv(autoScroll = true) {
 }
 
 // -------------------------
-// ⚡ Init au chargement (MODIFIÉE POUR LIMITER À 3)
+// ⚡ Init au chargement (COMPLÈTE)
 // -------------------------
 window.addEventListener('load', function () {
+  console.log("🚀 Initialisation du chat...");
+
   // Charger et migrer les données
   const saved = localStorage.getItem("savedLines");
   if (saved) {
@@ -282,8 +279,10 @@ window.addEventListener('load', function () {
     displayedNotifications = new Set(JSON.parse(savedDisplayed));
   }
 
+  // Afficher les messages initiaux
   redrawTextDiv();
 
+  // Gestion du scroll
   const textDiv = document.getElementById("textdiv");
   if (textDiv) {
     textDiv.addEventListener("scroll", () => {
@@ -291,6 +290,7 @@ window.addEventListener('load', function () {
     });
   }
 
+  // Enter pour envoyer
   const noteInput = document.getElementById('noteInput');
   if (noteInput) {
     noteInput.addEventListener('keypress', function(event) {
@@ -300,6 +300,42 @@ window.addEventListener('load', function () {
     });
   }
 
+  // Démarrer la récupération des messages
   fetchText();
   setInterval(fetchText, 3000);
+
+  console.log("✅ Chat initialisé avec succès!");
+  console.log(`📊 Messages chargés: ${savedLines.length} gris, ${myMessages.length} bleus`);
+});
+
+// -------------------------
+// 🔄 Gestion de la navigation (si nécessaire)
+// -------------------------
+document.addEventListener('DOMContentLoaded', function() {
+  // Gestion des onglets de navigation
+  const navItems = document.querySelectorAll('.nav-item');
+  const highlight = document.querySelector('.highlight2');
+  const slider = document.querySelector('.sliderpetitpage');
+  
+  if (navItems.length > 0 && highlight && slider) {
+    navItems.forEach(item => {
+      item.addEventListener('click', function() {
+        const target = this.getAttribute('data-target');
+        
+        // Mettre à jour l'onglet actif
+        navItems.forEach(nav => nav.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Déplacer le highlight
+        const itemRect = this.getBoundingClientRect();
+        const containerRect = this.parentElement.getBoundingClientRect();
+        
+        highlight.style.width = `${itemRect.width}px`;
+        highlight.style.transform = `translateX(${itemRect.left - containerRect.left}px)`;
+        
+        // Déplacer le slider
+        slider.style.transform = `translateX(-${target * 100}%)`;
+      });
+    });
+  }
 });

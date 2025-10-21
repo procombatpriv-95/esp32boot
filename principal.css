@@ -171,16 +171,7 @@
     opacity: 1;           /* apparaît */
 }
 
-.container {
-  display: flex;
-  flex-direction: row;      /* gauche → droite */
-  flex-wrap: nowrap;        /* jamais en dessous */
-  align-items: flex-start;
-  gap: 20px;                /* espace net entre info et mega */
-  overflow-x: auto;         /* scroll si écran trop petit */
-  margin-top: 10px;         /* espace pour le menu hamburger */
-  margin-bottom: 10px;    
-}
+
 
 
 .profile-box {

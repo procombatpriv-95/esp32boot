@@ -106,7 +106,7 @@
 
     }
     .mega {
-      box-shadow: 5px 5px 10px black;
+      box-shadow: 9px 9px 9px black;
       width: 1100px;
       height: 700px;
       background: transparent; /* Transparence */
@@ -196,7 +196,7 @@
   width: 250px;
   height: 700px;
   flex-shrink: 0;
-  box-shadow: 5px 5px 10px black;/* ne pas réduire */
+  box-shadow: 9px 9px 9px black;
   background: transparent; /* Transparence */
 
   border-radius: 20px;

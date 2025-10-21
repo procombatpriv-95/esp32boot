@@ -342,7 +342,7 @@
 
         /* NOUVEAU STYLE POUR LE PANEL D'INFORMATIONS */
         .crypto-info-panel {
-            position: relative;
+            position: absolute;
             width: 700px;
             background: rgba(0, 0, 0, 0.6) !important;
             border-radius: 30px;
@@ -366,7 +366,7 @@
         }
 
         .crypto-info-content {
-            position: relative;
+
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -375,21 +375,21 @@
         }
 
         .crypto-main-info {
-                     position: relative;
+
             display: flex;
             flex-direction: column;
             flex: 1;
         }
 
         .crypto-symbol {
-                     position: relative;
+
             font-size: 14px;
             font-weight: bold;
             margin-bottom: 5px;
         }
 
         .crypto-price {
-                     position: relative;
+
             font-size: 18px;
             font-weight: bold;
             color: #39d353;
@@ -397,7 +397,7 @@
         }
 
         .crypto-change {
-                     position: relative;
+
             font-size: 16px;
             padding: 4px 12px;
             border-radius: 22px;
@@ -406,19 +406,19 @@
         }
 
         .positive {
-                     position: relative;
+
             background: rgba(57, 211, 83, 0.2);
             color: #39d353;
         }
 
         .negative {
-                     position: relative;
+
             background: rgba(255, 107, 107, 0.2);
             color: #ff6b6b;
         }
 
         .crypto-stats {
-                     position: relative;
+
             display: flex;
             flex-direction: column;
             gap: 8px;

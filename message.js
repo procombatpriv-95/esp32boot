@@ -80,7 +80,7 @@ async function drawText() {
 
   try {
     // Envoyer le message au serveur
-    await fetch('http://quickchat.local/getText2', {
+    await fetch('/getText2', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ async function drawText() {
 }
 
 // -------------------------
-// 📡 Récupération des nouveaux messages (MODIFIÉE)
+// 📡 Récupération des nouveaux messages
 // -------------------------
 async function fetchText() {
   try {
@@ -150,12 +150,7 @@ async function fetchText() {
 }
 
 // -------------------------
-// 🧹 Vérifie le signal de reset/clear (SUPPRIMÉE)
-// -------------------------
-// CETTE FONCTION CAUSAIT LE PROBLÈME - ELLE EST MAINTENANT SUPPRIMÉE
-
-// -------------------------
-// ✏️ Affiche les messages dans le DIV
+// ✏️ Affiche les messages dans le DIV (AVEC Z-INDEX)
 // -------------------------
 function redrawTextDiv(autoScroll = true) {
   const div = document.getElementById('textdiv');
@@ -163,18 +158,18 @@ function redrawTextDiv(autoScroll = true) {
 
   const wasAtBottom = div.scrollHeight - div.scrollTop <= div.clientHeight + 5;
 
-  div.style.width = "100%";
-  div.style.height = "321px";
+  div.style.width = "250px";
+  div.style.height = "351px";
   div.style.overflowY = "auto";
-  div.style.background = "transparent";
+  div.style.background = "rgba(255, 255, 255, 0)";
   div.style.color = "white";
   div.style.font = "20px Arial";
   div.style.padding = "10px";
   div.style.display = "flex";
   div.style.flexDirection = "column";
   div.style.gap = "10px";
-
-
+  div.style.zIndex = "7000"; // Z-INDEX DU DIV PRINCIPAL
+  div.style.position = "relative"; // Nécessaire pour z-index
 
   div.innerHTML = "";
 
@@ -224,6 +219,8 @@ function redrawTextDiv(autoScroll = true) {
     bubble.style.marginLeft = message.isMyMessage ? "auto" : "0";
     bubble.style.marginRight = message.isMyMessage ? "0" : "auto";
     bubble.style.marginBottom = "10px";
+    bubble.style.zIndex = "7200"; // Z-INDEX DES BULLES
+    bubble.style.position = "relative"; // Nécessaire pour z-index
     
     div.appendChild(bubble);
   });
@@ -293,5 +290,4 @@ window.addEventListener('load', function () {
 
   fetchText();
   setInterval(fetchText, 3000);
-  // SUPPRIMÉ : setInterval(checkClearSignal, 2000);
 });

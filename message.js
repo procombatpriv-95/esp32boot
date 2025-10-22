@@ -163,8 +163,8 @@ function redrawTextDiv(autoScroll = true) {
 
   const wasAtBottom = div.scrollHeight - div.scrollTop <= div.clientHeight + 5;
 
-  div.style.width = "220px";
-  div.style.height = "260px";
+  div.style.width = "100%";
+  div.style.height = "321px";
   div.style.overflowY = "auto";
   div.style.background = "transparent";
   div.style.color = "white";

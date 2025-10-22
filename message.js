@@ -169,9 +169,11 @@ function redrawTextDiv(autoScroll = true) {
   div.style.background = "transparent";
   div.style.color = "white";
   div.style.font = "20px Arial";
-  div.style.padding = "5px";
+  div.style.padding = "10px";
   div.style.display = "flex";
   div.style.flexDirection = "column";
+  div.style.gap = "10px";
+
 
 
   div.innerHTML = "";

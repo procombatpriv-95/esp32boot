@@ -10,7 +10,6 @@ const TEXT_SCROLL_STEP = 20;
 // 🔔 Fonction pour afficher une notification animée
 // -------------------------
 // Liste des anniversaires (nom, jour, mois)
-// Liste des anniversaires (nom, jour, mois)
 const birthdays = [
     { name: "Mohamed", day: 10, month: 6 }, // Juillet = 6 (0-indexé)
     { name: "Dad", day: 23, month: 9 },    // Octobre = 9
@@ -20,47 +19,17 @@ const birthdays = [
     { name: "Zackaria", day: 3, month: 11 }// Décembre = 11
 ];
 
-// Vérification des anniversaires
-function checkBirthdays() {
-    const today = new Date();
-    const currentDay = today.getDate();
-    const currentMonth = today.getMonth(); // 0-indexé (0 = janvier, 11 = décembre)
-    
-    // Vérifier chaque anniversaire
-    for (const person of birthdays) {
-        if (person.day === currentDay && person.month === currentMonth) {
-            // C'est l'anniversaire de cette personne!
-            let message, prefix;
-            
-
-            if (person.name === "Dad") {
-                prefix = "🎂";
-                message = `It's your ${person.name}'s birthday`;
-            }
-            else if (person.name === "Mom") {
-                prefix = "🎂";
-                message = `It's your ${person.name}'s birthday`;
-            } else {
-                prefix = "🎉";
-                message = `It's ${person.name}'s birthday`;
-            }
-            
-            addNotification(message, prefix);
-            console.log(`Anniversaire détecté pour ${person.name}!`);
-            return;
-        }
-    }
-    
-    console.log(`Aucun anniversaire aujourd'hui (${today.toLocaleDateString()})`);
-}
-
-// Système de notifications modifié
+// Système de notifications
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
 
 function addNotification(message, prefix = "Notification") {
     const container = document.getElementById("notification-container");
-    if (!container) return;
+    if (!container) {
+        console.error("Container de notifications non trouvé!");
+        return;
+    }
 
+    // Supprimer l'ancienne notification s'il y en a une
     if (container.children.length >= 1) {
         container.removeChild(container.firstChild);
     }
@@ -88,7 +57,9 @@ function addNotification(message, prefix = "Notification") {
 
     row.appendChild(notif);
 
+    // Animation de la notification
     setTimeout(() => { notif.style.opacity = "1"; }, 50);
+    
     setTimeout(() => {
         notif.style.transition = "width 1.5s ease, height 1.5s ease, border-radius 1.5s ease";
         notif.style.width = "200px";
@@ -96,13 +67,16 @@ function addNotification(message, prefix = "Notification") {
         notif.style.padding = "10px 14px";
         notif.style.borderRadius = "20px";
     }, 2000);
+    
     setTimeout(() => {
         notif.innerHTML = `<strong>${prefix}:</strong>&nbsp;`;
     }, 4000);
+    
     setTimeout(() => {
         let i = 0;
         const len = Math.max(1, message.length);
         const interval = 1500 / len;
+        
         function typeWriter() {
             if (i < message.length) {
                 const ch = message.charAt(i);
@@ -110,26 +84,68 @@ function addNotification(message, prefix = "Notification") {
                 i++;
                 setTimeout(typeWriter, interval);
             } else {
-                setTimeout(() => row.remove(), 1200000);
+                // Supprimer après 20 minutes (1200000 ms)
+                setTimeout(() => {
+                    if (row.parentNode === container) {
+                        container.removeChild(row);
+                    }
+                }, 1200000);
             }
         }
         typeWriter();
     }, 4200);
 }
 
+// Vérification des anniversaires
+function checkBirthdays() {
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth(); // 0-indexé (0 = janvier, 11 = décembre)
+    
+    console.log(`Vérification des anniversaires pour le ${currentDay}/${currentMonth + 1}`);
+    
+    // Vérifier chaque anniversaire
+    for (const person of birthdays) {
+        if (person.day === currentDay && person.month === currentMonth) {
+            // C'est l'anniversaire de cette personne!
+            let message, prefix;
+
+            if (person.name === "Dad" || person.name === "Mom") {
+                prefix = "🎂";
+                message = `It's your ${person.name}'s birthday`;
+            } else {
+                prefix = "🎉";
+                message = `It's ${person.name}'s birthday`;
+            }
+            
+            console.log(`🎉 Anniversaire détecté pour ${person.name}!`);
+            addNotification(message, prefix);
+            return;
+        }
+    }
+    
+    console.log(`❌ Aucun anniversaire aujourd'hui (${today.toLocaleDateString()})`);
+}
+
 // Vérification automatique au chargement
-window.addEventListener('load', () => {
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM chargé, vérification des anniversaires dans 3 secondes...");
+    
     // Vérifier les anniversaires après 3 secondes
     setTimeout(checkBirthdays, 3000);
 });
 
 // Pour tester manuellement depuis la console
 window.testBirthdayCheck = function() {
+    console.log("Test manuel des anniversaires...");
     checkBirthdays();
 };
 
 // Pour simuler une date spécifique (utile pour le débogage)
 window.simulateDate = function(day, month) {
+    console.log(`Simulation de la date: ${day}/${month}`);
+    
+    // Sauvegarder la date originale
     const originalDate = Date;
     
     // Créer une date simulée
@@ -138,9 +154,13 @@ window.simulateDate = function(day, month) {
     simulatedDate.setDate(day);
     
     // Remplacer temporairement le constructeur Date
-    global.Date = class extends Date {
+    window.Date = class extends Date {
         constructor() {
             return simulatedDate;
+        }
+        
+        static now() {
+            return simulatedDate.getTime();
         }
     };
     
@@ -149,16 +169,23 @@ window.simulateDate = function(day, month) {
     
     // Restaurer le constructeur Date original après un délai
     setTimeout(() => {
-        global.Date = originalDate;
-    }, 5000);
+        window.Date = originalDate;
+        console.log("Date restaurée");
+    }, 10000);
 };
 
-console.log("Système de notifications d'anniversaires chargé!");
-console.log("Utilisez testBirthdayCheck() pour vérifier manuellement les anniversaires");
-console.log("Utilisez simulateDate(10, 6) pour simuler le 10 juillet (anniversaire de Mohamed)");
-// -------------------------
-// ✉️ Fonction pour envoyer un message
-// -------------------------
+// Fonction pour tester une notification normale
+window.testNotification = function() {
+    addNotification("Ceci est une notification de test!", "🔔");
+};
+
+console.log("✅ Système de notifications d'anniversaires chargé!");
+console.log("Commandes disponibles:");
+console.log("- testBirthdayCheck() : Vérifier manuellement les anniversaires");
+console.log("- simulateDate(10, 6) : Simuler le 10 juillet (anniversaire de Mohamed)");
+console.log("- testNotification() : Tester une notification normale");
+
+
 async function drawText() {
   const noteInput = document.getElementById('noteInput');
   const message = noteInput.value.trim();

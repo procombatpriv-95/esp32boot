@@ -13,7 +13,7 @@ const TEXT_SCROLL_STEP = 20;
 // Liste des anniversaires (nom, jour, mois)
 const birthdays = [
     { name: "Mohamed", day: 10, month: 6 }, // Juillet = 6 (0-indexé)
-    { name: "Dad", day: 23, month: 10 },    // Octobre = 9
+    { name: "Dad", day: 23, month: 9 },    // Octobre = 9
     { name: "Mom", day: 15, month: 4 },    // Mai = 4
     { name: "Bilal", day: 3, month: 11 }, // Décembre = 11
     { name: "Assya", day: 3, month: 11 },

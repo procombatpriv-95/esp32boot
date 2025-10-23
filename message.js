@@ -13,9 +13,11 @@ const TEXT_SCROLL_STEP = 20;
 // Liste des anniversaires (nom, jour, mois)
 const birthdays = [
     { name: "Mohamed", day: 10, month: 6 }, // Juillet = 6 (0-indexé)
-    { name: "Père", day: 23, month: 9 },    // Octobre = 9
-    { name: "Mère", day: 15, month: 4 },    // Mai = 4
-    { name: "Frère/Sœur", day: 3, month: 11 } // Décembre = 11
+    { name: "Dad", day: 23, month: 10 },    // Octobre = 9
+    { name: "Mom", day: 15, month: 4 },    // Mai = 4
+    { name: "Bilal", day: 3, month: 11 }, // Décembre = 11
+    { name: "Assya", day: 3, month: 11 },
+    { name: "Zackaria", day: 3, month: 11 }// Décembre = 11
 ];
 
 // Vérification des anniversaires
@@ -30,9 +32,14 @@ function checkBirthdays() {
             // C'est l'anniversaire de cette personne!
             let message, prefix;
             
-            if (person.name === "Mohamed") {
+
+            if (person.name === "Dad") {
                 prefix = "🎂";
-                message = `Happy birthday ${person.name}`;
+                message = `It's your ${person.name}'s birthday`;
+            }
+            else if (person.name === "Mom") {
+                prefix = "🎂";
+                message = `It's your ${person.name}'s birthday`;
             } else {
                 prefix = "🎉";
                 message = `It's ${person.name}'s birthday`;

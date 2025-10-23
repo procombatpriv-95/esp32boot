@@ -977,55 +977,59 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // === SÉLECTION CRYPTO ===
-    function selectCrypto(cryptoId) {
-        selectedCrypto = cryptos.find(c => c.id === cryptoId);
-        selectedView.style.background = '#111216';
-        selectedView.style.backgroundColor = 'rgba(17, 18, 22, 0.5)';   
-        carousel.classList.add('carousel-paused');
-        carouselScene.classList.add('hidden');
-        
-        selectedCryptoName.textContent = selectedCrypto.name;
-        selectedCryptoName.style.position = 'absolute';
-        selectedCryptoName.style.bottom = '10px';
-        selectedCryptoName.style.left = '0';
-        selectedCryptoName.style.width = '100%';
-        selectedCryptoName.style.textAlign = 'center';
-        selectedCryptoName.style.fontSize = '10px';
-        selectedCryptoName.style.color = 'white';
-        selectedCryptoName.style.zIndex = '10';
-        
-        selectedView.classList.add('active');
-        backBtn.classList.remove('hidden');
-        
-        selectedView.style.width = '700px';
-        selectedView.style.height = '400px';
+// === SÉLECTION CRYPTO ===
+function selectCrypto(cryptoId) {
+    selectedCrypto = cryptos.find(c => c.id === cryptoId);
+    selectedView.style.background = '#111216';
+    selectedView.style.backgroundColor = 'rgba(17, 18, 22, 0.5)';   
+    carousel.classList.add('carousel-paused');
+    carouselScene.classList.add('hidden');
+    
+    selectedCryptoName.textContent = selectedCrypto.name;
+    selectedCryptoName.style.position = 'absolute';
+    selectedCryptoName.style.bottom = '10px';
+    selectedCryptoName.style.left = '0';
+    selectedCryptoName.style.width = '100%';
+    selectedCryptoName.style.textAlign = 'center';
+    selectedCryptoName.style.fontSize = '10px';
+    selectedCryptoName.style.color = 'white';
+    selectedCryptoName.style.zIndex = '10';
+    
+    selectedView.classList.add('active');
+    backBtn.classList.remove('hidden');
+    
+    // AJOUTE CETTE LIGNE POUR AFFICHER LE PANEL
+    cryptoInfoPanel.classList.remove('hidden');
+    
+    selectedView.style.width = '700px';
+    selectedView.style.height = '400px';
 
-        initGraph(selectedCanvas, selectedCrypto, false);
+    initGraph(selectedCanvas, selectedCrypto, false);
+    
+    cryptoInfoPanel.style.position = 'relative';
+    cryptoInfoPanel.style.width = '700px';
+    cryptoInfoPanel.style.height = '120px';
+    cryptoInfoPanel.style.left = 'auto';
+    cryptoInfoPanel.style.top = 'auto';
+    
+    const originalInstance = graphInstances[selectedCrypto.id];
+    const newInstance = graphInstances[selectedCrypto.id];
+    if (originalInstance && newInstance) {
+        newInstance.candles = [...originalInstance.candles];
+        newInstance.currentPrice = originalInstance.currentPrice;
+        newInstance.lastPrice = originalInstance.lastPrice;
+        newInstance.monthlyChange = originalInstance.monthlyChange;
+        newInstance.performanceChanges = originalInstance.performanceChanges;
         
-        cryptoInfoPanel.style.position = 'relative';
-        cryptoInfoPanel.style.width = '700px';
-        cryptoInfoPanel.style.height = '120px';
-        cryptoInfoPanel.style.left = 'auto';
-        cryptoInfoPanel.style.top = 'auto';
-        
-        const originalInstance = graphInstances[selectedCrypto.id];
-        const newInstance = graphInstances[selectedCrypto.id];
-        if (originalInstance && newInstance) {
-            newInstance.candles = [...originalInstance.candles];
-            newInstance.currentPrice = originalInstance.currentPrice;
-            newInstance.lastPrice = originalInstance.lastPrice;
-            newInstance.monthlyChange = originalInstance.monthlyChange;
-            newInstance.performanceChanges = originalInstance.performanceChanges;
-            
-            redrawSelectedGraph(newInstance, selectedChartType);
-            updateCryptoInfoPanel(newInstance);
-            updatePerformanceIndicators(newInstance);
-        }
-        
-        if (!originalInstance || originalInstance.candles.length === 0) {
-            fetchHistoricalData(cryptoId);
-        }
+        redrawSelectedGraph(newInstance, selectedChartType);
+        updateCryptoInfoPanel(newInstance);
+        updatePerformanceIndicators(newInstance);
     }
+    
+    if (!originalInstance || originalInstance.candles.length === 0) {
+        fetchHistoricalData(cryptoId);
+    }
+}
     
     // === GESTION DES BOUTONS GRAPHIQUE ===
     function initGraphToggleButtons() {

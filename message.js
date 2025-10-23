@@ -12,11 +12,11 @@ const TEXT_SCROLL_STEP = 20;
 // Liste des anniversaires (nom, jour, mois)
 const birthdays = [
     { name: "Mohamed", day: 10, month: 6 }, // Juillet = 6 (0-indexé)
-    { name: "Dad", day: 23, month: 9 },    // Octobre = 9
-    { name: "Mom", day: 15, month: 4 },    // Mai = 4
-    { name: "Bilal", day: 3, month: 11 }, // Décembre = 11
-    { name: "Assya", day: 3, month: 11 },
-    { name: "Zackaria", day: 3, month: 11 }// Décembre = 11
+    { name: "Dad", day: 18, month: 6 },    // Octobre = 9
+    { name: "Mom", day: 14, month: 3 },    // Mai = 4
+    { name: "Bilal", day: 28, month: 10 }, // Décembre = 11
+    { name: "Assya", day: 21, month: 9 },
+    { name: "Zackaria", day: 5, month: 4 }// Décembre = 11
 ];
 
 // Système de notifications

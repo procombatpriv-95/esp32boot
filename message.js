@@ -1,6 +1,6 @@
 let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
 let myMessages = JSON.parse(localStorage.getItem('myMessages')) || [];
-let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
+
 
 let textDivScroll = 0;
 let textDivScrollMax = 0;
@@ -9,65 +9,136 @@ const TEXT_SCROLL_STEP = 20;
 // -------------------------
 // 🔔 Fonction pour afficher une notification animée
 // -------------------------
-function addNotification(message) {
-  const container = document.getElementById("notification-container");
-  if (!container) return;
+// Liste des anniversaires (nom, jour, mois)
+const birthdays = [
+    { name: "Mohamed", day: 10, month: 6 }, // Juillet = 6 (0-indexé)
+    { name: "Père", day: 23, month: 9 },    // Octobre = 9
+    { name: "Mère", day: 15, month: 4 },    // Mai = 4
+    { name: "Frère/Sœur", day: 3, month: 11 } // Décembre = 11
+];
 
-  if (container.children.length >= 1) {
-    container.removeChild(container.firstChild);
-  }
-
-  const row = document.createElement("div");
-  row.style.display = "flex";
-  row.style.justifyContent = "flex-end";
-  row.style.width = "100%";
-  row.style.marginTop = "8px";
-  container.appendChild(row);
-
-  const notif = document.createElement("div");
-  notif.style.width = "20px";
-  notif.style.height = "20px";
-  notif.style.borderRadius = "50%";
-  notif.style.opacity = "0";
-  notif.style.display = "flex";
-  notif.style.justifyContent = "center";
-  notif.style.alignItems = "center";
-  notif.style.background = "rgba(50,50,50,0.3)";
-  notif.style.color = "white";
-  notif.style.fontFamily = "Arial, sans-serif";
-  notif.style.fontSize = "14px";
-  notif.style.overflow = "hidden";
-
-  row.appendChild(notif);
-
-  setTimeout(() => { notif.style.opacity = "1"; }, 50);
-  setTimeout(() => {
-    notif.style.transition = "width 1.5s ease, height 1.5s ease, border-radius 1.5s ease";
-    notif.style.width = "200px";
-    notif.style.height = "auto";
-    notif.style.padding = "10px 14px";
-    notif.style.borderRadius = "20px";
-  }, 2000);
-  setTimeout(() => {
-    notif.innerHTML = "<strong>Notification:</strong>&nbsp;";
-  }, 4000);
-  setTimeout(() => {
-    let i = 0;
-    const len = Math.max(1, message.length);
-    const interval = 1500 / len;
-    function typeWriter() {
-      if (i < message.length) {
-        const ch = message.charAt(i);
-        notif.innerHTML += (ch === " " ? "&nbsp;" : ch);
-        i++;
-        setTimeout(typeWriter, interval);
-      } else {
-        setTimeout(() => row.remove(), 1200000);
-      }
+// Vérification des anniversaires
+function checkBirthdays() {
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth(); // 0-indexé (0 = janvier, 11 = décembre)
+    
+    // Vérifier chaque anniversaire
+    for (const person of birthdays) {
+        if (person.day === currentDay && person.month === currentMonth) {
+            // C'est l'anniversaire de cette personne!
+            const message = `🎉 Joyeux anniversaire ${person.name} ! 🎂`;
+            addNotification(message);
+            console.log(`Anniversaire détecté pour ${person.name}!`);
+            return;
+        }
     }
-    typeWriter();
-  }, 4200);
+    
+    console.log(`Aucun anniversaire aujourd'hui (${today.toLocaleDateString()})`);
 }
+
+// Système de notifications (votre code modifié)
+let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
+
+function addNotification(message) {
+    const container = document.getElementById("notification-container");
+    if (!container) return;
+
+    if (container.children.length >= 1) {
+        container.removeChild(container.firstChild);
+    }
+
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.justifyContent = "flex-end";
+    row.style.width = "100%";
+    row.style.marginTop = "8px";
+    container.appendChild(row);
+
+    const notif = document.createElement("div");
+    notif.style.width = "20px";
+    notif.style.height = "20px";
+    notif.style.borderRadius = "50%";
+    notif.style.opacity = "0";
+    notif.style.display = "flex";
+    notif.style.justifyContent = "center";
+    notif.style.alignItems = "center";
+    notif.style.background = "rgba(50,50,50,0.3)";
+    notif.style.color = "white";
+    notif.style.fontFamily = "Arial, sans-serif";
+    notif.style.fontSize = "14px";
+    notif.style.overflow = "hidden";
+
+    row.appendChild(notif);
+
+    setTimeout(() => { notif.style.opacity = "1"; }, 50);
+    setTimeout(() => {
+        notif.style.transition = "width 1.5s ease, height 1.5s ease, border-radius 1.5s ease";
+        notif.style.width = "200px";
+        notif.style.height = "auto";
+        notif.style.padding = "10px 14px";
+        notif.style.borderRadius = "20px";
+    }, 2000);
+    setTimeout(() => {
+        notif.innerHTML = "<strong>Notification:</strong>&nbsp;";
+    }, 4000);
+    setTimeout(() => {
+        let i = 0;
+        const len = Math.max(1, message.length);
+        const interval = 1500 / len;
+        function typeWriter() {
+            if (i < message.length) {
+                const ch = message.charAt(i);
+                notif.innerHTML += (ch === " " ? "&nbsp;" : ch);
+                i++;
+                setTimeout(typeWriter, interval);
+            } else {
+                setTimeout(() => row.remove(), 1200000);
+            }
+        }
+        typeWriter();
+    }, 4200);
+}
+
+// Vérification automatique au chargement
+window.addEventListener('load', () => {
+    // Vérifier les anniversaires après 3 secondes
+    setTimeout(checkBirthdays, 3000);
+});
+
+// Pour tester manuellement depuis la console
+window.testBirthdayCheck = function() {
+    checkBirthdays();
+};
+
+// Pour simuler une date spécifique (utile pour le débogage)
+window.simulateDate = function(day, month) {
+    const originalDate = Date;
+    
+    // Créer une date simulée
+    const simulatedDate = new Date();
+    simulatedDate.setMonth(month);
+    simulatedDate.setDate(day);
+    
+    // Remplacer temporairement le constructeur Date
+    global.Date = class extends Date {
+        constructor() {
+            return simulatedDate;
+        }
+    };
+    
+    // Vérifier les anniversaires avec la date simulée
+    checkBirthdays();
+    
+    // Restaurer le constructeur Date original après un délai
+    setTimeout(() => {
+        global.Date = originalDate;
+    }, 5000);
+};
+
+console.log("Système de notifications d'anniversaires chargé!");
+console.log("Utilisez testBirthdayCheck() pour vérifier manuellement les anniversaires");
+console.log("Utilisez simulateDate(10, 6) pour simuler le 10 juillet (anniversaire de Mohamed)");
 
 // -------------------------
 // ✉️ Fonction pour envoyer un message

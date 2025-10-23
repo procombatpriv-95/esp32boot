@@ -60,25 +60,69 @@ document.addEventListener('DOMContentLoaded', function() {
     // Stocker les données 24h pour chaque crypto
     let crypto24hData = {};
     
-    // === GESTION DU DRAG DU PANEL ===
+    // === GESTION DU DRAG DU PANEL - VERSION CORRIGÉE ===
     function initPanelDrag() {
         let isDragging = false;
         let startX, startY;
         let startLeft, startTop;
         
-        cryptoInfoPanel.addEventListener('mousedown', startDrag);
+        // Nettoyer les écouteurs existants
+        cryptoInfoPanel.replaceWith(cryptoInfoPanel.cloneNode(true));
+        const panel = document.getElementById('cryptoInfoPanel');
+        
+        panel.addEventListener('mousedown', startDrag);
+        panel.addEventListener('touchstart', startDragTouch, { passive: false });
         
         function startDrag(e) {
+            // Empêcher le drag sur les boutons
+            if (e.target.closest('.graph-toggle-btn') || e.target.closest('.canvas-btn')) {
+                return;
+            }
+            
             isDragging = true;
             startX = e.clientX;
             startY = e.clientY;
-            startLeft = cryptoInfoPanel.offsetLeft;
-            startTop = cryptoInfoPanel.offsetTop;
             
-            cryptoInfoPanel.classList.add('dragging');
+            // Récupérer la position actuelle
+            const rect = panel.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+            
+            panel.classList.add('dragging');
+            
+            // Ajouter les écouteurs sur document
             document.addEventListener('mousemove', onDrag);
             document.addEventListener('mouseup', stopDrag);
+            
             e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function startDragTouch(e) {
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                // Empêcher le drag sur les boutons
+                if (targetElement && (targetElement.closest('.graph-toggle-btn') || targetElement.closest('.canvas-btn'))) {
+                    return;
+                }
+                
+                isDragging = true;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                
+                const rect = panel.getBoundingClientRect();
+                startLeft = rect.left;
+                startTop = rect.top;
+                
+                panel.classList.add('dragging');
+                document.addEventListener('touchmove', onDragTouch, { passive: false });
+                document.addEventListener('touchend', stopDrag);
+                
+                e.preventDefault();
+                e.stopPropagation();
+            }
         }
         
         function onDrag(e) {
@@ -87,21 +131,148 @@ document.addEventListener('DOMContentLoaded', function() {
             const dx = e.clientX - startX;
             const dy = e.clientY - startY;
             
-            cryptoInfoPanel.style.position = 'absolute';
-            cryptoInfoPanel.style.left = (startLeft + dx) + 'px';
-            cryptoInfoPanel.style.top = (startTop + dy) + 'px';
-            cryptoInfoPanel.style.width = '700px';
-            cryptoInfoPanel.style.height = '120px';
+            // Appliquer la nouvelle position
+            panel.style.position = 'fixed';
+            panel.style.left = (startLeft + dx) + 'px';
+            panel.style.top = (startTop + dy) + 'px';
+            panel.style.width = '700px';
+            panel.style.height = '120px';
+            panel.style.margin = '0';
+            
+            e.preventDefault();
+        }
+        
+        function onDragTouch(e) {
+            if (!isDragging || e.touches.length !== 1) return;
+            
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            
+            // Appliquer la nouvelle position
+            panel.style.position = 'fixed';
+            panel.style.left = (startLeft + dx) + 'px';
+            panel.style.top = (startTop + dy) + 'px';
+            panel.style.width = '700px';
+            panel.style.height = '120px';
+            panel.style.margin = '0';
+            
+            e.preventDefault();
         }
         
         function stopDrag() {
+            if (!isDragging) return;
+            
             isDragging = false;
-            cryptoInfoPanel.classList.remove('dragging');
+            panel.classList.remove('dragging');
+            
+            // Nettoyer les écouteurs
             document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('touchmove', onDragTouch);
             document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchend', stopDrag);
         }
     }
     
+    // === DRAG POUR LA VUE SÉLECTIONNÉE - VERSION SIMPLIFIÉE ===
+    function initSelectedViewDrag() {
+        let isDragging = false;
+        let startX, startY;
+        let startLeft, startTop;
+        
+        selectedView.addEventListener('mousedown', startDrag);
+        selectedView.addEventListener('touchstart', startDragTouch, { passive: false });
+        
+        function startDrag(e) {
+            // Ne dragger que si on clique sur des zones spécifiques (éviter les boutons)
+            if (e.target.closest('.graph-toggle-buttons') || 
+                e.target.closest('.canvas-btn') ||
+                e.target.tagName === 'CANVAS') {
+                return;
+            }
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            const rect = selectedView.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+            
+            selectedView.classList.add('dragging');
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', stopDrag);
+            
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function startDragTouch(e) {
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                if (targetElement && (targetElement.closest('.graph-toggle-buttons') || 
+                    targetElement.closest('.canvas-btn') ||
+                    targetElement.tagName === 'CANVAS')) {
+                    return;
+                }
+                
+                isDragging = true;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                
+                const rect = selectedView.getBoundingClientRect();
+                startLeft = rect.left;
+                startTop = rect.top;
+                
+                selectedView.classList.add('dragging');
+                document.addEventListener('touchmove', onDragTouch, { passive: false });
+                document.addEventListener('touchend', stopDrag);
+                
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }
+        
+        function onDrag(e) {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            selectedView.style.position = 'fixed';
+            selectedView.style.left = (startLeft + dx) + 'px';
+            selectedView.style.top = (startTop + dy) + 'px';
+            
+            e.preventDefault();
+        }
+        
+        function onDragTouch(e) {
+            if (!isDragging || e.touches.length !== 1) return;
+            
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            
+            selectedView.style.position = 'fixed';
+            selectedView.style.left = (startLeft + dx) + 'px';
+            selectedView.style.top = (startTop + dy) + 'px';
+            
+            e.preventDefault();
+        }
+        
+        function stopDrag() {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            selectedView.classList.remove('dragging');
+            
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('touchmove', onDragTouch);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchend', stopDrag);
+        }
+    }
+
     // === FONCTIONS POUR CALCULER LES PERFORMANCES ===
     function calculatePerformanceChanges(instance) {
         if (!instance.candles || instance.candles.length === 0) return;
@@ -234,10 +405,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return positions;
     }
     
-    // === API BINANCE - MODIFICATIONS POUR RÉCUPÉRER LES DONNÉES 24H ===
+    // === API BINANCE ===
     function startApiUpdates() {
         fetchAllPrices();
-        fetchAll24hData(); // Nouvelle fonction pour récupérer les données 24h
+        fetchAll24hData();
         apiUpdateInterval = setInterval(() => {
             fetchAllPrices();
             fetchAll24hData();
@@ -250,7 +421,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // NOUVELLE FONCTION POUR RÉCUPÉRER LES DONNÉES 24H
     function fetchAll24hData() {
         cryptos.forEach(crypto => {
             fetch24hData(crypto);
@@ -268,7 +438,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                // Stocker les données 24h
                 crypto24hData[crypto.id] = {
                     highPrice: parseFloat(data.highPrice),
                     lowPrice: parseFloat(data.lowPrice),
@@ -277,7 +446,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     priceChangePercent: parseFloat(data.priceChangePercent)
                 };
                 
-                // Mettre à jour le panel si cette crypto est sélectionnée
                 if (selectedCrypto && selectedCrypto.id === crypto.id) {
                     updateCryptoInfoPanel(graphInstances[crypto.id]);
                 }
@@ -357,7 +525,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // FONCTIONS DE REDESSIN DES GRAPHIQUES
     function redrawCarouselGraph(instance, chartType) {
         if (chartType === 'line') {
             drawLineChart(instance);
@@ -395,7 +562,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // === MISE À JOUR DU PANEL D'INFORMATIONS AVEC LES DONNÉES 24H ===
     function updateCryptoInfoPanel(instance) {
         if (!instance.candles || instance.candles.length === 0) return;
         
@@ -406,7 +572,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('infoSymbol').textContent = symbol;
         document.getElementById('infoPrice').textContent = `$${currentCandle.close.toFixed(2)}`;
         
-        // Variation mensuelle
         const changeElement = document.getElementById('infoChange');
         if (instance.monthlyChange !== undefined) {
             const sign = instance.monthlyChange >= 0 ? '+' : '';
@@ -419,12 +584,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Mettre à jour les données 24h High, Low et Volume si disponibles
         if (cryptoData24h) {
             document.getElementById('infoHigh').textContent = `$${cryptoData24h.highPrice.toFixed(2)}`;
             document.getElementById('infoLow').textContent = `$${cryptoData24h.lowPrice.toFixed(2)}`;
             
-            // Formater le volume
             let formattedVolume;
             if (cryptoData24h.volume >= 1000000) {
                 formattedVolume = `${(cryptoData24h.volume / 1000000).toFixed(2)}M`;
@@ -435,7 +598,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             document.getElementById('infoVolume').textContent = formattedVolume;
         } else {
-            // Valeurs par défaut si les données ne sont pas encore chargées
             document.getElementById('infoHigh').textContent = '$0.00';
             document.getElementById('infoLow').textContent = '$0.00';
             document.getElementById('infoVolume').textContent = '0';
@@ -458,7 +620,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         instance.lastPrice = price;
         
-        // Mettre à jour le panel si cette crypto est sélectionnée
         if (selectedCrypto && selectedCrypto.id === cryptoId) {
             updateCryptoInfoPanel(instance);
         }
@@ -549,7 +710,6 @@ document.addEventListener('DOMContentLoaded', function() {
         maxPrice = maxPrice + (priceRange * 0.02);
         const adjustedPriceRange = maxPrice - minPrice;
         
-        // Dessiner la grille
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 1;
         
@@ -561,7 +721,6 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.stroke();
         }
         
-        // Dessiner la ligne
         ctx.strokeStyle = '#39d353';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -585,7 +744,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         ctx.stroke();
         
-        // Remplir l'aire sous la courbe
         ctx.fillStyle = 'rgba(57, 211, 83, 0.1)';
         ctx.beginPath();
         ctx.moveTo(margin.left, margin.top + graphHeight);
@@ -602,7 +760,6 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.closePath();
         ctx.fill();
         
-        // Axes et étiquettes
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
@@ -657,7 +814,6 @@ document.addEventListener('DOMContentLoaded', function() {
         maxPrice = maxPrice + (priceRange * 0.02);
         const adjustedPriceRange = maxPrice - minPrice;
         
-        // Dessiner la grille
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 1;
         
@@ -690,13 +846,11 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.strokeStyle = isBullish ? '#39d353' : '#ff6b6b';
             ctx.fillStyle = isBullish ? '#39d353' : '#ff6b6b';
             
-            // Mèche
             ctx.beginPath();
             ctx.moveTo(x + candleWidth/2, highY);
             ctx.lineTo(x + candleWidth/2, lowY);
             ctx.stroke();
             
-            // Corps
             const bodyTop = Math.min(openY, closeY);
             const bodyHeight = Math.max(1, Math.abs(openY - closeY));
             
@@ -707,7 +861,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Axes et étiquettes
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
@@ -761,7 +914,6 @@ document.addEventListener('DOMContentLoaded', function() {
         maxPrice = maxPrice + (priceRange * 0.02);
         const adjustedPriceRange = maxPrice - minPrice;
         
-        // Dessiner la grille
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 1;
         
@@ -773,7 +925,6 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.stroke();
         }
         
-        // Dessiner la ligne - STYLE PC
         ctx.strokeStyle = 'lightblue';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -797,7 +948,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         ctx.stroke();
         
-        // Axes et étiquettes
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
@@ -951,91 +1101,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // === DRAG AND DROP ===
-    function initDragForElement(element) {
-        let isDragging = false;
-        let startX, startY;
-        let startLeft, startTop;
-        
-        element.addEventListener('mousedown', startDrag);
-        element.addEventListener('touchstart', startDragTouch);
-        
-        function startDrag(e) {
-            if (e.target.classList.contains('graph-toggle-btn')) {
-                return;
-            }
-            
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            
-            startLeft = parseInt(element.style.left) || 0;
-            startTop = parseInt(element.style.top) || 0;
-            
-            element.classList.add('dragging');
-            document.addEventListener('mousemove', onDrag);
-            document.addEventListener('mouseup', stopDrag);
-            e.preventDefault();
-        }
-        
-        function startDragTouch(e) {
-            if (e.touches.length === 1) {
-                const touch = e.touches[0];
-                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (targetElement && targetElement.classList.contains('graph-toggle-btn')) {
-                    return;
-                }
-                
-                isDragging = true;
-                startX = touch.clientX;
-                startY = touch.clientY;
-                
-                startLeft = parseInt(element.style.left) || 0;
-                startTop = parseInt(element.style.top) || 0;
-                
-                element.classList.add('dragging');
-                document.addEventListener('touchmove', onDragTouch);
-                document.addEventListener('touchend', stopDrag);
-                e.preventDefault();
-            }
-        }
-        
-        function onDrag(e) {
-            if (!isDragging) return;
-            
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-            
-            element.style.position = 'relative';
-            element.style.left = (startLeft + dx) + 'px';
-            element.style.top = (startTop + dy) + 'px';
-        }
-        
-        function onDragTouch(e) {
-            if (!isDragging || e.touches.length !== 1) return;
-            
-            const dx = e.touches[0].clientX - startX;
-            const dy = e.touches[0].clientY - startY;
-            
-            element.style.position = 'relative';
-            element.style.left = (startLeft + dx) + 'px';
-            element.style.top = (startTop + dy) + 'px';
-        }
-        
-        function stopDrag() {
-            isDragging = false;
-            element.classList.remove('dragging');
-            document.removeEventListener('mousemove', onDrag);
-            document.removeEventListener('touchmove', onDragTouch);
-            document.removeEventListener('mouseup', stopDrag);
-            document.removeEventListener('touchend', stopDrag);
-        }
-    }
-
-    function initAllDraggableElements() {
-        initDragForElement(selectedView);
-    }
-    
     // Retour au carousel
     backBtn.addEventListener('click', function() {
         selectedView.classList.remove('active');
@@ -1063,8 +1128,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialiser l'application
     initCarouselGraphs();
-    initAllDraggableElements();
     initPanelDrag();
+    initSelectedViewDrag();
     initGraphToggleButtons();
     initCarouselButtons();
     startApiUpdates();

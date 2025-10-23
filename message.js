@@ -10,11 +10,12 @@ const TEXT_SCROLL_STEP = 20;
 // 🔔 Fonction pour afficher une notification animée
 // -------------------------
 // Liste des anniversaires (nom, jour, mois)
+// Liste des anniversaires (nom, jour, mois)
 const birthdays = [
-    { name: "Mohamed", day: 10, month: 7 }, // Juillet = 6 (0-indexé)
-    { name: "Père", day: 23, month: 10 },    // Octobre = 9
+    { name: "Mohamed", day: 10, month: 6 }, // Juillet = 6 (0-indexé)
+    { name: "Père", day: 23, month: 9 },    // Octobre = 9
     { name: "Mère", day: 15, month: 4 },    // Mai = 4
-    { name: "Sœur", day: 3, month: 11 } // Décembre = 11
+    { name: "Frère/Sœur", day: 3, month: 11 } // Décembre = 11
 ];
 
 // Vérification des anniversaires
@@ -27,8 +28,17 @@ function checkBirthdays() {
     for (const person of birthdays) {
         if (person.day === currentDay && person.month === currentMonth) {
             // C'est l'anniversaire de cette personne!
-            const message = `🎉 ${person.name} ! 🎂`;
-            addNotification(message);
+            let message, prefix;
+            
+            if (person.name === "Mohamed") {
+                prefix = "🎂";
+                message = `Happy birthday ${person.name}`;
+            } else {
+                prefix = "🎉";
+                message = `It's ${person.name}'s birthday`;
+            }
+            
+            addNotification(message, prefix);
             console.log(`Anniversaire détecté pour ${person.name}!`);
             return;
         }
@@ -37,10 +47,10 @@ function checkBirthdays() {
     console.log(`Aucun anniversaire aujourd'hui (${today.toLocaleDateString()})`);
 }
 
-// Système de notifications (votre code modifié)
+// Système de notifications modifié
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
 
-function addNotification(message) {
+function addNotification(message, prefix = "Notification") {
     const container = document.getElementById("notification-container");
     if (!container) return;
 
@@ -80,7 +90,7 @@ function addNotification(message) {
         notif.style.borderRadius = "20px";
     }, 2000);
     setTimeout(() => {
-        notif.innerHTML = "<strong>Notification:</strong>&nbsp;";
+        notif.innerHTML = `<strong>${prefix}:</strong>&nbsp;`;
     }, 4000);
     setTimeout(() => {
         let i = 0;
@@ -139,7 +149,6 @@ window.simulateDate = function(day, month) {
 console.log("Système de notifications d'anniversaires chargé!");
 console.log("Utilisez testBirthdayCheck() pour vérifier manuellement les anniversaires");
 console.log("Utilisez simulateDate(10, 6) pour simuler le 10 juillet (anniversaire de Mohamed)");
-
 // -------------------------
 // ✉️ Fonction pour envoyer un message
 // -------------------------

@@ -60,8 +60,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Stocker les données 24h pour chaque crypto
     let crypto24hData = {};
     
-    // === FONCTIONS POUR LE COIN REDUIRE/AGRANDIR ===
-    function createResizeCorner(element, isPanel = false) {
+    // === FONCTIONS POUR LE COIN REDUIRE/AGRANDIR DU PANEL ===
+    function createResizeCornerForPanel(element) {
         const corner = document.createElement('div');
         corner.className = 'resize-corner';
         corner.style.position = 'absolute';
@@ -115,42 +115,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const dx = e.clientX - startX;
             const dy = e.clientY - startY;
             
-            let newWidth, newHeight;
-            
-            if (isPanel) {
-                // Pour le panel, seulement la largeur change
-                newWidth = Math.max(400, startWidth + dx);
-                newHeight = 120; // Hauteur fixe pour le panel
-            } else {
-                // Pour le canvas sélectionné, largeur et hauteur changent
-                newWidth = Math.max(500, startWidth + dx);
-                newHeight = Math.max(300, startHeight + dy);
-            }
+            // Pour le panel, seulement la largeur change
+            const newWidth = Math.max(400, startWidth + dx);
+            const newHeight = 120; // Hauteur fixe pour le panel
             
             element.style.width = newWidth + 'px';
-            if (!isPanel) {
-                element.style.height = newHeight + 'px';
-                
-                // Redimensionner le canvas interne
-                const canvas = element.querySelector('canvas');
-                if (canvas) {
-                    const DPR = window.devicePixelRatio || 1;
-                    canvas.style.width = (newWidth - 20) + 'px';
-                    canvas.style.height = (newHeight - 20) + 'px';
-                    canvas.width = (newWidth - 20) * DPR;
-                    canvas.height = (newHeight - 20) * DPR;
-                    
-                    // Redessiner le graphique
-                    if (selectedCrypto) {
-                        const instance = graphInstances[selectedCrypto.id];
-                        if (instance) {
-                            instance.CSS_W = newWidth - 20;
-                            instance.CSS_H = newHeight - 20;
-                            redrawSelectedGraph(instance, selectedChartType);
-                        }
-                    }
-                }
-            }
+            element.style.height = newHeight + 'px';
         }
         
         function stopResize() {
@@ -194,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cryptoInfoPanel.style.position = 'absolute';
             cryptoInfoPanel.style.left = (startLeft + dx) + 'px';
             cryptoInfoPanel.style.top = (startTop + dy) + 'px';
-            cryptoInfoPanel.style.width = '700px';
+            cryptoInfoPanel.style.width = cryptoInfoPanel.style.width || '700px';
             cryptoInfoPanel.style.height = '120px';
         }
         
@@ -935,17 +905,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         initGraph(selectedCanvas, selectedCrypto, false);
         
-        // Ajouter le coin de redimensionnement pour le canvas sélectionné
-        createResizeCorner(selectedView, false);
-        
         cryptoInfoPanel.style.position = 'relative';
         cryptoInfoPanel.style.width = '700px';
         cryptoInfoPanel.style.height = '120px';
         cryptoInfoPanel.style.left = 'auto';
         cryptoInfoPanel.style.top = 'auto';
         
-        // Ajouter le coin de redimensionnement pour le panel
-        createResizeCorner(cryptoInfoPanel, true);
+        // Ajouter le coin de redimensionnement pour le panel seulement
+        createResizeCornerForPanel(cryptoInfoPanel);
         
         const originalInstance = graphInstances[selectedCrypto.id];
         const newInstance = graphInstances[selectedCrypto.id];

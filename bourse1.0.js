@@ -60,6 +60,108 @@ document.addEventListener('DOMContentLoaded', function() {
     // Stocker les données 24h pour chaque crypto
     let crypto24hData = {};
     
+    // === FONCTIONS POUR LE COIN REDUIRE/AGRANDIR ===
+    function createResizeCorner(element, isPanel = false) {
+        const corner = document.createElement('div');
+        corner.className = 'resize-corner';
+        corner.style.position = 'absolute';
+        corner.style.bottom = '0px';
+        corner.style.right = '0px';
+        corner.style.width = '20px';
+        corner.style.height = '20px';
+        corner.style.cursor = 'nwse-resize';
+        corner.style.zIndex = '1000';
+        
+        // Dessiner l'arc de cercle blanc
+        const canvas = document.createElement('canvas');
+        canvas.width = 20;
+        canvas.height = 20;
+        canvas.style.width = '20px';
+        canvas.style.height = '20px';
+        const ctx = canvas.getContext('2d');
+        
+        // Dessiner l'arc de cercle
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(20, 20, 15, Math.PI, Math.PI * 1.5, false);
+        ctx.stroke();
+        
+        corner.appendChild(canvas);
+        element.appendChild(corner);
+        
+        // Gestion du redimensionnement
+        let isResizing = false;
+        let startX, startY;
+        let startWidth, startHeight;
+        
+        corner.addEventListener('mousedown', startResize);
+        
+        function startResize(e) {
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
+            startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+            
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
+            e.preventDefault();
+        }
+        
+        function resize(e) {
+            if (!isResizing) return;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            let newWidth, newHeight;
+            
+            if (isPanel) {
+                // Pour le panel, seulement la largeur change
+                newWidth = Math.max(400, startWidth + dx);
+                newHeight = 120; // Hauteur fixe pour le panel
+            } else {
+                // Pour le canvas sélectionné, largeur et hauteur changent
+                newWidth = Math.max(500, startWidth + dx);
+                newHeight = Math.max(300, startHeight + dy);
+            }
+            
+            element.style.width = newWidth + 'px';
+            if (!isPanel) {
+                element.style.height = newHeight + 'px';
+                
+                // Redimensionner le canvas interne
+                const canvas = element.querySelector('canvas');
+                if (canvas) {
+                    const DPR = window.devicePixelRatio || 1;
+                    canvas.style.width = (newWidth - 20) + 'px';
+                    canvas.style.height = (newHeight - 20) + 'px';
+                    canvas.width = (newWidth - 20) * DPR;
+                    canvas.height = (newHeight - 20) * DPR;
+                    
+                    // Redessiner le graphique
+                    if (selectedCrypto) {
+                        const instance = graphInstances[selectedCrypto.id];
+                        if (instance) {
+                            instance.CSS_W = newWidth - 20;
+                            instance.CSS_H = newHeight - 20;
+                            redrawSelectedGraph(instance, selectedChartType);
+                        }
+                    }
+                }
+            }
+        }
+        
+        function stopResize() {
+            isResizing = false;
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+        }
+        
+        return corner;
+    }
+    
     // === GESTION DU DRAG DU PANEL ===
     function initPanelDrag() {
         let isDragging = false;
@@ -69,6 +171,8 @@ document.addEventListener('DOMContentLoaded', function() {
         cryptoInfoPanel.addEventListener('mousedown', startDrag);
         
         function startDrag(e) {
+            if (e.target.classList.contains('resize-corner')) return;
+            
             isDragging = true;
             startX = e.clientX;
             startY = e.clientY;
@@ -237,7 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // === API BINANCE - MODIFICATIONS POUR RÉCUPÉRER LES DONNÉES 24H ===
     function startApiUpdates() {
         fetchAllPrices();
-        fetchAll24hData(); // Nouvelle fonction pour récupérer les données 24h
+        fetchAll24hData();
         apiUpdateInterval = setInterval(() => {
             fetchAllPrices();
             fetchAll24hData();
@@ -250,7 +354,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // NOUVELLE FONCTION POUR RÉCUPÉRER LES DONNÉES 24H
     function fetchAll24hData() {
         cryptos.forEach(crypto => {
             fetch24hData(crypto);
@@ -268,7 +371,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                // Stocker les données 24h
                 crypto24hData[crypto.id] = {
                     highPrice: parseFloat(data.highPrice),
                     lowPrice: parseFloat(data.lowPrice),
@@ -277,7 +379,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     priceChangePercent: parseFloat(data.priceChangePercent)
                 };
                 
-                // Mettre à jour le panel si cette crypto est sélectionnée
                 if (selectedCrypto && selectedCrypto.id === crypto.id) {
                     updateCryptoInfoPanel(graphInstances[crypto.id]);
                 }
@@ -357,7 +458,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // FONCTIONS DE REDESSIN DES GRAPHIQUES
     function redrawCarouselGraph(instance, chartType) {
         if (chartType === 'line') {
             drawLineChart(instance);
@@ -395,7 +495,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // === MISE À JOUR DU PANEL D'INFORMATIONS AVEC LES DONNÉES 24H ===
     function updateCryptoInfoPanel(instance) {
         if (!instance.candles || instance.candles.length === 0) return;
         
@@ -406,7 +505,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('infoSymbol').textContent = symbol;
         document.getElementById('infoPrice').textContent = `$${currentCandle.close.toFixed(2)}`;
         
-        // Variation mensuelle
         const changeElement = document.getElementById('infoChange');
         if (instance.monthlyChange !== undefined) {
             const sign = instance.monthlyChange >= 0 ? '+' : '';
@@ -419,12 +517,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Mettre à jour les données 24h High, Low et Volume si disponibles
         if (cryptoData24h) {
             document.getElementById('infoHigh').textContent = `$${cryptoData24h.highPrice.toFixed(2)}`;
             document.getElementById('infoLow').textContent = `$${cryptoData24h.lowPrice.toFixed(2)}`;
             
-            // Formater le volume
             let formattedVolume;
             if (cryptoData24h.volume >= 1000000) {
                 formattedVolume = `${(cryptoData24h.volume / 1000000).toFixed(2)}M`;
@@ -435,7 +531,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             document.getElementById('infoVolume').textContent = formattedVolume;
         } else {
-            // Valeurs par défaut si les données ne sont pas encore chargées
             document.getElementById('infoHigh').textContent = '$0.00';
             document.getElementById('infoLow').textContent = '$0.00';
             document.getElementById('infoVolume').textContent = '0';
@@ -458,7 +553,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         instance.lastPrice = price;
         
-        // Mettre à jour le panel si cette crypto est sélectionnée
         if (selectedCrypto && selectedCrypto.id === cryptoId) {
             updateCryptoInfoPanel(instance);
         }
@@ -549,7 +643,6 @@ document.addEventListener('DOMContentLoaded', function() {
         maxPrice = maxPrice + (priceRange * 0.02);
         const adjustedPriceRange = maxPrice - minPrice;
         
-        // Dessiner la grille
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 1;
         
@@ -561,7 +654,6 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.stroke();
         }
         
-        // Dessiner la ligne
         ctx.strokeStyle = '#39d353';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -585,7 +677,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         ctx.stroke();
         
-        // Remplir l'aire sous la courbe
         ctx.fillStyle = 'rgba(57, 211, 83, 0.1)';
         ctx.beginPath();
         ctx.moveTo(margin.left, margin.top + graphHeight);
@@ -602,7 +693,6 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.closePath();
         ctx.fill();
         
-        // Axes et étiquettes
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
@@ -657,7 +747,6 @@ document.addEventListener('DOMContentLoaded', function() {
         maxPrice = maxPrice + (priceRange * 0.02);
         const adjustedPriceRange = maxPrice - minPrice;
         
-        // Dessiner la grille
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 1;
         
@@ -690,13 +779,11 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.strokeStyle = isBullish ? '#39d353' : '#ff6b6b';
             ctx.fillStyle = isBullish ? '#39d353' : '#ff6b6b';
             
-            // Mèche
             ctx.beginPath();
             ctx.moveTo(x + candleWidth/2, highY);
             ctx.lineTo(x + candleWidth/2, lowY);
             ctx.stroke();
             
-            // Corps
             const bodyTop = Math.min(openY, closeY);
             const bodyHeight = Math.max(1, Math.abs(openY - closeY));
             
@@ -707,7 +794,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Axes et étiquettes
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
@@ -761,7 +847,6 @@ document.addEventListener('DOMContentLoaded', function() {
         maxPrice = maxPrice + (priceRange * 0.02);
         const adjustedPriceRange = maxPrice - minPrice;
         
-        // Dessiner la grille
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 1;
         
@@ -773,7 +858,6 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.stroke();
         }
         
-        // Dessiner la ligne - STYLE PC
         ctx.strokeStyle = 'lightblue';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -797,7 +881,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         ctx.stroke();
         
-        // Axes et étiquettes
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
@@ -852,11 +935,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         initGraph(selectedCanvas, selectedCrypto, false);
         
+        // Ajouter le coin de redimensionnement pour le canvas sélectionné
+        createResizeCorner(selectedView, false);
+        
         cryptoInfoPanel.style.position = 'relative';
         cryptoInfoPanel.style.width = '700px';
         cryptoInfoPanel.style.height = '120px';
         cryptoInfoPanel.style.left = 'auto';
         cryptoInfoPanel.style.top = 'auto';
+        
+        // Ajouter le coin de redimensionnement pour le panel
+        createResizeCorner(cryptoInfoPanel, true);
         
         const originalInstance = graphInstances[selectedCrypto.id];
         const newInstance = graphInstances[selectedCrypto.id];
@@ -922,7 +1011,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // === GESTION DES BOUTONS CAROUSEL ===
     function initCarouselButtons() {
         document.querySelectorAll('.carousel-item-btn').forEach(btn => {
             btn.replaceWith(btn.cloneNode(true));
@@ -961,7 +1049,7 @@ document.addEventListener('DOMContentLoaded', function() {
         element.addEventListener('touchstart', startDragTouch);
         
         function startDrag(e) {
-            if (e.target.classList.contains('graph-toggle-btn')) {
+            if (e.target.classList.contains('graph-toggle-btn') || e.target.classList.contains('resize-corner')) {
                 return;
             }
             
@@ -982,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.touches.length === 1) {
                 const touch = e.touches[0];
                 const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (targetElement && targetElement.classList.contains('graph-toggle-btn')) {
+                if (targetElement && (targetElement.classList.contains('graph-toggle-btn') || targetElement.classList.contains('resize-corner'))) {
                     return;
                 }
                 

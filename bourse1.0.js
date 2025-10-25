@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let isResizing = false;
         let startX, startY;
         let startWidth, startHeight;
+        let startLeft, startTop;
         
         corner.addEventListener('mousedown', startResize);
         
@@ -103,17 +104,19 @@ document.addEventListener('DOMContentLoaded', function() {
             startY = e.clientY;
             startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
             startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+            startLeft = element.offsetLeft;
+            startTop = element.offsetTop;
             
             document.addEventListener('mousemove', resize);
             document.addEventListener('mouseup', stopResize);
             e.preventDefault();
+            e.stopPropagation(); // Empêcher la propagation pour éviter le drag
         }
         
         function resize(e) {
             if (!isResizing) return;
             
             const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
             
             // Pour le panel, seulement la largeur change
             const newWidth = Math.max(400, startWidth + dx);
@@ -121,6 +124,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             element.style.width = newWidth + 'px';
             element.style.height = newHeight + 'px';
+            
+            // Ajuster la position pour que le coin reste au même endroit
+            const widthDiff = newWidth - startWidth;
+            element.style.left = (startLeft - widthDiff) + 'px';
         }
         
         function stopResize() {
@@ -141,7 +148,11 @@ document.addEventListener('DOMContentLoaded', function() {
         cryptoInfoPanel.addEventListener('mousedown', startDrag);
         
         function startDrag(e) {
-            if (e.target.classList.contains('resize-corner')) return;
+            // Ne pas démarrer le drag si on clique sur le coin de redimensionnement
+            if (e.target.classList.contains('resize-corner') || 
+                e.target.closest('.resize-corner')) {
+                return;
+            }
             
             isDragging = true;
             startX = e.clientX;
@@ -164,6 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cryptoInfoPanel.style.position = 'absolute';
             cryptoInfoPanel.style.left = (startLeft + dx) + 'px';
             cryptoInfoPanel.style.top = (startTop + dy) + 'px';
+            // Conserver la largeur actuelle pendant le drag
             cryptoInfoPanel.style.width = cryptoInfoPanel.style.width || '700px';
             cryptoInfoPanel.style.height = '120px';
         }

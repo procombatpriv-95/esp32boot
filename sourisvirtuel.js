@@ -1,7 +1,29 @@
         import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.4";
 
+        // Appliquer les styles directement via JavaScript
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.background = '#1a1a1a';
+        document.body.style.userSelect = 'none';
+        document.body.style.fontFamily = 'Arial, sans-serif';
+        document.body.style.color = 'white';
+        document.body.style.overflow = 'hidden';
+        document.body.style.height = '100vh';
+
         const video = document.getElementById("camera");
+        video.style.display = 'none';
+
         const cursor = document.getElementById("cursor");
+        cursor.style.position = 'fixed';
+        cursor.style.width = '15px';
+        cursor.style.height = '15px';
+        cursor.style.background = 'rgba(0, 200, 255, 0.95)';
+        cursor.style.borderRadius = '50%';
+        cursor.style.transform = 'translate(-50%, -50%)';
+        cursor.style.pointerEvents = 'none';
+        cursor.style.zIndex = '9999';
+        cursor.style.transition = 'all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        cursor.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 15px rgba(0, 200, 255, 0.8)';
 
         // Variables globales
         let smoothX = window.innerWidth / 2;

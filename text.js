@@ -576,7 +576,7 @@ void loop() {
                         
                         // Utiliser un emoji différent pour les fichiers .ino
                         if (item.type === 'file' && name.endsWith('.ino')) {
-                            emoji.textContent = '⚙️'; // Emoji pour les fichiers .ino
+                            emoji.textContent = '</>'; // Emoji pour les fichiers .ino
                         } else {
                             emoji.textContent = item.type === 'folder' ? '📁' : '📄';
                         }

@@ -1,34 +1,146 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const cryptos = [
-        { 
-            id: 'bitcoin', 
-            name: 'Bitcoin (BTC)', 
-            color: 'white',
-            symbol: 'BTCUSDT',
-            priceElement: 'btcPrice'
-        },
-        { 
-            id: 'ethereum', 
-            name: 'Ethereum (ETH)', 
-            color: 'white',
-            symbol: 'ETHUSDT',
-            priceElement: 'ethPrice'
-        },
-        { 
-            id: 'xrp', 
-            name: 'XRP', 
-            color: 'white',
-            symbol: 'XRPUSDT',
-            priceElement: 'xrpPrice'
-        },
-        { 
-            id: 'litecoin', 
-            name: 'Litecoin (LTC)', 
-            color: 'white',
-            symbol: 'LTCUSDT',
-            priceElement: 'ltcPrice'
-        }
-    ];
+    // Configuration des actifs
+    const assetTypes = {
+        crypto: [
+            { 
+                id: 'bitcoin', 
+                name: 'Bitcoin (BTC)', 
+                color: 'white',
+                symbol: 'BTCUSDT',
+                priceElement: 'btcPrice',
+                displayName: 'Bitcoin (BTC)'
+            },
+            { 
+                id: 'litecoin', 
+                name: 'Litecoin (LTC)', 
+                color: 'white',
+                symbol: 'LTCUSDT',
+                priceElement: 'ltcPrice',
+                displayName: 'Litecoin (LTC)'
+            },
+            { 
+                id: 'ethereum', 
+                name: 'Ethereum (ETH)', 
+                color: 'white',
+                symbol: 'ETHUSDT',
+                priceElement: 'ethPrice',
+                displayName: 'Ethereum (ETH)'
+            },
+            { 
+                id: 'xrp', 
+                name: 'XRP', 
+                color: 'white',
+                symbol: 'XRPUSDT',
+                priceElement: 'xrpPrice',
+                displayName: 'XRP'
+            }
+        ],
+        shares: [
+            { 
+                id: 'netflix', 
+                name: 'Netflix (NFLX)', 
+                color: 'white',
+                symbol: 'NFLX',
+                priceElement: 'nflxPrice',
+                displayName: 'Netflix (NFLX)'
+            },
+            { 
+                id: 'apple', 
+                name: 'Apple (AAPL)', 
+                color: 'white',
+                symbol: 'AAPL',
+                priceElement: 'aaplPrice',
+                displayName: 'Apple (AAPL)'
+            },
+            { 
+                id: 'tesla', 
+                name: 'Tesla (TSLA)', 
+                color: 'white',
+                symbol: 'TSLA',
+                priceElement: 'tslaPrice',
+                displayName: 'Tesla (TSLA)'
+            },
+            { 
+                id: 'intel', 
+                name: 'Intel (INTC)', 
+                color: 'white',
+                symbol: 'INTC',
+                priceElement: 'intcPrice',
+                displayName: 'Intel (INTC)'
+            }
+        ],
+        commodities: [
+            { 
+                id: 'gold', 
+                name: 'Gold (XAUUSD)', 
+                color: 'white',
+                symbol: 'XAUUSD',
+                priceElement: 'goldPrice',
+                displayName: 'Gold (XAUUSD)'
+            },
+            { 
+                id: 'silver', 
+                name: 'Silver (XAGUSD)', 
+                color: 'white',
+                symbol: 'XAGUSD',
+                priceElement: 'silverPrice',
+                displayName: 'Silver (XAGUSD)'
+            },
+            { 
+                id: 'platinum', 
+                name: 'Platinum (XPTUSD)', 
+                color: 'white',
+                symbol: 'XPTUSD',
+                priceElement: 'platinumPrice',
+                displayName: 'Platinum (XPTUSD)'
+            },
+            { 
+                id: 'naturalgas', 
+                name: 'Natural Gas (NATGAS)', 
+                color: 'white',
+                symbol: 'NATGAS',
+                priceElement: 'gasPrice',
+                displayName: 'Natural Gas (NATGAS)'
+            }
+        ],
+        forex: [
+            { 
+                id: 'eurusd', 
+                name: 'EUR/USD', 
+                color: 'white',
+                symbol: 'EURUSD',
+                priceElement: 'eurPrice',
+                displayName: 'EUR/USD'
+            },
+            { 
+                id: 'gbpusd', 
+                name: 'GBP/USD', 
+                color: 'white',
+                symbol: 'GBPUSD',
+                priceElement: 'gbpPrice',
+                displayName: 'GBP/USD'
+            },
+            { 
+                id: 'audcad', 
+                name: 'AUD/CAD', 
+                color: 'white',
+                symbol: 'AUDCAD',
+                priceElement: 'audPrice',
+                displayName: 'AUD/CAD'
+            },
+            { 
+                id: 'nzdusd', 
+                name: 'NZD/USD', 
+                color: 'white',
+                symbol: 'NZDUSD',
+                priceElement: 'nzdPrice',
+                displayName: 'NZD/USD'
+            }
+        ]
+    };
+
+    let currentAssetType = 'crypto';
+    let currentAssets = assetTypes.crypto;
     
     // Éléments du DOM
     const carousel = document.getElementById('mainCarousel');
@@ -42,25 +154,355 @@ document.addEventListener('DOMContentLoaded', function() {
     const lineChartBtn = document.getElementById('lineChartBtn');
     const candleChartBtn = document.getElementById('candleChartBtn');
     const pcChartBtn = document.getElementById('pcChartBtn');
+    const menuSections = document.querySelectorAll('.menu-section');
+    const sideMenu = document.getElementById('sideMenu');
     
     // Variables d'état
     let graphInstances = {};
-    let selectedCrypto = null;
+    let selectedAsset = null;
     let apiUpdateInterval;
     let selectedChartType = 'candle';
     
-    // Stocker le type de graphique pour chaque crypto dans le carousel
-    let carouselChartTypes = {
-        'bitcoin': 'candle',
-        'ethereum': 'candle',
-        'xrp': 'candle',
-        'litecoin': 'candle'
-    };
-
-    // Stocker les données 24h pour chaque crypto
-    let crypto24hData = {};
+    // Stocker le type de graphique pour chaque actif dans le carousel
+    let carouselChartTypes = {};
     
-    // === FONCTIONS POUR LE COIN REDUIRE/AGRANDIR DU PANEL ===
+    // Initialiser les types de graphiques
+    function initChartTypes() {
+        Object.keys(assetTypes).forEach(type => {
+            assetTypes[type].forEach(asset => {
+                carouselChartTypes[asset.id] = 'candle';
+            });
+        });
+    }
+
+    // Stocker les données 24h pour chaque actif
+    let asset24hData = {};
+    
+    // === GESTION DU MENU LATÉRAL ===
+    function initMenu() {
+        menuSections.forEach(section => {
+            section.addEventListener('click', function() {
+                const type = this.getAttribute('data-type');
+                
+                // Mettre à jour les sections actives
+                menuSections.forEach(s => s.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Changer le type d'actif
+                currentAssetType = type;
+                currentAssets = assetTypes[type];
+                
+                // Mettre à jour le carousel
+                updateCarousel();
+                
+                // Redémarrer les mises à jour API
+                startApiUpdates();
+            });
+        });
+    }
+    
+    // === MISE À JOUR DU CAROUSEL ===
+    function updateCarousel() {
+        // Vider le carousel
+        carousel.innerHTML = '';
+        
+        // Recréer les éléments du carousel
+        currentAssets.forEach((asset, index) => {
+            const carouselItem = document.createElement('div');
+            carouselItem.className = 'carousel-item';
+            carouselItem.setAttribute('data-crypto', asset.id);
+            
+            carouselItem.innerHTML = `
+                <div class="crypto-name">${asset.displayName}</div>
+                <div class="price-display" id="${asset.priceElement}">Chargement...</div>
+                <canvas id="${asset.id}Canvas"></canvas>
+                <div class="carousel-item-controls">
+                    <button class="carousel-item-btn active" data-crypto="${asset.id}" data-type="candle" title="Graphique en bougies">B</button>
+                    <button class="carousel-item-btn" data-crypto="${asset.id}" data-type="pc" title="Graphique PC">L</button>
+                    <button class="carousel-item-btn" data-crypto="${asset.id}" data-type="line" title="Graphique en ligne">F</button>
+                </div>
+            `;
+            
+            carousel.appendChild(carouselItem);
+            
+            // Positionner l'élément dans le carousel 3D
+            carouselItem.style.transform = `rotateY(${index * 90}deg) translateZ(280px)`;
+            
+            // Initialiser le graphique
+            initGraph(document.getElementById(`${asset.id}Canvas`), asset, true);
+            
+            // Ajouter l'événement de clic
+            const canvasElement = document.getElementById(`${asset.id}Canvas`);
+            canvasElement.addEventListener('click', function(e) {
+                selectAsset(asset.id);
+            });
+        });
+        
+        // Réinitialiser les boutons du carousel
+        initCarouselButtons();
+        
+        // Charger les données historiques
+        currentAssets.forEach(asset => {
+            fetchHistoricalData(asset.id, true);
+        });
+    }
+    
+    // === API BINANCE ET YAHOO FINANCE ===
+    function startApiUpdates() {
+        fetchAllPrices();
+        fetchAll24hData();
+        clearInterval(apiUpdateInterval);
+        apiUpdateInterval = setInterval(() => {
+            fetchAllPrices();
+            fetchAll24hData();
+        }, 2000);
+    }
+    
+    function fetchAllPrices() {
+        currentAssets.forEach(asset => {
+            fetchAssetPrice(asset);
+        });
+    }
+
+    function fetchAll24hData() {
+        currentAssets.forEach(asset => {
+            fetch24hData(asset);
+        });
+    }
+
+    function fetch24hData(asset) {
+        if (currentAssetType === 'crypto') {
+            // API Binance pour les cryptos
+            const url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${asset.symbol}`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur réseau');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    asset24hData[asset.id] = {
+                        highPrice: parseFloat(data.highPrice),
+                        lowPrice: parseFloat(data.lowPrice),
+                        volume: parseFloat(data.volume),
+                        priceChange: parseFloat(data.priceChange),
+                        priceChangePercent: parseFloat(data.priceChangePercent)
+                    };
+                    
+                    if (selectedAsset && selectedAsset.id === asset.id) {
+                        updateAssetInfoPanel(graphInstances[asset.id]);
+                    }
+                })
+                .catch(error => {
+                    console.error(`Erreur données 24h pour ${asset.symbol}:`, error);
+                });
+        } else {
+            // Pour les actions, commodities et forex, on utilise des données simulées
+            asset24hData[asset.id] = {
+                highPrice: Math.random() * 100 + 100,
+                lowPrice: Math.random() * 50 + 50,
+                volume: Math.random() * 1000000,
+                priceChange: (Math.random() - 0.5) * 10,
+                priceChangePercent: (Math.random() - 0.5) * 5
+            };
+            
+            if (selectedAsset && selectedAsset.id === asset.id) {
+                updateAssetInfoPanel(graphInstances[asset.id]);
+            }
+        }
+    }
+    
+    function fetchAssetPrice(asset) {
+        if (currentAssetType === 'crypto') {
+            // API Binance pour les cryptos
+            const url = `https://api.binance.com/api/v3/ticker/price?symbol=${asset.symbol}`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur réseau');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const price = parseFloat(data.price);
+                    updateAssetPrice(asset.id, price);
+                })
+                .catch(error => {
+                    console.error(`Erreur pour ${asset.symbol}:`, error);
+                });
+        } else {
+            // Pour les actions, commodities et forex, simulation de prix
+            const price = Math.random() * 100 + 100;
+            updateAssetPrice(asset.id, price);
+        }
+    }
+
+    function fetchHistoricalData(assetId, isCarousel = false) {
+        const asset = currentAssets.find(c => c.id === assetId);
+        
+        if (!isCarousel) {
+            loader.classList.remove('hidden');
+        }
+        
+        if (currentAssetType === 'crypto') {
+            // API Binance pour les cryptos
+            const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
+            const url = `https://api.binance.com/api/v3/klines?symbol=${asset.symbol}&interval=1d&limit=180&startTime=${sixMonthsAgo}`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur réseau');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const candles = data.map(kline => ({
+                        open: parseFloat(kline[1]),
+                        high: parseFloat(kline[2]),
+                        low: parseFloat(kline[3]),
+                        close: parseFloat(kline[4]),
+                        volume: parseFloat(kline[5]),
+                        timestamp: kline[0]
+                    }));
+                    
+                    processHistoricalData(assetId, candles, isCarousel);
+                })
+                .catch(error => {
+                    console.error(`Erreur historique pour ${asset.symbol}:`, error);
+                    if (!isCarousel) {
+                        loader.classList.add('hidden');
+                    }
+                });
+        } else {
+            // Pour les actions, commodities et forex, génération de données simulées
+            const candles = generateMockData(180);
+            processHistoricalData(assetId, candles, isCarousel);
+        }
+    }
+
+    function generateMockData(days) {
+        const candles = [];
+        let price = 100 + Math.random() * 50;
+        const baseTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+        
+        for (let i = 0; i < days; i++) {
+            const change = (Math.random() - 0.5) * 10;
+            const open = price;
+            const close = price + change;
+            const high = Math.max(open, close) + Math.random() * 5;
+            const low = Math.min(open, close) - Math.random() * 5;
+            const volume = Math.random() * 1000000;
+            
+            candles.push({
+                open: open,
+                high: high,
+                low: low,
+                close: close,
+                volume: volume,
+                timestamp: baseTime + (i * 24 * 60 * 60 * 1000)
+            });
+            
+            price = close;
+        }
+        
+        return candles;
+    }
+
+    function processHistoricalData(assetId, candles, isCarousel) {
+        const instance = graphInstances[assetId];
+        if (instance) {
+            instance.candles = candles;
+            calculateMonthlyChange(instance);
+            calculatePerformanceChanges(instance);
+            
+            if (isCarousel) {
+                const chartType = carouselChartTypes[assetId];
+                redrawCarouselGraph(instance, chartType);
+            } else {
+                redrawSelectedGraph(instance, selectedChartType);
+            }
+        }
+        if (!isCarousel) {
+            loader.classList.add('hidden');
+        }
+    }
+
+    // === SÉLECTION D'ACTIF ===
+    function selectAsset(assetId) {
+        selectedAsset = currentAssets.find(c => c.id === assetId);
+        selectedView.style.background = '#111216';
+        selectedView.style.backgroundColor = 'rgba(17, 18, 22, 0.5)';   
+        carousel.classList.add('carousel-paused');
+        carouselScene.classList.add('hidden');
+        
+        // Cacher le menu latéral
+        sideMenu.classList.add('hidden');
+        
+        selectedCryptoName.textContent = selectedAsset.displayName;
+        selectedCryptoName.style.position = 'absolute';
+        selectedCryptoName.style.bottom = '10px';
+        selectedCryptoName.style.left = '0';
+        selectedCryptoName.style.width = '100%';
+        selectedCryptoName.style.textAlign = 'center';
+        selectedCryptoName.style.fontSize = '10px';
+        selectedCryptoName.style.color = 'white';
+        selectedCryptoName.style.zIndex = '10';
+        
+        selectedView.classList.add('active');
+        backBtn.classList.remove('hidden');
+        
+        selectedView.style.width = '700px';
+        selectedView.style.height = '400px';
+
+        initGraph(selectedCanvas, selectedAsset, false);
+        
+        cryptoInfoPanel.style.position = 'relative';
+        cryptoInfoPanel.style.width = '700px';
+        cryptoInfoPanel.style.height = '120px';
+        cryptoInfoPanel.style.left = 'auto';
+        cryptoInfoPanel.style.top = 'auto';
+        
+        const originalInstance = graphInstances[selectedAsset.id];
+        const newInstance = graphInstances[selectedAsset.id];
+        if (originalInstance && newInstance) {
+            newInstance.candles = [...originalInstance.candles];
+            newInstance.currentPrice = originalInstance.currentPrice;
+            newInstance.lastPrice = originalInstance.lastPrice;
+            newInstance.monthlyChange = originalInstance.monthlyChange;
+            newInstance.performanceChanges = originalInstance.performanceChanges;
+            
+            redrawSelectedGraph(newInstance, selectedChartType);
+            updateAssetInfoPanel(newInstance);
+            updatePerformanceIndicators(newInstance);
+        }
+        
+        if (!originalInstance || originalInstance.candles.length === 0) {
+            fetchHistoricalData(assetId);
+        }
+    }
+
+    // === INITIALISATION ===
+    function init() {
+        initChartTypes();
+        initMenu();
+        updateCarousel();
+        initAllDraggableElements();
+        initPanelDrag();
+        initGraphToggleButtons();
+        initCarouselButtons();
+        startApiUpdates();
+    }
+
+    // Démarrer l'application
+    init();
+
+    // === FONCTIONS EXISTANTES - À COPIER DEPUIS LE CODE ORIGINAL ===
+    // Les fonctions suivantes doivent être copiées depuis le code original :
+    
     function createResizeCornerForPanel(element) {
         const corner = document.createElement('div');
         corner.className = 'resize-corner';
@@ -72,7 +514,6 @@ document.addEventListener('DOMContentLoaded', function() {
         corner.style.cursor = 'nwse-resize';
         corner.style.zIndex = '1000';
         
-        // Dessiner l'arc de cercle blanc
         const canvas = document.createElement('canvas');
         canvas.width = 20;
         canvas.height = 20;
@@ -80,7 +521,6 @@ document.addEventListener('DOMContentLoaded', function() {
         canvas.style.height = '20px';
         const ctx = canvas.getContext('2d');
         
-        // Dessiner l'arc de cercle
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -90,7 +530,6 @@ document.addEventListener('DOMContentLoaded', function() {
         corner.appendChild(canvas);
         element.appendChild(corner);
         
-        // Gestion du redimensionnement
         let isResizing = false;
         let startX, startY;
         let startWidth, startHeight;
@@ -113,11 +552,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isResizing) return;
             
             const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-            
-            // Pour le panel, seulement la largeur change
             const newWidth = Math.max(400, startWidth + dx);
-            const newHeight = 120; // Hauteur fixe pour le panel
+            const newHeight = 120;
             
             element.style.width = newWidth + 'px';
             element.style.height = newHeight + 'px';
@@ -132,7 +568,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return corner;
     }
     
-    // === GESTION DU DRAG DU PANEL ===
     function initPanelDrag() {
         let isDragging = false;
         let startX, startY;
@@ -176,7 +611,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // === FONCTIONS POUR CALCULER LES PERFORMANCES ===
     function calculatePerformanceChanges(instance) {
         if (!instance.candles || instance.candles.length === 0) return;
         
@@ -237,7 +671,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // === FONCTION POUR DESSINER LES BARRES DES MOIS ===
     function drawMonthMarkers(instance) {
         const { ctx, candles, CSS_W, CSS_H } = instance;
         
@@ -308,148 +741,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return positions;
     }
     
-    // === API BINANCE - MODIFICATIONS POUR RÉCUPÉRER LES DONNÉES 24H ===
-    function startApiUpdates() {
-        fetchAllPrices();
-        fetchAll24hData();
-        apiUpdateInterval = setInterval(() => {
-            fetchAllPrices();
-            fetchAll24hData();
-        }, 2000);
-    }
-    
-    function fetchAllPrices() {
-        cryptos.forEach(crypto => {
-            fetchCryptoPrice(crypto);
-        });
-    }
-
-    function fetchAll24hData() {
-        cryptos.forEach(crypto => {
-            fetch24hData(crypto);
-        });
-    }
-
-    function fetch24hData(crypto) {
-        const url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${crypto.symbol}`;
-        
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erreur réseau');
-                }
-                return response.json();
-            })
-            .then(data => {
-                crypto24hData[crypto.id] = {
-                    highPrice: parseFloat(data.highPrice),
-                    lowPrice: parseFloat(data.lowPrice),
-                    volume: parseFloat(data.volume),
-                    priceChange: parseFloat(data.priceChange),
-                    priceChangePercent: parseFloat(data.priceChangePercent)
-                };
-                
-                if (selectedCrypto && selectedCrypto.id === crypto.id) {
-                    updateCryptoInfoPanel(graphInstances[crypto.id]);
-                }
-            })
-            .catch(error => {
-                console.error(`Erreur données 24h pour ${crypto.symbol}:`, error);
-            });
-    }
-    
-    function fetchCryptoPrice(crypto) {
-        const url = `https://api.binance.com/api/v3/ticker/price?symbol=${crypto.symbol}`;
-        
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erreur réseau');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const price = parseFloat(data.price);
-                updateCryptoPrice(crypto.id, price);
-            })
-            .catch(error => {
-                console.error(`Erreur pour ${crypto.symbol}:`, error);
-            });
-    }
-    
-    function fetchHistoricalData(cryptoId, isCarousel = false) {
-        const crypto = cryptos.find(c => c.id === cryptoId);
-        const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
-        const url = `https://api.binance.com/api/v3/klines?symbol=${crypto.symbol}&interval=1d&limit=180&startTime=${sixMonthsAgo}`;
-        
-        if (!isCarousel) {
-            loader.classList.remove('hidden');
-        }
-        
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erreur réseau');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const candles = data.map(kline => ({
-                    open: parseFloat(kline[1]),
-                    high: parseFloat(kline[2]),
-                    low: parseFloat(kline[3]),
-                    close: parseFloat(kline[4]),
-                    volume: parseFloat(kline[5]),
-                    timestamp: kline[0]
-                }));
-                
-                const instance = graphInstances[cryptoId];
-                if (instance) {
-                    instance.candles = candles;
-                    calculateMonthlyChange(instance);
-                    calculatePerformanceChanges(instance);
-                    
-                    if (isCarousel) {
-                        const chartType = carouselChartTypes[cryptoId];
-                        redrawCarouselGraph(instance, chartType);
-                    } else {
-                        redrawSelectedGraph(instance, selectedChartType);
-                    }
-                }
-                if (!isCarousel) {
-                    loader.classList.add('hidden');
-                }
-            })
-            .catch(error => {
-                console.error(`Erreur historique pour ${crypto.symbol}:`, error);
-                if (!isCarousel) {
-                    loader.classList.add('hidden');
-                }
-            });
-    }
-
-    function redrawCarouselGraph(instance, chartType) {
-        if (chartType === 'line') {
-            drawLineChart(instance);
-        } else if (chartType === 'pc') {
-            drawPcChart(instance);
-        } else {
-            drawCandlestickChart(instance);
-        }
-        drawMonthMarkers(instance);
-    }
-
-    function redrawSelectedGraph(instance, chartType) {
-        if (chartType === 'line') {
-            drawLineChart(instance);
-        } else if (chartType === 'pc') {
-            drawPcChart(instance);
-        } else {
-            drawCandlestickChart(instance);
-        }
-        drawMonthMarkers(instance);
-    }
-
     function calculateMonthlyChange(instance) {
         if (!instance.candles || instance.candles.length < 30) return;
         
@@ -460,17 +751,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         instance.monthlyChange = change;
         
-        if (selectedCrypto && selectedCrypto.id === instance.crypto.id) {
-            updateCryptoInfoPanel(instance);
+        if (selectedAsset && selectedAsset.id === instance.crypto.id) {
+            updateAssetInfoPanel(instance);
         }
     }
     
-    function updateCryptoInfoPanel(instance) {
+    function updateAssetInfoPanel(instance) {
         if (!instance.candles || instance.candles.length === 0) return;
         
         const currentCandle = instance.candles[instance.candles.length - 1];
         const symbol = instance.crypto.symbol.replace('USDT', '');
-        const cryptoData24h = crypto24hData[instance.crypto.id];
+        const assetData24h = asset24hData[instance.crypto.id];
         
         document.getElementById('infoSymbol').textContent = symbol;
         document.getElementById('infoPrice').textContent = `$${currentCandle.close.toFixed(2)}`;
@@ -487,17 +778,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        if (cryptoData24h) {
-            document.getElementById('infoHigh').textContent = `$${cryptoData24h.highPrice.toFixed(2)}`;
-            document.getElementById('infoLow').textContent = `$${cryptoData24h.lowPrice.toFixed(2)}`;
+        if (assetData24h) {
+            document.getElementById('infoHigh').textContent = `$${assetData24h.highPrice.toFixed(2)}`;
+            document.getElementById('infoLow').textContent = `$${assetData24h.lowPrice.toFixed(2)}`;
             
             let formattedVolume;
-            if (cryptoData24h.volume >= 1000000) {
-                formattedVolume = `${(cryptoData24h.volume / 1000000).toFixed(2)}M`;
-            } else if (cryptoData24h.volume >= 1000) {
-                formattedVolume = `${(cryptoData24h.volume / 1000).toFixed(2)}K`;
+            if (assetData24h.volume >= 1000000) {
+                formattedVolume = `${(assetData24h.volume / 1000000).toFixed(2)}M`;
+            } else if (assetData24h.volume >= 1000) {
+                formattedVolume = `${(assetData24h.volume / 1000).toFixed(2)}K`;
             } else {
-                formattedVolume = cryptoData24h.volume.toFixed(2);
+                formattedVolume = assetData24h.volume.toFixed(2);
             }
             document.getElementById('infoVolume').textContent = formattedVolume;
         } else {
@@ -509,13 +800,13 @@ document.addEventListener('DOMContentLoaded', function() {
         cryptoInfoPanel.classList.remove('hidden');
     }
     
-    function updateCryptoPrice(cryptoId, price) {
-        const instance = graphInstances[cryptoId];
+    function updateAssetPrice(assetId, price) {
+        const instance = graphInstances[assetId];
         if (!instance) return;
         
         instance.currentPrice = price;
         
-        const priceElement = document.getElementById(cryptos.find(c => c.id === cryptoId).priceElement);
+        const priceElement = document.getElementById(currentAssets.find(c => c.id === assetId).priceElement);
         if (priceElement) {
             priceElement.textContent = `$${price.toFixed(2)}`;
             priceElement.style.color = price > (instance.lastPrice || 0) ? '#39d353' : '#ff6b6b';
@@ -523,18 +814,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         instance.lastPrice = price;
         
-        if (selectedCrypto && selectedCrypto.id === cryptoId) {
-            updateCryptoInfoPanel(instance);
+        if (selectedAsset && selectedAsset.id === assetId) {
+            updateAssetInfoPanel(instance);
         }
-    }
-    
-    // === GESTION DES GRAPHIQUES ===
-    function initCarouselGraphs() {
-        cryptos.forEach(crypto => {
-            const canvas = document.getElementById(`${crypto.id}Canvas`);
-            initGraph(canvas, crypto, true);
-            fetchHistoricalData(crypto.id, true);
-        });
     }
     
     function initGraph(canvas, crypto, isCarousel = false) {
@@ -577,13 +859,6 @@ document.addEventListener('DOMContentLoaded', function() {
             performanceChanges: null,
             position: { x: 50, y: 50 }
         };
-        
-        if (isCarousel) {
-            const canvasElement = document.getElementById(`${crypto.id}Canvas`);
-            canvasElement.addEventListener('click', function(e) {
-                selectCrypto(crypto.id);
-            });
-        }
         
         return graphInstances[crypto.id];
     }
@@ -879,61 +1154,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // === SÉLECTION CRYPTO ===
-    function selectCrypto(cryptoId) {
-        selectedCrypto = cryptos.find(c => c.id === cryptoId);
-        selectedView.style.background = '#111216';
-        selectedView.style.backgroundColor = 'rgba(17, 18, 22, 0.5)';   
-        carousel.classList.add('carousel-paused');
-        carouselScene.classList.add('hidden');
-        
-        selectedCryptoName.textContent = selectedCrypto.name;
-        selectedCryptoName.style.position = 'absolute';
-        selectedCryptoName.style.bottom = '10px';
-        selectedCryptoName.style.left = '0';
-        selectedCryptoName.style.width = '100%';
-        selectedCryptoName.style.textAlign = 'center';
-        selectedCryptoName.style.fontSize = '10px';
-        selectedCryptoName.style.color = 'white';
-        selectedCryptoName.style.zIndex = '10';
-        
-        selectedView.classList.add('active');
-        backBtn.classList.remove('hidden');
-        
-        selectedView.style.width = '700px';
-        selectedView.style.height = '400px';
-
-        initGraph(selectedCanvas, selectedCrypto, false);
-        
-        cryptoInfoPanel.style.position = 'relative';
-        cryptoInfoPanel.style.width = '700px';
-        cryptoInfoPanel.style.height = '120px';
-        cryptoInfoPanel.style.left = 'auto';
-        cryptoInfoPanel.style.top = 'auto';
-        
-        // Ajouter le coin de redimensionnement pour le panel seulement
-        createResizeCornerForPanel(cryptoInfoPanel);
-        
-        const originalInstance = graphInstances[selectedCrypto.id];
-        const newInstance = graphInstances[selectedCrypto.id];
-        if (originalInstance && newInstance) {
-            newInstance.candles = [...originalInstance.candles];
-            newInstance.currentPrice = originalInstance.currentPrice;
-            newInstance.lastPrice = originalInstance.lastPrice;
-            newInstance.monthlyChange = originalInstance.monthlyChange;
-            newInstance.performanceChanges = originalInstance.performanceChanges;
-            
-            redrawSelectedGraph(newInstance, selectedChartType);
-            updateCryptoInfoPanel(newInstance);
-            updatePerformanceIndicators(newInstance);
+    function redrawCarouselGraph(instance, chartType) {
+        if (chartType === 'line') {
+            drawLineChart(instance);
+        } else if (chartType === 'pc') {
+            drawPcChart(instance);
+        } else {
+            drawCandlestickChart(instance);
         }
-        
-        if (!originalInstance || originalInstance.candles.length === 0) {
-            fetchHistoricalData(cryptoId);
-        }
+        drawMonthMarkers(instance);
     }
-    
-    // === GESTION DES BOUTONS GRAPHIQUE ===
+
+    function redrawSelectedGraph(instance, chartType) {
+        if (chartType === 'line') {
+            drawLineChart(instance);
+        } else if (chartType === 'pc') {
+            drawPcChart(instance);
+        } else {
+            drawCandlestickChart(instance);
+        }
+        drawMonthMarkers(instance);
+    }
+
     function initGraphToggleButtons() {
         lineChartBtn.addEventListener('click', function() {
             selectedChartType = 'line';
@@ -941,8 +1183,8 @@ document.addEventListener('DOMContentLoaded', function() {
             candleChartBtn.classList.remove('active');
             pcChartBtn.classList.remove('active');
             
-            if (selectedCrypto) {
-                const instance = graphInstances[selectedCrypto.id];
+            if (selectedAsset) {
+                const instance = graphInstances[selectedAsset.id];
                 if (instance) {
                     redrawSelectedGraph(instance, selectedChartType);
                 }
@@ -955,8 +1197,8 @@ document.addEventListener('DOMContentLoaded', function() {
             lineChartBtn.classList.remove('active');
             pcChartBtn.classList.remove('active');
             
-            if (selectedCrypto) {
-                const instance = graphInstances[selectedCrypto.id];
+            if (selectedAsset) {
+                const instance = graphInstances[selectedAsset.id];
                 if (instance) {
                     redrawSelectedGraph(instance, selectedChartType);
                 }
@@ -969,8 +1211,8 @@ document.addEventListener('DOMContentLoaded', function() {
             lineChartBtn.classList.remove('active');
             candleChartBtn.classList.remove('active');
             
-            if (selectedCrypto) {
-                const instance = graphInstances[selectedCrypto.id];
+            if (selectedAsset) {
+                const instance = graphInstances[selectedAsset.id];
                 if (instance) {
                     redrawSelectedGraph(instance, selectedChartType);
                 }
@@ -1006,7 +1248,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // === DRAG AND DROP ===
     function initDragForElement(element) {
         let isDragging = false;
         let startX, startY;
@@ -1097,7 +1338,10 @@ document.addEventListener('DOMContentLoaded', function() {
         carouselScene.classList.remove('hidden');
         backBtn.classList.add('hidden');
         cryptoInfoPanel.classList.add('hidden');
-        selectedCrypto = null;
+        selectedAsset = null;
+        
+        // Réafficher le menu latéral
+        sideMenu.classList.remove('hidden');
         
         selectedView.style.position = 'relative';
         selectedView.style.left = '0px';
@@ -1105,23 +1349,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         carousel.classList.remove('carousel-paused');
         
-        cryptos.forEach(crypto => {
-            const instance = graphInstances[crypto.id];
+        currentAssets.forEach(asset => {
+            const instance = graphInstances[asset.id];
             if (instance && instance.candles && instance.candles.length > 0) {
-                const chartType = carouselChartTypes[crypto.id];
+                const chartType = carouselChartTypes[asset.id];
                 redrawCarouselGraph(instance, chartType);
             }
         });
         
         initCarouselButtons();
     });
-    
-    // Initialiser l'application
-    initCarouselGraphs();
-    initAllDraggableElements();
-    initPanelDrag();
-    initGraphToggleButtons();
-    initCarouselButtons();
-    startApiUpdates();
 });
-

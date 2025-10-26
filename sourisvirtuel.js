@@ -1,3 +1,4 @@
+
         import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.4";
 
         // Appliquer les styles directement via JavaScript
@@ -27,31 +28,36 @@
         let dragStartX = 0, dragStartY = 0;
         let elementStartX = 0, elementStartY = 0;
 
-        // Configuration
+        // CONFIGURATION AMÉLIORÉE POUR STABILITÉ
         const PINCH_CONFIG = {
-            threshold: 0.04,
-            releaseThreshold: 0.055,
-            historyLength: 4,
-            minFrames: 1,
-            minReleaseFrames: 2
+            threshold: 0.038,           // Plus sensible pour détection facile
+            releaseThreshold: 0.065,    // Plus tolérant pour maintenir le drag
+            historyLength: 6,           // Plus d'historique pour stabilité
+            minFrames: 2,               // Plus de frames pour confirmer
+            minReleaseFrames: 8,        // BEAUCOUP plus de frames pour relâcher (CRITIQUE)
+            dragStabilityFrames: 5      // Frames de stabilité pendant le drag
         };
 
         const SMOOTHING_CONFIG = {
-            baseLerp: 0.7,
-            slowLerp: 0.2,
-            predictionStrength: 0.05,
+            baseLerp: 0.65,             // Moins de lissage pour réactivité
+            slowLerp: 0.15,
+            predictionStrength: 0.08,
             slowDownRadius: 100,
-            maxSpeed: 30
+            maxSpeed: 60                // Vitesse maximale augmentée
         };
 
         // Variables d'état
         let pinchHistory = [];
         let pinchFrames = 0;
         let releaseFrames = 0;
+        let dragStabilityFrames = 0;
         let velocityX = 0;
         let velocityY = 0;
         let lastX = smoothX;
         let lastY = smoothY;
+        let lastHandDetected = false;
+        let framesWithoutHand = 0;
+        const MAX_FRAMES_WITHOUT_HAND = 15; // Tolérance aux pertes de détection
 
         // Correction du décalage
         const CAMERA_CORRECTION = {
@@ -67,7 +73,8 @@
             return a + (b - a) * easedT;
         }
 
-        function detectPinch(thumb, index) {
+        // DÉTECTION DE PINCEMENT ROBUSTE
+        function detectStablePinch(thumb, index) {
             const distThumbIndex = Math.hypot(thumb.x - index.x, thumb.y - index.y);
             
             pinchHistory.push(distThumbIndex);
@@ -75,13 +82,26 @@
                 pinchHistory.shift();
             }
             
-            const avgDistance = pinchHistory.reduce((a, b) => a + b, 0) / pinchHistory.length;
+            // Moyenne pondérée pour plus de stabilité
+            const weights = [0.05, 0.1, 0.15, 0.2, 0.25, 0.25];
+            let weightedSum = 0;
+            let totalWeight = 0;
+            
+            for (let i = 0; i < Math.min(pinchHistory.length, weights.length); i++) {
+                const weight = weights[i];
+                weightedSum += pinchHistory[pinchHistory.length - 1 - i] * weight;
+                totalWeight += weight;
+            }
+            
+            const avgDistance = weightedSum / totalWeight;
             
             let pinchDetected;
             
-            if (isMouseDown) {
-                pinchDetected = avgDistance < PINCH_CONFIG.releaseThreshold;
+            if (isMouseDown || isDragging) {
+                // PENDANT LE DRAG: beaucoup plus tolérant
+                pinchDetected = avgDistance < PINCH_CONFIG.releaseThreshold * 1.3;
             } else {
+                // POUR DÉMARRER: seuil normal
                 pinchDetected = avgDistance < PINCH_CONFIG.threshold;
             }
             
@@ -90,26 +110,34 @@
                 releaseFrames = 0;
             } else {
                 releaseFrames++;
-                pinchFrames = 0;
+                pinchFrames = Math.max(0, pinchFrames - 0.5); // Décrémentation lente
             }
             
-            if (pinchFrames >= PINCH_CONFIG.minFrames) {
-                return true;
+            // CONDITIONS SPÉCIALES PENDANT LE DRAG
+            if (isDragging) {
+                // PENDANT LE DRAG: nécessite BEAUCOUP plus de frames pour relâcher
+                if (releaseFrames >= PINCH_CONFIG.minReleaseFrames) {
+                    return false;
+                }
+                return true; // Maintient le drag actif
+            } else {
+                // POUR DÉMARRER: conditions normales
+                if (pinchFrames >= PINCH_CONFIG.minFrames) {
+                    return true;
+                }
+                if (releaseFrames >= 3) { // Relâchement plus rapide pour les clics
+                    return false;
+                }
+                return isMouseDown;
             }
-            
-            if (releaseFrames >= PINCH_CONFIG.minReleaseFrames) {
-                return false;
-            }
-            
-            return isMouseDown;
         }
 
         function calculateVelocity(x, y, deltaTime) {
             const deltaX = x - lastX;
             const deltaY = y - lastY;
             
-            velocityX = (velocityX * 0.7 + deltaX / deltaTime * 0.3);
-            velocityY = (velocityY * 0.7 + deltaY / deltaTime * 0.3);
+            velocityX = (velocityX * 0.6 + deltaX / deltaTime * 0.4);
+            velocityY = (velocityY * 0.6 + deltaY / deltaTime * 0.4);
             
             const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
             if (speed > SMOOTHING_CONFIG.maxSpeed) {
@@ -128,14 +156,24 @@
             
             switch(state) {
                 case 'dragging':
-                    cursor.style.background = 'rgba(255, 100, 100, 0.95)';
-                    cursor.style.transform = 'translate(-50%, -50%) scale(1.6)';
-                    cursor.style.boxShadow = '0 0 0 3px rgba(255, 255, 255, 1), 0 0 20px rgba(255, 100, 100, 0.8)';
+                    cursor.style.background = 'rgba(255, 50, 50, 0.95)';
+                    cursor.style.transform = 'translate(-50%, -50%) scale(1.8)';
+                    cursor.style.boxShadow = '0 0 0 3px rgba(255, 255, 255, 1), 0 0 25px rgba(255, 50, 50, 0.9)';
                     break;
                 case 'pinching':
                     cursor.style.background = 'rgba(0, 255, 100, 0.95)';
-                    cursor.style.transform = 'translate(-50%, -50%) scale(1.4)';
+                    cursor.style.transform = 'translate(-50%, -50%) scale(1.5)';
                     cursor.style.boxShadow = '0 0 0 3px rgba(255, 255, 255, 1), 0 0 20px rgba(0, 255, 100, 0.8)';
+                    break;
+                case 'hover-draggable':
+                    cursor.style.background = 'rgba(255, 200, 0, 0.95)';
+                    cursor.style.transform = 'translate(-50%, -50%) scale(1.4)';
+                    cursor.style.boxShadow = '0 0 0 3px rgba(255, 255, 255, 1), 0 0 20px rgba(255, 200, 0, 0.8)';
+                    break;
+                case 'hover-button':
+                    cursor.style.background = 'rgba(0, 150, 255, 0.95)';
+                    cursor.style.transform = 'translate(-50%, -50%) scale(1.4)';
+                    cursor.style.boxShadow = '0 0 0 3px rgba(255, 255, 255, 1), 0 0 20px rgba(0, 150, 255, 0.8)';
                     break;
                 default:
                     cursor.style.background = 'rgba(0, 200, 255, 0.95)';
@@ -144,12 +182,13 @@
             }
         }
 
-        // FONCTIONS POUR LE DRAG UNIVERSEL
+        // SYSTÈME DE DRAG UNIVERSEL AMÉLIORÉ
         function startUniversalDrag(element) {
             if (isDragging) return;
             
             isDragging = true;
             currentDragElement = element;
+            dragStabilityFrames = 0;
             
             // Sauvegarder la position de départ
             const rect = element.getBoundingClientRect();
@@ -178,10 +217,6 @@
         function updateUniversalDrag() {
             if (!isDragging || !currentDragElement) return;
             
-            // Calculer le déplacement
-            const deltaX = smoothX - dragStartX;
-            const deltaY = smoothY - dragStartY;
-            
             // Émettre l'événement mousemove pour les systèmes de drag personnalisés
             const mouseMoveEvent = new MouseEvent('mousemove', {
                 bubbles: true,
@@ -197,6 +232,8 @@
             } catch (error) {
                 console.log("MouseMove error:", error);
             }
+            
+            dragStabilityFrames++;
         }
 
         function stopUniversalDrag() {
@@ -222,13 +259,24 @@
             
             isDragging = false;
             currentDragElement = null;
+            dragStabilityFrames = 0;
         }
 
-        // DÉTECTION DES ÉLÉMENTS DRAGGABLES
+        // DÉTECTION INTELLIGENTE DES ÉLÉMENTS
         function isElementDraggable(element) {
             if (!element) return false;
             
-            // Vérifier si l'élément a des attributs ou classes qui indiquent qu'il est draggable
+            // Ne pas dragger les boutons standard (ils doivent rester cliquables)
+            if (element.tagName === 'BUTTON' && !element.hasAttribute('draggable')) {
+                return false;
+            }
+            
+            // Ne pas dragger les liens standard
+            if (element.tagName === 'A' && !element.hasAttribute('draggable')) {
+                return false;
+            }
+            
+            // Vérifier les attributs de drag explicites
             const draggableSelectors = [
                 '[draggable="true"]',
                 '[class*="drag"]',
@@ -249,18 +297,17 @@
             // Vérifier les styles de position
             const style = window.getComputedStyle(element);
             if (style.position === 'absolute' || style.position === 'fixed' || style.position === 'relative') {
-                return true;
-            }
-            
-            // Vérifier les écouteurs d'événements
-            if (element.onmousedown || element.ontouchstart) {
-                return true;
+                // Exclure les petits éléments interactifs
+                const rect = element.getBoundingClientRect();
+                if (rect.width > 50 && rect.height > 50) { // Seulement les éléments assez grands
+                    return true;
+                }
             }
             
             return false;
         }
 
-        function getDraggableElementAtPosition(x, y) {
+        function getElementAtPosition(x, y) {
             const elements = document.elementsFromPoint(x, y);
             
             for (let element of elements) {
@@ -322,7 +369,7 @@
             }
         }
 
-        // BOUCLE PRINCIPALE AVEC DRAG UNIVERSEL
+        // BOUCLE PRINCIPALE CORRIGÉE
         let lastTime = performance.now();
 
         async function predictHighRes() {
@@ -333,7 +380,12 @@
             const nowInMs = performance.now();
             const result = handLandmarker.detectForVideo(video, nowInMs);
 
-            if (result.landmarks && result.landmarks.length > 0) {
+            const handDetected = result.landmarks && result.landmarks.length > 0;
+            
+            if (handDetected) {
+                framesWithoutHand = 0;
+                lastHandDetected = true;
+                
                 const landmarks = result.landmarks[0];
                 const index = landmarks[8];
                 const thumb = landmarks[4];
@@ -342,29 +394,30 @@
                 const rawX = window.innerWidth * (1 - index.x) * CAMERA_CORRECTION.scaleX + CAMERA_CORRECTION.xOffset;
                 const rawY = window.innerHeight * index.y * CAMERA_CORRECTION.scaleY + CAMERA_CORRECTION.yOffset;
 
-                // Lissage
-                smoothX = smoothX * 0.7 + rawX * 0.3;
-                smoothY = smoothY * 0.7 + rawY * 0.3;
+                // Lissage adaptatif - moins de lissage pendant le drag
+                const lerpFactor = isDragging ? 0.4 : SMOOTHING_CONFIG.baseLerp;
+                smoothX = advancedLerp(smoothX, rawX, lerpFactor);
+                smoothY = advancedLerp(smoothY, rawY, lerpFactor);
 
                 cursor.style.left = smoothX + "px";
                 cursor.style.top = smoothY + "px";
                 cursor.style.zIndex = '9970';
 
-                // Détection de pincement
-                const isPinching = detectPinch(thumb, index);
+                // DÉTECTION DE PINCEMENT ROBUSTE
+                const isPinching = detectStablePinch(thumb, index);
                 
-                // Détection de l'élément sous le curseur
-                const { element: elUnderCursor, type: elementType } = getDraggableElementAtPosition(smoothX, smoothY);
+                // DÉTECTION DE L'ÉLÉMENT SOUS LE CURSEUR
+                const { element: elUnderCursor, type: elementType } = getElementAtPosition(smoothX, smoothY);
 
-                // GESTION DES ÉVÉNEMENTS AVEC DRAG UNIVERSEL
-                if (isPinching && !isMouseDown) {
+                // GESTION DES ÉVÉNEMENTS CORRIGÉE
+                if (isPinching && !isMouseDown && !isDragging) {
                     isMouseDown = true;
                     
                     if (elementType === 'draggable') {
-                        // COMMENCER LE DRAG UNIVERSEL
+                        // COMMENCER LE DRAG
                         startUniversalDrag(elUnderCursor);
                     } else {
-                        // CLIC NORMAL
+                        // CLIC NORMAL SUR BOUTON
                         const downEvent = new MouseEvent("mousedown", {
                             bubbles: true,
                             cancelable: true,
@@ -382,42 +435,43 @@
                         }
                     }
                     
-                } else if (!isPinching && isMouseDown) {
+                } else if (!isPinching && isMouseDown && !isDragging) {
                     isMouseDown = false;
                     
-                    if (isDragging) {
-                        // ARRÊTER LE DRAG UNIVERSEL
-                        stopUniversalDrag();
-                    } else {
-                        // CLIC NORMAL (mouseup + click)
-                        const upEvent = new MouseEvent("mouseup", {
-                            bubbles: true,
-                            cancelable: true,
-                            clientX: smoothX,
-                            clientY: smoothY,
-                            button: 0
-                        });
-                        
-                        const clickEvent = new MouseEvent("click", {
-                            bubbles: true,
-                            cancelable: true,
-                            clientX: smoothX,
-                            clientY: smoothY
-                        });
-                        
-                        try {
-                            if (elUnderCursor) {
-                                elUnderCursor.dispatchEvent(upEvent);
-                                
-                                setTimeout(() => {
-                                    if (!isMouseDown) {
-                                        elUnderCursor.dispatchEvent(clickEvent);
-                                    }
-                                }, 10);
-                            }
-                        } catch (error) {
-                            console.log("MouseUp/Click error:", error);
+                    // TERMINER LE CLIC SUR BOUTON
+                    const upEvent = new MouseEvent("mouseup", {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: smoothX,
+                        clientY: smoothY,
+                        button: 0
+                    });
+                    
+                    const clickEvent = new MouseEvent("click", {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: smoothX,
+                        clientY: smoothY
+                    });
+                    
+                    try {
+                        if (elUnderCursor) {
+                            elUnderCursor.dispatchEvent(upEvent);
+                            
+                            setTimeout(() => {
+                                if (!isMouseDown) {
+                                    elUnderCursor.dispatchEvent(clickEvent);
+                                }
+                            }, 10);
                         }
+                    } catch (error) {
+                        console.log("MouseUp/Click error:", error);
+                    }
+                } else if (!isPinching && isDragging) {
+                    // PENDANT LE DRAG: vérifier si on doit relâcher
+                    if (releaseFrames >= PINCH_CONFIG.minReleaseFrames) {
+                        isMouseDown = false;
+                        stopUniversalDrag();
                     }
                 }
 
@@ -433,21 +487,33 @@
                     updateCursorAppearance('pinching');
                 } else if (elementType === 'draggable') {
                     updateCursorAppearance('hover-draggable');
+                } else if (elementType === 'clickable') {
+                    updateCursorAppearance('hover-button');
                 } else {
                     updateCursorAppearance('normal');
                 }
                 
             } else {
-                // Pas de main détectée - réinitialiser
-                if (isMouseDown) {
+                // PAS DE MAIN DÉTECTÉE
+                framesWithoutHand++;
+                
+                // PENDANT LE DRAG: tolérer les pertes temporaires de détection
+                if (isDragging && framesWithoutHand <= MAX_FRAMES_WITHOUT_HAND) {
+                    // Continuer à mettre à jour la position du drag
+                    if (isDragging) {
+                        updateUniversalDrag();
+                    }
+                } else if (isMouseDown || isDragging) {
+                    // Trop de frames sans main - relâcher
                     isMouseDown = false;
                     if (isDragging) {
                         stopUniversalDrag();
                     }
                     updateCursorAppearance('normal');
                 }
+                
                 pinchFrames = 0;
-                releaseFrames = 0;
+                releaseFrames++;
                 pinchHistory = [];
                 cursor.style.zIndex = '9970';
             }
@@ -476,10 +542,3 @@
 
         // Exposer les fonctions globales
         window.adjustCameraCorrection = adjustCameraCorrection;
-        
-        // Fonction utilitaire pour forcer le drag sur un élément spécifique
-        window.forceDragOnElement = function(element) {
-            if (element) {
-                startUniversalDrag(element);
-            }
-        };

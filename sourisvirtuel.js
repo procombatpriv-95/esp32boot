@@ -14,7 +14,7 @@
         cursor.style.borderRadius = '50%';
         cursor.style.transform = 'translate(-50%, -50%)';
         cursor.style.pointerEvents = 'none';
-        cursor.style.zIndex = '9999';
+        cursor.style.zIndex = '9970'; // TOUJOURS 9970
         cursor.style.transition = 'all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         cursor.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 15px rgba(0, 200, 255, 0.8)';
 
@@ -120,7 +120,8 @@
         }
 
         function updateCursorAppearance(state) {
-            cursor.style.zIndex = '9999';
+            // TOUJOURS réappliquer le z-index à 9970
+            cursor.style.zIndex = '9970';
             
             switch(state) {
                 case 'pinching':
@@ -209,6 +210,9 @@
                 cursor.style.left = smoothX + "px";
                 cursor.style.top = smoothY + "px";
 
+                // S'assurer que le z-index reste à 9970 à chaque frame
+                cursor.style.zIndex = '9970';
+
                 // Détection de pincement
                 const isPinching = detectPinch(thumb, index);
                 
@@ -286,6 +290,9 @@
                 pinchFrames = 0;
                 releaseFrames = 0;
                 pinchHistory = [];
+                
+                // S'assurer que le z-index reste à 9970 même sans main détectée
+                cursor.style.zIndex = '9970';
             }
 
             requestAnimationFrame(predictHighRes);

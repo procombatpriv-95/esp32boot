@@ -153,7 +153,7 @@ function draw(){
     ctx.textAlign = 'center';
 
     // fond du canvas - MODIFIER CETTE LIGNE
-    ctx.fillStyle = 'rgba(17, 18, 22, 0.7)'; // Changé pour ajouter la transparence
+    ctx.fillStyle = 'rgba(17, 18, 22, 0.6)'; // Changé pour ajouter la transparence
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
     // Afficher un message de chargement

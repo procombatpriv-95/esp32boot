@@ -105,10 +105,10 @@ function roundedRect(x,y,w,h,r) {
 const cx = pos.x+14, cy = pos.y+20;
 ctx.beginPath();
 ctx.arc(cx, cy, 10, 0, Math.PI*2);
-ctx.fillStyle = "rgba(255,255,255,0.8)"; // ← CHANGEMENT ICI
+ctx.fillStyle = "rgba(17, 18, 22, 0.8)"; // ← CHANGEMENT ICI
 ctx.fill();
 ctx.fillStyle = "#fff";
-ctx.font = "600 9px Arial";
+ctx.font = "600 8px Arial";
 ctx.textAlign = "center";
 ctx.fillText(info.short, cx, cy+1);
 

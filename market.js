@@ -97,7 +97,7 @@ function roundedRect(x,y,w,h,r) {
       const info = state[pos.key];
 
       // carte
-      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.fillStyle = "rgba(255,255,255,0.03)";
       roundedRect(pos.x,pos.y,cardW,cardH,30);
       ctx.fill();
 

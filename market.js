@@ -79,15 +79,15 @@ window.addEventListener("load", () => {
   ];
 
   // Fonction dessin
-  function roundedRect(x,y,w,h,r) {
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+w, y,   x+w, y+r, r);
-    ctx.arcTo(x+w,y+h,  x+w-r,y+h, r);
-    ctx.arcTo(x,  y+h,  x,   y+h-r, r);
-    ctx.arcTo(x,  y,    x+r, y, r);
-    ctx.closePath();
-  }
+function roundedRect(x,y,w,h,r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y,   x+w, y+r, r);
+  ctx.arcTo(x+w,y+h,  x+w-r,y+h, r);
+  ctx.arcTo(x,  y+h,  x,   y+h-r, r);
+  ctx.arcTo(x,  y,    x+r, y, r);
+  ctx.closePath();
+}
 
   function draw() {
     ctx.clearRect(0, 0, CSS_W, CSS_H);
@@ -102,15 +102,15 @@ window.addEventListener("load", () => {
       ctx.fill();
 
       // pastille symbole
-      const cx = pos.x+14, cy = pos.y+20;
-      ctx.beginPath();
-      ctx.arc(cx, cy, 10, 0, Math.PI*2);
-      ctx.fillStyle = "#222";
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.font = "600 9px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(info.short, cx, cy+1);
+const cx = pos.x+14, cy = pos.y+20;
+ctx.beginPath();
+ctx.arc(cx, cy, 10, 0, Math.PI*2);
+ctx.fillStyle = "rgba(255,255,255,0.8)"; // ← CHANGEMENT ICI
+ctx.fill();
+ctx.fillStyle = "#fff";
+ctx.font = "600 9px Arial";
+ctx.textAlign = "center";
+ctx.fillText(info.short, cx, cy+1);
 
       // nom à droite du logo
       ctx.textAlign = "left";

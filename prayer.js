@@ -148,12 +148,12 @@ window.addEventListener("load", () => {
     if(stroke) ctx.stroke();
   }
 
-  function draw(){
+function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.textAlign = 'center';
 
-    // fond du canvas
-    ctx.fillStyle = '#111216';
+    // fond du canvas - MODIFIER CETTE LIGNE
+    ctx.fillStyle = 'rgba(17, 18, 22, 0.7)'; // Changé pour ajouter la transparence
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
     // Afficher un message de chargement

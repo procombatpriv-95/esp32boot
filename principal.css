@@ -492,12 +492,6 @@
   
 
 
-.boutoncycle-container {
-    margin-top: 22px;
-    left: 998px;
-    position: absolute;
-    z-index: 1200;
-}
 
 .boutoncycle {
     width: var(--btn-size);

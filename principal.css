@@ -109,22 +109,6 @@
 
 
 
-.canvas-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 colonnes */
-  grid-template-rows: repeat(2, auto);   /* 2 lignes */
-  gap: 20px;
-  border-radius: 30px;                             /* espace entre les canvas */
-  justify-items: center;                 /* centre chaque canvas */
-  align-items: center;
-  padding: 20px;
-}
-
-.canvas-grid canvas {
-
-  border-radius: 30px;
-
-}
 
 
 

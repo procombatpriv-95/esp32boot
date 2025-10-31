@@ -13,10 +13,10 @@ let hasDraggedRappel = false;
 
 // FORCER le z-index au chargement et constamment
 function enforceZIndexRappel() {
-  rappelContain.style.zIndex = '9500';
-  rappelmove.style.zIndex = '9500';
+  rappelContain.style.zIndex = '7000';
+  rappelmove.style.zIndex = '7000';
   document.querySelectorAll('.rappelcontain, #rappelmove, #inputrappel, .content-area-rappel').forEach(el => {
-    el.style.zIndex = '9500';
+    el.style.zIndex = '7000';
   });
 }
 

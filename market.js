@@ -1,188 +1,170 @@
+        const canvas = document.getElementById("echange");
+        const ctx = canvas.getContext("2d");
 
-function makeCanvasDraggable(canvas) {
-    let isDragging = false;
-    let startX, startY;
-    let startLeft = 0, startTop = 0;
+        let rate = 0.85;
+        let euroValue = "";
+        let poundValue = "";
+        let activeField = null;
 
-    canvas.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        
-        // Récupérer la position actuelle
-        startLeft = parseInt(canvas.style.left) || 0;
-        startTop = parseInt(canvas.style.top) || 0;
-        
-        canvas.classList.add('dragging');
-        document.addEventListener('mousemove', onDrag);
-        document.addEventListener('mouseup', stopDrag);
-        e.preventDefault();
-    });
+        // Variables pour le drag and drop
+        let isDragging = false;
+        let startX, startY;
+        let startLeft = 0, startTop = 0;
 
-    function onDrag(e) {
-        if (!isDragging) return;
-        
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        
-        canvas.style.position = 'relative';
-        canvas.style.left = (startLeft + dx) + 'px';
-        canvas.style.top = (startTop + dy) + 'px';
-    }
+        // --- Fonction drag and drop ---
+        function initDrag() {
+            canvas.addEventListener('mousedown', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
 
-    function stopDrag() {
-        isDragging = false;
-        canvas.classList.remove('dragging');
-        document.removeEventListener('mousemove', onDrag);
-        document.removeEventListener('mouseup', stopDrag);
-    }
-}
+                // Vérifier si on clique sur un champ de saisie
+                if ((x >= 50 && x <= 130 && y >= 65 && y <= 95) || 
+                    (x >= 170 && x <= 250 && y >= 65 && y <= 95)) {
+                    return; // Ne pas drag si on clique sur un champ
+                }
 
-window.addEventListener("load", () => {
-  const canvas = document.getElementById("market");
-  
-  // AJOUT: Rendre le canvas déplaçable
-  makeCanvasDraggable(canvas);
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                startLeft = parseInt(canvas.style.left) || 0;
+                startTop = parseInt(canvas.style.top) || 0;
+                
+                canvas.classList.add('dragging');
+                document.addEventListener('mousemove', onDrag);
+                document.addEventListener('mouseup', stopDrag);
+                e.preventDefault();
+            });
 
-  // Retina scaling
-  const DPR = window.devicePixelRatio || 1;
-  const CSS_W = parseInt(canvas.getAttribute("width"), 10);
-  const CSS_H = parseInt(canvas.getAttribute("height"), 10);
-  canvas.style.width = CSS_W + "px";
-  canvas.style.height = CSS_H + "px";
-  canvas.width = CSS_W * DPR;
-  canvas.height = CSS_H * DPR;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(DPR, DPR);
+            function onDrag(e) {
+                if (!isDragging) return;
+                
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                
+                canvas.style.position = 'absolute';
+                canvas.style.left = (startLeft + dx) + 'px';
+                canvas.style.top = (startTop + dy) + 'px';
+            }
 
-  // Nettoyage ancienne instance
-  if (window.marketInterval) clearInterval(window.marketInterval);
-  if (window.marketWS) try { window.marketWS.close(); } catch(e) {}
-
-  // État
-  const state = {
-    BTCUSDT: { name: "Bitcoin", short: "BTC", lastDisplayed: null, prev: null, latest: null, trend: null, firstUpdateDone: false },
-    ETHUSDT: { name: "Ethereum", short: "ETH", lastDisplayed: null, prev: null, latest: null, trend: null, firstUpdateDone: false },
-    XRPUSDT: { name: "XRP", short: "XRP", lastDisplayed: null, prev: null, latest: null, trend: null, firstUpdateDone: false },
-    LTCUSDT: { name: "Litecoin", short: "LTC", lastDisplayed: null, prev: null, latest: null, trend: null, firstUpdateDone: false }
-  };
-
-  // Positions 2x2
-  const pad = 8, gap = 8;
-  const cardW = (CSS_W - pad*2 - gap) / 2;
-  const cardH = (CSS_H - pad*2 - gap) / 2;
-  const positions = [
-    { x: pad,             y: pad,             key: "BTCUSDT" },
-    { x: pad+cardW+gap,   y: pad,             key: "ETHUSDT" },
-    { x: pad,             y: pad+cardH+gap,   key: "XRPUSDT" },
-    { x: pad+cardW+gap,   y: pad+cardH+gap,   key: "LTCUSDT" }
-  ];
-
-  // Fonction dessin
-function roundedRect(x,y,w,h,r) {
-  ctx.beginPath();
-  ctx.moveTo(x+r, y);
-  ctx.arcTo(x+w, y,   x+w, y+r, r);
-  ctx.arcTo(x+w,y+h,  x+w-r,y+h, r);
-  ctx.arcTo(x,  y+h,  x,   y+h-r, r);
-  ctx.arcTo(x,  y,    x+r, y, r);
-  ctx.closePath();
-}
-
-  function draw() {
-    ctx.clearRect(0, 0, CSS_W, CSS_H);
-
-    ctx.textAlign = "left";
-    positions.forEach(pos => {
-      const info = state[pos.key];
-
-      // carte
-      ctx.fillStyle = "rgba(255,255,255,0.03)";
-      roundedRect(pos.x,pos.y,cardW,cardH,30);
-      ctx.fill();
-
-      // pastille symbole
-const cx = pos.x+14, cy = pos.y+20;
-ctx.beginPath();
-ctx.arc(cx, cy, 10, 0, Math.PI*2);
-ctx.fillStyle = "rgba(17, 18, 22, 0.8)"; // ← CHANGEMENT ICI
-ctx.fill();
-ctx.fillStyle = "#fff";
-ctx.font = "600 8px Arial";
-ctx.textAlign = "center";
-ctx.fillText(info.short, cx, cy+1);
-
-      // nom à droite du logo
-      ctx.textAlign = "left";
-      ctx.fillStyle = "#dbe6f0";
-      ctx.font = "12px Arial";
-      ctx.fillText(info.name, pos.x+30, pos.y+22);
-
-      // prix
-      if (info.lastDisplayed !== null) {
-        ctx.font = "600 14px Arial";
-        ctx.fillStyle = info.trend === "up" ? "#39d353" : "#ff6b6b";
-        ctx.fillText("$" + info.lastDisplayed.toFixed(2), pos.x+12, pos.y+45);
-
-        // flèche
-        ctx.font = "12px Arial";
-        ctx.fillText(info.trend === "up" ? "↑" : "↓", pos.x+110, pos.y+45);
-
-        // % variation (dès la première fois)
-        const pct = ((info.lastDisplayed - info.prev) / info.prev) * 100;
-        ctx.font = "11px Arial";
-        ctx.fillStyle = pct >= 0 ? "#39d353" : "#ff6b6b";
-        ctx.fillText((pct>=0?"+":"") + pct.toFixed(2) + "%", pos.x+12, pos.y+62);
-      } else {
-        ctx.font = "600 14px Arial";
-        ctx.fillStyle = "#ff6b6b"; 
-        ctx.fillText("--", pos.x+12, pos.y+45);
-      }
-    });
-  }
-
-  // Mise à jour
-  function updateDisplay(forceImmediate=false, symbolKey=null) {
-    let changed = false;
-    for (const key of Object.keys(state)) {
-      const s = state[key];
-      if (s.latest !== null) {
-        if (forceImmediate && symbolKey === key && !s.firstUpdateDone) {
-          s.trend = "up"; 
-          s.prev = s.latest;            // ⚡ prev = latest → % = 0.00% dès la première fois
-          s.lastDisplayed = s.latest;
-          s.firstUpdateDone = true;
-          changed = true;
-        } else if (!forceImmediate) {
-          s.trend = (s.latest > s.lastDisplayed) ? "up" : "down";
-          s.prev = s.lastDisplayed;
-          s.lastDisplayed = s.latest;
-          changed = true;
+            function stopDrag() {
+                isDragging = false;
+                canvas.classList.remove('dragging');
+                document.removeEventListener('mousemove', onDrag);
+                document.removeEventListener('mouseup', stopDrag);
+            }
         }
-      }
-    }
-    if (changed) draw();
-  }
 
-  // --- Interval 30s ---
-  window.marketInterval = setInterval(() => updateDisplay(false), 10000);
+        async function fetchRate() {
+            try {
+                const res = await fetch("https://api.exchangerate.host/latest?base=EUR&symbols=GBP");
+                const data = await res.json();
+                rate = data.rates.GBP;
+            } catch (e) {
+                console.error("Erreur taux:", e);
+            }
+        }
 
-  // --- WebSocket ---
-  const ws = new WebSocket("wss://stream.binance.com:9443/stream?streams=btcusdt@trade/ethusdt@trade/xrpusdt@trade/ltcusdt@trade");
-  window.marketWS = ws;
+        function roundRect(x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        }
 
-  ws.onmessage = (ev) => {
-    const msg = JSON.parse(ev.data);
-    const symbol = msg.stream.split("@")[0].toUpperCase();
-    if (state[symbol]) {
-      state[symbol].latest = parseFloat(msg.data.p);
+        function drawUI() {
+            // Fond avec transparence
+            ctx.fillStyle = "#111216";
+            ctx.globalAlpha = 0.7;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 1.0;
 
-      // Premier affichage immédiat pour ce symbole
-      if (!state[symbol].firstUpdateDone) {
-        updateDisplay(true, symbol);
-      }
-    }
-  };
+            // Titre
+            ctx.fillStyle = "white";
+            ctx.font = "bold 14px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("Echange EUR ↔ GBP", canvas.width/2, 25);
 
-  draw(); // layout vide
-});
+            // Labels
+            ctx.font = "12px Arial";
+            ctx.fillText("Euro (€)", 90, 55);
+            ctx.fillText("Pound (£)", 210, 55);
+
+            // Champ Euro
+            roundRect(50, 65, 80, 30, 10);
+            ctx.fillStyle = "white";
+            ctx.fill();
+            ctx.strokeStyle = activeField === "euro" ? "#00ff99" : "#888";
+            ctx.stroke();
+            ctx.fillStyle = "black";
+            ctx.textAlign = "left";
+            ctx.fillText(euroValue, 55, 85);
+
+            // Champ Pound
+            roundRect(170, 65, 80, 30, 10);
+            ctx.fillStyle = "white";
+            ctx.fill();
+            ctx.strokeStyle = activeField === "pound" ? "#00aaff" : "#888";
+            ctx.stroke();
+            ctx.fillStyle = "black";
+            ctx.fillText(poundValue, 175, 85);
+
+            // Taux affiché
+            ctx.fillStyle = "#aaa";
+            ctx.font = "11px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(`1 EUR = ${rate.toFixed(2)} GBP`, canvas.width/2, 150);
+        }
+
+        function updateConversion() {
+            if (activeField === "euro") {
+                const euros = parseFloat(euroValue) || 0;
+                poundValue = (euros * rate).toFixed(2);
+            } else if (activeField === "pound") {
+                const pounds = parseFloat(poundValue) || 0;
+                euroValue = (pounds / rate).toFixed(2);
+            }
+        }
+
+        canvas.addEventListener("click", e => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (x >= 50 && x <= 130 && y >= 65 && y <= 95) {
+                activeField = "euro";
+            } else if (x >= 170 && x <= 250 && y >= 65 && y <= 95) {
+                activeField = "pound";
+            } else {
+                activeField = null;
+            }
+            drawUI();
+        });
+
+        window.addEventListener("keydown", e => {
+            if (!activeField) return;
+            if (e.key >= "0" && e.key <= "9" || e.key === ".") {
+                if (activeField === "euro") euroValue += e.key;
+                else poundValue += e.key;
+            } else if (e.key === "Backspace") {
+                if (activeField === "euro") euroValue = euroValue.slice(0, -1);
+                else poundValue = poundValue.slice(0, -1);
+            }
+            updateConversion();
+            drawUI();
+        });
+
+        window.addEventListener("load", async () => {
+            await fetchRate();
+            initDrag(); // Initialiser le drag and drop
+            drawUI();
+            setInterval(drawUI, 500);
+        });

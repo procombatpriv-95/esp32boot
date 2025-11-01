@@ -1,28 +1,4 @@
-   #camButton {
-      position: fixed;
-      top: 20px;
-      left: 100px;
-      background: #111216;
-      background: rgba(17, 18, 22, 0.5);
-      border-radius: 50%;
-      color: white;
-      font-size: 14px;
-      width: 30px;
-      height: 30px;
-      cursor: grab;
-      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9990;
-      overflow: hidden;
-      padding: 0;
-      margin: 0;
-      touch-action: none;
-      border: none;
-      outline: none;
-    }
-    
+
     #camButton.expanded {
       width: 240px;
       height: 170px;

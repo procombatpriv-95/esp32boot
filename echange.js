@@ -121,42 +121,4 @@ const canvas = document.getElementById("echange");
     drawUI();
     // rafraîchissement UI régulier (par ex. toutes les 500 ms)
     setInterval(drawUI, 500);
-  });integre ce code et adapte le pur qu il, puisse devenir drag and drop 
-function makeCanvasDraggable(canvas) {
-    let isDragging = false;
-    let startX, startY;
-    let startLeft = 0, startTop = 0;
-
-    canvas.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        
-        // Récupérer la position actuelle
-        startLeft = parseInt(canvas.style.left) || 0;
-        startTop = parseInt(canvas.style.top) || 0;
-        
-        canvas.classList.add('dragging');
-        document.addEventListener('mousemove', onDrag);
-        document.addEventListener('mouseup', stopDrag);
-        e.preventDefault();
-    });
-
-    function onDrag(e) {
-        if (!isDragging) return;
-        
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        
-        canvas.style.position = 'relative';
-        canvas.style.left = (startLeft + dx) + 'px';
-        canvas.style.top = (startTop + dy) + 'px';
-    }
-
-    function stopDrag() {
-        isDragging = false;
-        canvas.classList.remove('dragging');
-        document.removeEventListener('mousemove', onDrag);
-        document.removeEventListener('mouseup', stopDrag);
-    }
-}
+  });

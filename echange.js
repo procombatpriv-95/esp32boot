@@ -56,6 +56,30 @@
             }
         }
 
+        // --- Nouvel event listener pour la touche Escape ---
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // Réinitialiser la position du canvas
+                canvas.style.position = 'relative';
+                canvas.style.left = '0px';
+                canvas.style.top = '0px';
+                
+                // Quitter le mode édition si actif
+                activeField = null;
+                drawUI();
+            }
+            
+            // Touche Entrée pour switcher entre les champs
+            if (e.key === 'Enter' && activeField) {
+                if (activeField === 'euro') {
+                    activeField = 'pound';
+                } else {
+                    activeField = 'euro';
+                }
+                drawUI();
+            }
+        });
+
         async function fetchRate() {
             try {
                 const res = await fetch("https://api.exchangerate.host/latest?base=EUR&symbols=GBP");
@@ -82,9 +106,11 @@
 
         function drawUI() {
             // Fond avec transparence
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#111216";
             ctx.globalAlpha = 0.7;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            roundRect(0, 0, canvas.width, canvas.height, 15);
+            ctx.fill();
             ctx.globalAlpha = 1.0;
 
             // Titre
@@ -100,37 +126,46 @@
 
             // Champ Euro
             roundRect(50, 65, 80, 30, 10);
-            ctx.fillStyle = "white";
+            ctx.fillStyle = activeField === "euro" ? "#f0f8ff" : "white";
             ctx.fill();
             ctx.strokeStyle = activeField === "euro" ? "#00ff99" : "#888";
+            ctx.lineWidth = 2;
             ctx.stroke();
             ctx.fillStyle = "black";
             ctx.textAlign = "left";
-            ctx.fillText(euroValue, 55, 85);
+            ctx.font = "12px Arial";
+            ctx.fillText(euroValue || "0", 60, 85);
 
             // Champ Pound
             roundRect(170, 65, 80, 30, 10);
-            ctx.fillStyle = "white";
+            ctx.fillStyle = activeField === "pound" ? "#f0f8ff" : "white";
             ctx.fill();
             ctx.strokeStyle = activeField === "pound" ? "#00aaff" : "#888";
+            ctx.lineWidth = 2;
             ctx.stroke();
             ctx.fillStyle = "black";
-            ctx.fillText(poundValue, 175, 85);
+            ctx.font = "12px Arial";
+            ctx.fillText(poundValue || "0", 180, 85);
 
             // Taux affiché
-            ctx.fillStyle = "#aaa";
+            ctx.fillStyle = "#ddd";
             ctx.font = "11px Arial";
             ctx.textAlign = "center";
-            ctx.fillText(`1 EUR = ${rate.toFixed(2)} GBP`, canvas.width/2, 150);
+            ctx.fillText(`1 EUR = ${rate.toFixed(4)} GBP`, canvas.width/2, 150);
+
+            // Instructions
+            ctx.fillStyle = "#888";
+            ctx.font = "9px Arial";
+            ctx.fillText("ESC: Reset position | Enter: Switch field", canvas.width/2, 165);
         }
 
         function updateConversion() {
             if (activeField === "euro") {
                 const euros = parseFloat(euroValue) || 0;
-                poundValue = (euros * rate).toFixed(2);
+                poundValue = (euros * rate).toFixed(4);
             } else if (activeField === "pound") {
                 const pounds = parseFloat(poundValue) || 0;
-                euroValue = (pounds / rate).toFixed(2);
+                euroValue = (pounds / rate).toFixed(4);
             }
         }
 
@@ -149,22 +184,48 @@
             drawUI();
         });
 
+        // Event listener pour la saisie clavier existant
         window.addEventListener("keydown", e => {
             if (!activeField) return;
+            
+            // Empêcher la saisie de multiple points décimaux
+            if (e.key === '.' && (activeField === "euro" ? euroValue : poundValue).includes('.')) {
+                return;
+            }
+            
             if (e.key >= "0" && e.key <= "9" || e.key === ".") {
                 if (activeField === "euro") euroValue += e.key;
                 else poundValue += e.key;
             } else if (e.key === "Backspace") {
                 if (activeField === "euro") euroValue = euroValue.slice(0, -1);
                 else poundValue = poundValue.slice(0, -1);
+            } else if (e.key === "Delete") {
+                if (activeField === "euro") euroValue = "";
+                else poundValue = "";
             }
             updateConversion();
             drawUI();
         });
 
+        // Event listener pour le redimensionnement de la fenêtre
+        window.addEventListener('resize', () => {
+            // Recentrer le canvas si nécessaire
+            drawUI();
+        });
+
+        // Initialisation
         window.addEventListener("load", async () => {
             await fetchRate();
-            initDrag(); // Initialiser le drag and drop
+            initDrag();
             drawUI();
+            
+            // Mettre à jour le taux périodiquement
+            setInterval(async () => {
+                await fetchRate();
+                updateConversion();
+                drawUI();
+            }, 30000); // Toutes les 30 secondes
+            
+            // Rafraîchissement UI
             setInterval(drawUI, 500);
         });

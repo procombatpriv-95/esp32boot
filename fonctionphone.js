@@ -414,7 +414,7 @@ function updateShopCardStatus(index, openingStatus) {
         
         if (statusElement && hoursElement) {
             statusElement.className = `opening-status ${openingStatus.isOpen ? 'status-open' : 'status-closed'}`;
-            statusElement.textContent = openingStatus.isOpen ? '✅ Ouvert' : '❌ Fermé';
+            statusElement.textContent = openingStatus.isOpen ? 'Ouvert' : 'Fermé';
             
             if (openingStatus.isOpen && openingStatus.closingTime) {
                 hoursElement.textContent = `Ferme à ${openingStatus.closingTime}`;

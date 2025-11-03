@@ -759,23 +759,7 @@ void loop() {
         URL.revokeObjectURL(url);
     });
 
-    bright.addEventListener('click', () => {
-        if (!inTextMode) {
-            editor.style.transform = 'rotateY(-180deg)';
-            textEditor.style.transform = 'rotateY(0deg)';
-            controlBar.style.display = 'flex';
-            inTextMode = true;
-            bright.textContent = 'Code';
-        } else {
-            fileManager.saveCurrentFile();
-            
-            editor.style.transform = 'rotateY(0deg)';
-            textEditor.style.transform = 'rotateY(-180deg)';
-            controlBar.style.display = 'none';
-            inTextMode = false;
-            bright.textContent = 'Text';
-        }
-    });
+
 
     editor.style.overflowX = 'auto';
     textEditor.style.overflowX = 'auto';

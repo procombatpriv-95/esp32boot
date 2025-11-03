@@ -20,6 +20,7 @@ function showMainMenu(){
     <a href="/note">Note</a>
     <div class="separator-wide"></div>
     <div class="parametre" id="parametre">Parametre</div>
+          <div class="espace" id="espace">➕</div>
   `;
   contentDiv.querySelector('#parametre').addEventListener('click', openBackgroundMenu);
   inBackgroundMenu = false;

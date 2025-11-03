@@ -1,0 +1,120 @@
+.boutoncycle {
+    width: var(--btn-size);
+    height: var(--btn-size);
+    border-radius: var(--radius-collapsed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: var(--bg1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: width var(--transition),
+                height var(--transition),
+                border-radius var(--transition),
+                background var(--transition);
+    overflow: hidden;
+    position: relative;
+}
+
+.boutoncycle.expanded {
+    width: var(--expanded-width);
+    height: var(--expanded-height);
+    border-radius: var(--radius-expanded);
+    background: var(--bg1);
+    backdrop-filter: blur(4px);
+}
+
+.icon-burger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    transition: opacity var(--transition);
+}
+.icon-burger span {
+    display: block;
+    height: 3px;
+    background: #fff;
+    border-radius: 2px;
+}
+.icon-burger span:nth-child(1){ width: 16px; }
+.icon-burger span:nth-child(2){ width: 12px; }
+.icon-burger span:nth-child(3){ width: 8px; }
+
+.boutoncycle.expanded .icon-burger { opacity: 0; }
+
+.content {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;   /* menu principal centré */
+    transition: opacity 0.15s var(--ease);
+    color: #fff;
+    pointer-events: none;
+}
+.boutoncycle.expanded .content {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.15s var(--ease) 0.15s;
+}
+
+.content.background-top {
+    justify-content: flex-start;  /* menu background collé en haut */
+    padding-top: 6px;
+}
+
+.content a,
+.parametre {
+    text-decoration: none;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.2;
+    margin: 3px 0;
+    cursor: pointer;
+}
+
+.separator-wide {
+    width: 40%;
+    height: 1px;
+    background: #555;
+    margin: 5px auto;
+}
+
+.bg-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-top: 4px;
+}
+.bg-option div {
+    width: 40px;
+    height: 30px;
+    background-size: cover;
+    background-position: center;
+    margin-right: 8px;
+    border: 1px solid #fff;
+}
+.bg-option:hover {
+    background-color: rgba(255,255,255,0.1);
+    border-radius: 5px;
+    padding: 2px;
+}
+
+.label {
+    font-family: 'Lobster', cursive;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+}
+  .content a:first-child {
+  margin-top: 10px;   /* 👈 espace vers le bas, ajuste la valeur (30/40/50px) */
+}

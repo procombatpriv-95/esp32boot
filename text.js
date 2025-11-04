@@ -1,4 +1,25 @@
-// ===== VARIABLES GLOBALES =====
+async init() {
+    // Charger les données sauvegardées au démarrage
+    const savedData = await loadFromESP32();
+    
+    if (savedData && savedData.fileSystem) {
+        this.fileSystem = savedData.fileSystem;
+        this.currentPath = savedData.currentPath || ['Racine'];
+        this.selectedItem = savedData.selectedItem || null;
+        console.log("✅ Système chargé depuis ESP32");
+    } else {
+        // Système initial si première utilisation
+        console.log("⚙️ Système initialisé (premier démarrage)");
+    }
+    
+    this.bindEvents();
+    this.render();
+    
+    // Charger le dernier fichier ouvert
+    if (savedData && savedData.lastOpenFile) {
+        this.openFileByPath(savedData.lastOpenFile);
+    }
+},
 
 
     

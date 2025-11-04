@@ -1,36 +1,6 @@
 // ===== VARIABLES GLOBALES =====
 
-async function loadFromESP32() {
-    try {
-        const response = await fetch('/load');
-        return await response.json();
-    } catch (error) {
-        console.error('Erreur chargement ESP32:', error);
-        return null;
-    }
-}
 
-// ===== GESTIONNAIRE DE FICHIERS =====
-const fileManager = {
-    currentPath: ['Racine'],
-    selectedItem: null,
-    currentFile: null,
-    fileSystem: {
-        'Racine': {
-            type: 'folder',
-            children: {}
-        }
-    },
-    
-    async init() {
-        await this.loadFromESP32();
-        this.bindEvents();
-        this.render();
-        const lastFile = await this.getLastOpenFile();
-        if (lastFile) {
-            this.openFileByPath(lastFile);
-        }
-    },
     
     bindEvents() {
         document.getElementById('add-button').addEventListener('click', (e) => {

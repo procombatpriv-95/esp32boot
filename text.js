@@ -31,32 +31,6 @@ async function loadFromESP32() {
     }
 }
 
-async function saveFileToESP32(filename, content) {
-    try {
-        const response = await fetch('/saveFile', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ filename, content })
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Erreur sauvegarde fichier:', error);
-        return { success: false };
-    }
-}
-
-async function loadFileFromESP32(filename) {
-    try {
-        const response = await fetch('/loadFile?filename=' + encodeURIComponent(filename));
-        return await response.json();
-    } catch (error) {
-        console.error('Erreur chargement fichier:', error);
-        return null;
-    }
-}
-
 // ===== GESTIONNAIRE DE FICHIERS =====
 const fileManager = {
     currentPath: ['Racine'],
@@ -169,8 +143,8 @@ const fileManager = {
         const buttons = document.querySelectorAll('#action-buttons button');
         buttons.forEach(btn => {
             btn.classList.remove('show');
-            });
-            
+        });
+        
         setTimeout(() => {
             document.getElementById('action-buttons').style.display = 'none';
         }, 300);
@@ -682,10 +656,10 @@ void loop() {
 
     async loadFromESP32() {
         const data = await loadFromESP32();
-        if (data) {
-            this.fileSystem = data.fileSystem || this.fileSystem;
-            this.currentPath = data.currentPath || this.currentPath;
-            this.selectedItem = data.selectedItem || this.selectedItem;
+        if (data && data.fileSystem) {
+            this.fileSystem = data.fileSystem;
+            this.currentPath = data.currentPath || ['Racine'];
+            this.selectedItem = data.selectedItem || null;
         }
     },
 

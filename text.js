@@ -1,21 +1,6 @@
 
 
-// ===== VARIABLES GLOBALES =====
-let inTextMode = false;
-let currentFontSize = '14px';
-let currentFontColor = 'black';
-let currentFontFamily = 'Arial';
 
-// ===== COMMUNICATION ESP32 =====
-async function saveToESP32(data) {
-    try {
-        const response = await fetch('/save?data=' + encodeURIComponent(JSON.stringify(data)), {method: 'GET'});
-        return response.ok ? await response.json() : {success: false};
-    } catch (error) {
-        console.error('Erreur sauvegarde:', error);
-        return {success: false};
-    }
-}
 
 async function loadFromESP32() {
     try {

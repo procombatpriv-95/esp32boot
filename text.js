@@ -1,4 +1,4 @@
-// ===== VARIABLES GLOBALES =====
+
 
 async function loadFromESP32() {
     try {
@@ -19,30 +19,39 @@ async function loadFromESP32() {
     }
 }
 
-// ===== DANS fileManager.init() =====
-async init() {
-    // ⚠️ REMPLACEZ TOUTE LA FONCTION init() par ceci :
+// ===== GESTIONNAIRE DE FICHIERS =====
+const fileManager = {
+    currentPath: ['Racine'],
+    selectedItem: null,
+    currentFile: null,
+    fileSystem: {
+        'Racine': {
+            type: 'folder',
+            children: {}
+        }
+    },
     
-    // Charger les données sauvegardées au démarrage
-    const savedData = await loadFromESP32();
-    
-    if (savedData && savedData.fileSystem) {
-        this.fileSystem = savedData.fileSystem;
-        this.currentPath = savedData.currentPath || ['Racine'];
-        this.selectedItem = savedData.selectedItem || null;
-        console.log("✅ Système chargé depuis ESP32");
-    } else {
-        console.log("⚙️ Système initialisé (premier démarrage)");
-    }
-    
-    this.bindEvents();
-    this.render();
-    
-    // Charger le dernier fichier ouvert
-    if (savedData && savedData.lastOpenFile) {
-        this.openFileByPath(savedData.lastOpenFile);
-    }
-},
+    async init() {
+        // Charger les données sauvegardées au démarrage
+        const savedData = await loadFromESP32();
+        
+        if (savedData && savedData.fileSystem) {
+            this.fileSystem = savedData.fileSystem;
+            this.currentPath = savedData.currentPath || ['Racine'];
+            this.selectedItem = savedData.selectedItem || null;
+            console.log("✅ Système chargé depuis ESP32");
+        } else {
+            console.log("⚙️ Système initialisé (premier démarrage)");
+        }
+        
+        this.bindEvents();
+        this.render();
+        
+        // Charger le dernier fichier ouvert
+        if (savedData && savedData.lastOpenFile) {
+            this.openFileByPath(savedData.lastOpenFile);
+        }
+    },
     
     bindEvents() {
         document.getElementById('add-button').addEventListener('click', (e) => {
@@ -178,30 +187,7 @@ async init() {
         }
         return current;
     },
-
-    getItemByPath(pathArray) {
-        let current = this.fileSystem['Racine'];
-        for (let i = 1; i < pathArray.length; i++) {
-            if (current.children[pathArray[i]]) {
-                current = current.children[pathArray[i]];
-            } else {
-                return null;
-            }
-        }
-        return current;
-    },
-
-    getParentFolder() {
-        if (this.currentPath.length <= 1) return null;
-        
-        let current = this.fileSystem['Racine'];
-        for (let i = 1; i < this.currentPath.length - 1; i++) {
-            current = current.children[this.currentPath[i]];
-        }
-        return current;
-    },
     
-    // ===== FONCTION CRÉER DOSSIER =====
     createFolder() {
         console.log("Création d'un nouveau dossier...");
         
@@ -212,13 +198,11 @@ async init() {
         let folderNumber = 1;
         let folderName = `Nouveau dossier ${folderNumber}`;
         
-        // Trouver le premier numéro disponible
         while (currentFolder.children[folderName]) {
             folderNumber++;
             folderName = `Nouveau dossier ${folderNumber}`;
         }
         
-        // Créer le dossier
         currentFolder.children[folderName] = {
             type: 'folder',
             children: {}
@@ -231,7 +215,6 @@ async init() {
         console.log("✅ Dossier créé:", folderName);
     },
     
-    // ===== FONCTION CRÉER FICHIER =====
     createFile() {
         console.log("Création d'un nouveau fichier...");
         
@@ -242,13 +225,11 @@ async init() {
         let fileNumber = 1;
         let fileName = `Nouveau fichier ${fileNumber}.txt`;
         
-        // Trouver le premier numéro disponible
         while (currentFolder.children[fileName]) {
             fileNumber++;
             fileName = `Nouveau fichier ${fileNumber}.txt`;
         }
         
-        // Créer le fichier
         currentFolder.children[fileName] = {
             type: 'file',
             content: '',
@@ -263,13 +244,11 @@ async init() {
         this.render();
         this.saveToESP32();
         
-        // Ouvrir automatiquement le nouveau fichier
         this.openFile(fileName);
         
         console.log("✅ Fichier créé et ouvert:", fileName);
     },
 
-    // ===== FONCTION POUR CRÉER .INO =====
     createInoFile() {
         console.log("Création d'un nouveau fichier .ino...");
         
@@ -280,13 +259,11 @@ async init() {
         let fileNumber = 1;
         let fileName = `Nouveau_sketch_${fileNumber}.ino`;
         
-        // Trouver le premier numéro disponible
         while (currentFolder.children[fileName]) {
             fileNumber++;
             fileName = `Nouveau_sketch_${fileNumber}.ino`;
         }
         
-        // Contenu par défaut pour un fichier .ino
         const defaultInoContent = `void setup() {
   // Initialisation
 }
@@ -295,7 +272,6 @@ void loop() {
   // Code principal
 }`;
         
-        // Créer le fichier .ino
         currentFolder.children[fileName] = {
             type: 'file',
             content: defaultInoContent,
@@ -310,22 +286,18 @@ void loop() {
         this.render();
         this.saveToESP32();
         
-        // Ouvrir automatiquement le nouveau fichier .ino dans l'éditeur
         this.openInoFile(fileName);
         
         console.log("✅ Fichier .ino créé et ouvert:", fileName);
     },
 
-    // ===== FONCTION POUR OUVRIR .INO DANS L'ÉDITEUR =====
     openInoFile(fileName) {
         const file = this.getCurrentFolder().children[fileName];
         if (file && file.type === 'file' && fileName.endsWith('.ino')) {
-            // Sauvegarder le fichier actuel avant d'en ouvrir un nouveau
             if (this.currentFile) {
                 this.saveCurrentFile();
             }
 
-            // Basculer en mode éditeur (côté gauche) si nécessaire
             if (inTextMode && bright) {
                 bright.click();
             }
@@ -349,7 +321,6 @@ void loop() {
             const currentFolder = this.getCurrentFolder();
             const item = currentFolder.children[this.selectedItem];
             
-            // Si on supprime le fichier actuellement ouvert
             if (this.currentFile && 
                 this.currentFile.name === this.selectedItem && 
                 JSON.stringify(this.currentFile.path) === JSON.stringify(this.currentPath)) {
@@ -384,7 +355,6 @@ void loop() {
             this.render();
             this.saveToESP32();
         } else if (item.type === 'file') {
-            // Si c'est un fichier .ino, l'ouvrir dans l'éditeur
             if (this.selectedItem.endsWith('.ino')) {
                 this.openInoFile(this.selectedItem);
             } else {
@@ -396,12 +366,10 @@ void loop() {
     openFile(fileName) {
         const file = this.getCurrentFolder().children[fileName];
         if (file && file.type === 'file') {
-            // Sauvegarder le fichier actuel avant d'en ouvrir un nouveau
             if (this.currentFile) {
                 this.saveCurrentFile();
             }
 
-            // Basculer en mode texte si nécessaire
             if (!inTextMode && bright) {
                 bright.click();
             }
@@ -415,7 +383,6 @@ void loop() {
                 textEditor.innerHTML = file.content || '';
             }
             
-            // Appliquer les styles sauvegardés
             if (file.style) {
                 currentFontSize = file.style.fontSize || currentFontSize;
                 currentFontColor = file.style.fontColor || currentFontColor;
@@ -434,14 +401,12 @@ void loop() {
     openFileByPath(fileInfo) {
         if (!fileInfo) return;
         
-        // Naviguer vers le chemin du fichier
         this.currentPath = [...fileInfo.path];
         this.selectedItem = fileInfo.name;
         this.render();
         
         const file = this.getCurrentFolder().children[fileInfo.name];
         if (file && file.type === 'file') {
-            // Si c'est un fichier .ino, l'ouvrir dans l'éditeur
             if (fileInfo.name.endsWith('.ino')) {
                 if (inTextMode && bright) {
                     bright.click();
@@ -474,14 +439,11 @@ void loop() {
             const fileName = this.currentFile.name;
             let current = this.fileSystem['Racine'];
             
-            // Naviguer vers le dossier parent du fichier
             for (let i = 1; i < filePath.length; i++) {
                 current = current.children[filePath[i]];
             }
             
-            // Mettre à jour le contenu et les styles du fichier
             if (current.children[fileName] && current.children[fileName].type === 'file') {
-                // Déterminer quel éditeur utiliser selon l'extension
                 if (fileName.endsWith('.ino')) {
                     current.children[fileName].content = editor ? editor.innerHTML : '';
                 } else {
@@ -561,7 +523,6 @@ void loop() {
             const items = Object.keys(currentFolderObj.children);
             
             if (items.length === 0) {
-                // Afficher un message si le dossier est vide
                 const emptyMessage = document.createElement('div');
                 emptyMessage.style.gridColumn = '1 / -1';
                 emptyMessage.style.textAlign = 'center';
@@ -575,12 +536,10 @@ void loop() {
                     const element = document.createElement('div');
                     element.className = item.type === 'folder' ? 'folder-item' : 'file-item';
                     
-                    // Mettre en surbrillance l'élément sélectionné
                     if (this.selectedItem === name) {
                         element.classList.add('selected');
                     }
                     
-                    // Mettre en surbrillance le fichier actuellement ouvert
                     if (this.currentFile && 
                         this.currentFile.name === name && 
                         JSON.stringify(this.currentFile.path) === JSON.stringify(this.currentPath)) {
@@ -591,9 +550,8 @@ void loop() {
                     const emoji = document.createElement('div');
                     emoji.className = item.type === 'folder' ? 'folder-emoji' : 'file-emoji';
                     
-                    // Utiliser un emoji différent pour les fichiers .ino
                     if (item.type === 'file' && name.endsWith('.ino')) {
-                        emoji.textContent = '</>'; // Emoji pour les fichiers .ino
+                        emoji.textContent = '</>';
                     } else {
                         emoji.textContent = item.type === 'folder' ? '📁' : '📄';
                     }
@@ -605,14 +563,11 @@ void loop() {
                     element.appendChild(emoji);
                     element.appendChild(nameElement);
                     
-                    // Gestion des clics
                     element.addEventListener('click', (e) => {
                         e.stopPropagation();
                         if (e.detail === 1) {
-                            // Simple clic : sélectionner
                             this.selectItem(name);
                             if (item.type === 'file') {
-                                // Si c'est un fichier .ino, l'ouvrir dans l'éditeur
                                 if (name.endsWith('.ino')) {
                                     this.openInoFile(name);
                                 } else {
@@ -620,7 +575,6 @@ void loop() {
                                 }
                             }
                         } else if (e.detail === 2) {
-                            // Double clic : ouvrir le dossier
                             if (item.type === 'folder') {
                                 this.currentPath.push(name);
                                 this.selectedItem = null;
@@ -634,6 +588,16 @@ void loop() {
                 });
             }
         }
+    },
+
+    getParentFolder() {
+        if (this.currentPath.length <= 1) return null;
+        
+        let current = this.fileSystem['Racine'];
+        for (let i = 1; i < this.currentPath.length - 1; i++) {
+            current = current.children[this.currentPath[i]];
+        }
+        return current;
     },
 
     async saveToESP32() {
@@ -697,7 +661,6 @@ textEditor.addEventListener('input', () => {
     fileManager.saveCurrentFile();
 });
 
-// Également sauvegarder quand on édite dans l'éditeur de code
 editor.addEventListener('input', () => {
     fileManager.saveCurrentFile();
 });
@@ -725,13 +688,10 @@ bleft.addEventListener('click', () => {
     let content, filename;
 
     if (isText) {
-        // Mode texte - utiliser le contenu du text-editor
         content = textEditor.innerText;
         
-        // Si un fichier est ouvert, utiliser son nom, sinon "document.txt"
         if (fileManager.currentFile) {
             filename = fileManager.currentFile.name;
-            // S'assurer que c'est un .txt
             if (!filename.endsWith('.txt')) {
                 filename = filename.split('.')[0] + '.txt';
             }
@@ -739,10 +699,8 @@ bleft.addEventListener('click', () => {
             filename = 'document.txt';
         }
     } else {
-        // Mode éditeur - utiliser le contenu de l'editor
         content = editor.innerText;
         
-        // Si un fichier .ino est ouvert, utiliser son nom, sinon "sketch.ino"
         if (fileManager.currentFile && fileManager.currentFile.name.endsWith('.ino')) {
             filename = fileManager.currentFile.name;
         } else {
@@ -804,6 +762,10 @@ window.addEventListener('load', () => {
         editor.innerText = "void setup() {\n\n}";
     }
     fileManager.init();
+});
+
+window.addEventListener('beforeunload', () => {
+    fileManager.saveCurrentFile();
 });
 
 window.addEventListener('beforeunload', () => {

@@ -19,39 +19,30 @@ async function loadFromESP32() {
     }
 }
 
-// ===== GESTIONNAIRE DE FICHIERS =====
-const fileManager = {
-    currentPath: ['Racine'],
-    selectedItem: null,
-    currentFile: null,
-    fileSystem: {
-        'Racine': {
-            type: 'folder',
-            children: {}
-        }
-    },
+// ===== DANS fileManager.init() =====
+async init() {
+    // ⚠️ REMPLACEZ TOUTE LA FONCTION init() par ceci :
     
-    async init() {
-        // Charger les données sauvegardées au démarrage
-        const savedData = await loadFromESP32();
-        
-        if (savedData && savedData.fileSystem) {
-            this.fileSystem = savedData.fileSystem;
-            this.currentPath = savedData.currentPath || ['Racine'];
-            this.selectedItem = savedData.selectedItem || null;
-            console.log("✅ Système chargé depuis ESP32");
-        } else {
-            console.log("⚙️ Système initialisé (premier démarrage)");
-        }
-        
-        this.bindEvents();
-        this.render();
-        
-        // Charger le dernier fichier ouvert
-        if (savedData && savedData.lastOpenFile) {
-            this.openFileByPath(savedData.lastOpenFile);
-        }
-    },
+    // Charger les données sauvegardées au démarrage
+    const savedData = await loadFromESP32();
+    
+    if (savedData && savedData.fileSystem) {
+        this.fileSystem = savedData.fileSystem;
+        this.currentPath = savedData.currentPath || ['Racine'];
+        this.selectedItem = savedData.selectedItem || null;
+        console.log("✅ Système chargé depuis ESP32");
+    } else {
+        console.log("⚙️ Système initialisé (premier démarrage)");
+    }
+    
+    this.bindEvents();
+    this.render();
+    
+    // Charger le dernier fichier ouvert
+    if (savedData && savedData.lastOpenFile) {
+        this.openFileByPath(savedData.lastOpenFile);
+    }
+},
     
     bindEvents() {
         document.getElementById('add-button').addEventListener('click', (e) => {

@@ -759,7 +759,7 @@ editor.addEventListener('input', () => {
 // ===== INITIALISATION AU CHARGEMENT =====
 window.addEventListener('load', () => {
     if (!editor.innerText || editor.innerText.trim() === '') {
-        editor.innerText = "void setup() {\n\n}";
+        editor.innerText = "void setup() {\n    \n}\n\nvoid loop() {\n    \n}";
     }
     fileManager.init();
 });

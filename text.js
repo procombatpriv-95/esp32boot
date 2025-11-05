@@ -1,37 +1,4 @@
 
-// ===== VARIABLES GLOBALES =====
-let inTextMode = false;
-let currentFontSize = '14px';
-let currentFontColor = 'black';
-let currentFontFamily = 'Arial';
-
-// ===== FONCTIONS POUR COMMUNIQUER AVEC L'ESP32 =====
-async function saveToESP32(data) {
-    try {
-        console.log("📤 Envoi vers /save:", data);
-        
-        // Encoder les données en URL
-        const urlData = encodeURIComponent(JSON.stringify(data));
-        
-        const response = await fetch('/save?data=' + urlData, {
-            method: 'GET'
-        });
-        
-        console.log("📥 Réponse reçue, status:", response.status);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        console.log("✅ Résultat:", result);
-        return result;
-        
-    } catch (error) {
-        console.error('❌ Erreur sauvegarde ESP32:', error);
-        return { success: false, error: error.message };
-    }
-}
 
 async function loadFromESP32() {
     try {

@@ -1,4 +1,4 @@
-
+// ===== VARIABLES GLOBALES =====
 
 async function loadFromESP32() {
     try {
@@ -34,12 +34,16 @@ const fileManager = {
     async init() {
         // Charger les données sauvegardées au démarrage
         const savedData = await loadFromESP32();
+        console.log("📂 Données chargées:", savedData); // DEBUG
         
         if (savedData && savedData.fileSystem) {
             this.fileSystem = savedData.fileSystem;
             this.currentPath = savedData.currentPath || ['Racine'];
             this.selectedItem = savedData.selectedItem || null;
             console.log("✅ Système chargé depuis ESP32");
+            
+            // DEBUG du lastOpenFile
+            console.log("📖 lastOpenFile:", savedData.lastOpenFile);
         } else {
             console.log("⚙️ Système initialisé (premier démarrage)");
         }
@@ -49,6 +53,7 @@ const fileManager = {
         
         // Charger le dernier fichier ouvert
         if (savedData && savedData.lastOpenFile) {
+            console.log("🔓 Réouverture du fichier:", savedData.lastOpenFile);
             this.openFileByPath(savedData.lastOpenFile);
         }
     },
@@ -600,18 +605,30 @@ void loop() {
         return current;
     },
 
+    // ⭐⭐⭐ NOUVELLE VERSION CORRIGÉE ⭐⭐⭐
     async saveToESP32() {
         const data = {
             fileSystem: this.fileSystem,
             currentPath: this.currentPath,
-            selectedItem: this.selectedItem
+            selectedItem: this.selectedItem,
+            lastOpenFile: this.currentFile  // ⬅️ TOUJOURS inclure le fichier ouvert
         };
+        console.log("💾 Sauvegarde complète:", data); // DEBUG
         await saveToESP32(data);
     },
 
     async saveLastOpenFile() {
+        // Maintenant inutile car lastOpenFile est toujours inclus
+        // Mais on garde pour la compatibilité
         if (this.currentFile) {
-            await saveToESP32({ lastOpenFile: this.currentFile });
+            const data = {
+                fileSystem: this.fileSystem,
+                currentPath: this.currentPath,
+                selectedItem: this.selectedItem,
+                lastOpenFile: this.currentFile
+            };
+            console.log("💾 Sauvegarde lastOpenFile:", data); // DEBUG
+            await saveToESP32(data);
         }
     },
 

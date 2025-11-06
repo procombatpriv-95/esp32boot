@@ -1,5 +1,6 @@
 // ===== VARIABLES GLOBALES =====
 
+
 async function loadFromESP32() {
     try {
         console.log("📥 Chargement depuis ESP32...");
@@ -34,16 +35,13 @@ const fileManager = {
     async init() {
         // Charger les données sauvegardées au démarrage
         const savedData = await loadFromESP32();
-        console.log("📂 Données chargées:", savedData); // DEBUG
+        console.log("📂 Données chargées:", savedData);
         
         if (savedData && savedData.fileSystem) {
             this.fileSystem = savedData.fileSystem;
             this.currentPath = savedData.currentPath || ['Racine'];
             this.selectedItem = savedData.selectedItem || null;
             console.log("✅ Système chargé depuis ESP32");
-            
-            // DEBUG du lastOpenFile
-            console.log("📖 lastOpenFile:", savedData.lastOpenFile);
         } else {
             console.log("⚙️ Système initialisé (premier démarrage)");
         }
@@ -316,7 +314,7 @@ void loop() {
                 editor.innerHTML = file.content || '';
             }
             
-            this.saveLastOpenFile();
+            this.saveToESP32(); // ⬅️ SAUVEGARDE COMPLÈTE
             this.render();
         }
     },
@@ -332,7 +330,7 @@ void loop() {
                 this.currentFile = null;
                 textEditor.innerHTML = '';
                 editor.innerHTML = '';
-                this.saveLastOpenFile();
+                this.saveToESP32(); // ⬅️ SAUVEGARDE COMPLÈTE
             }
             
             delete currentFolder.children[this.selectedItem];
@@ -398,7 +396,7 @@ void loop() {
                 if (fontFamily) fontFamily.value = currentFontFamily;
             }
             
-            this.saveLastOpenFile();
+            this.saveToESP32(); // ⬅️ SAUVEGARDE COMPLÈTE
             this.render();
         }
     },
@@ -435,6 +433,7 @@ void loop() {
                     if (fontFamily) fontFamily.value = currentFontFamily;
                 }
             }
+            this.saveToESP32(); // ⬅️ SAUVEGARDE COMPLÈTE
         }
     },
 
@@ -501,7 +500,6 @@ void loop() {
             
             if (this.currentFile && this.currentFile.name === oldName) {
                 this.currentFile.name = newName;
-                this.saveLastOpenFile();
             }
             
             if (this.selectedItem === oldName) {
@@ -605,31 +603,16 @@ void loop() {
         return current;
     },
 
-    // ⭐⭐⭐ NOUVELLE VERSION CORRIGÉE ⭐⭐⭐
+    // ⭐⭐⭐ UNE SEULE FONCTION DE SAUVEGARDE ⭐⭐⭐
     async saveToESP32() {
         const data = {
             fileSystem: this.fileSystem,
             currentPath: this.currentPath,
             selectedItem: this.selectedItem,
-            lastOpenFile: this.currentFile  // ⬅️ TOUJOURS inclure le fichier ouvert
+            lastOpenFile: this.currentFile  // ⬅️ TOUJOURS présent
         };
-        console.log("💾 Sauvegarde complète:", data); // DEBUG
+        console.log("💾 SAUVEGARDE COMPLÈTE:", data);
         await saveToESP32(data);
-    },
-
-    async saveLastOpenFile() {
-        // Maintenant inutile car lastOpenFile est toujours inclus
-        // Mais on garde pour la compatibilité
-        if (this.currentFile) {
-            const data = {
-                fileSystem: this.fileSystem,
-                currentPath: this.currentPath,
-                selectedItem: this.selectedItem,
-                lastOpenFile: this.currentFile
-            };
-            console.log("💾 Sauvegarde lastOpenFile:", data); // DEBUG
-            await saveToESP32(data);
-        }
     },
 
     async getLastOpenFile() {

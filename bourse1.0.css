@@ -108,19 +108,7 @@
             to { transform: rotateY(350deg); }
         }
 
-        .carousel-item {
-            position: absolute;
-            width: 380px;
-            height: 150px;
-            left: 300px;
-            top: 150px;
-            transform-style: preserve-3d;
-            cursor: pointer;
-            transition: transform 0.5s ease;
-            border-radius: 15px;
-            overflow: visible; /* VISIBLE pour que les noms dépassent */
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-        }
+
 
         .carousel-item:hover {
             transform: scale(1.05);

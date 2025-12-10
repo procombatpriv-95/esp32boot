@@ -7,6 +7,8 @@
 
 
 
+
+
         /* MENU LATÉRAL */
         .side-menu {
             position: fixed;
@@ -86,7 +88,13 @@
         }
 
         /* SCÈNE CAROUSEL */
-
+        .carousel-scene {
+            width: 1000px;
+            height: 500px;
+            position: relative;
+            perspective: 1500px;
+            margin: 0 auto;
+        }
 
         .carousel {
             width: 100%;

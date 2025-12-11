@@ -34,7 +34,7 @@ const birthdays = [
 // Système de notifications
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
 
-function addNotification(message, prefix = "Notification", duration = 1200000) {
+function addNotification(message, prefix = null, duration = 1200000) {
     const container = document.getElementById("notification-container");
     if (!container) {
         console.error("Container de notifications non trouvé!");
@@ -81,7 +81,11 @@ function addNotification(message, prefix = "Notification", duration = 1200000) {
     }, 2000);
     
     setTimeout(() => {
-        notif.innerHTML = `<strong>${prefix}:</strong>&nbsp;`;
+        if (prefix) {
+            notif.innerHTML = `<strong>${prefix}:</strong>&nbsp;`;
+        } else {
+            notif.innerHTML = "";
+        }
     }, 4000);
     
     setTimeout(() => {
@@ -105,7 +109,7 @@ function addNotification(message, prefix = "Notification", duration = 1200000) {
             }
         }
         typeWriter();
-    }, 4200);
+    }, prefix ? 4200 : 4000);
 }
 
 // -------------------------
@@ -145,8 +149,8 @@ function showRandomPhrase() {
     // Sauvegarder dans localStorage
     localStorage.setItem('displayedRandomPhrases', JSON.stringify(displayedRandomPhrases));
     
-    // Afficher la notification
-    addNotification(selectedPhrase, "", 10800000); // 3 heures en millisecondes
+    // Afficher la notification SANS PREFIXE
+    addNotification(selectedPhrase, null, 10800000); // 3 heures en millisecondes
 }
 
 // -------------------------
@@ -312,7 +316,7 @@ async function fetchText() {
             }
             
             if (!displayedNotifications.has(line)) {
-                addNotification(line);
+                addNotification(line, "Notification");
                 displayedNotifications.add(line);
                 localStorage.setItem('displayedNotifications', JSON.stringify([...displayedNotifications]));
             }
@@ -478,6 +482,9 @@ console.log("Commandes disponibles:");
 console.log("- testBirthdayCheck() : Vérifier manuellement les anniversaires");
 console.log("- simulateDate(10, 6) : Simuler le 10 juillet");
 console.log("- testNotification() : Tester une notification normale");
+console.log("- forceRandomPhrase() : Forcer l'affichage d'une phrase aléatoire");
+console.log("- resetRandomPhrases() : Réinitialiser l'historique des phrases");
+console.log("- addNewPhrase('ma nouvelle phrase') : Ajouter une phrase à la liste");
 console.log("- forceRandomPhrase() : Forcer l'affichage d'une phrase aléatoire");
 console.log("- resetRandomPhrases() : Réinitialiser l'historique des phrases");
 console.log("- addNewPhrase('ma nouvelle phrase') : Ajouter une phrase à la liste");

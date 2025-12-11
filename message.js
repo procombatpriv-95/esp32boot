@@ -9,10 +9,9 @@ const TEXT_SCROLL_STEP = 20;
 // 📝 Liste des phrases à afficher aléatoirement
 // -------------------------
 const randomPhrases = [
-    "📞: As-tu appelé ton père ?",
+    "As-tu appelé ton père ?",
     "Check l'XAUUSD !!",
-    "🤲: T'as fait la prière ?",
-    "La patience et la discipline mènent à la réussite."
+    "T'as fait la prière ?"
 ];
 
 // Gestionnaire des phrases affichées (avec timestamp)
@@ -482,9 +481,6 @@ console.log("Commandes disponibles:");
 console.log("- testBirthdayCheck() : Vérifier manuellement les anniversaires");
 console.log("- simulateDate(10, 6) : Simuler le 10 juillet");
 console.log("- testNotification() : Tester une notification normale");
-console.log("- forceRandomPhrase() : Forcer l'affichage d'une phrase aléatoire");
-console.log("- resetRandomPhrases() : Réinitialiser l'historique des phrases");
-console.log("- addNewPhrase('ma nouvelle phrase') : Ajouter une phrase à la liste");
 console.log("- forceRandomPhrase() : Forcer l'affichage d'une phrase aléatoire");
 console.log("- resetRandomPhrases() : Réinitialiser l'historique des phrases");
 console.log("- addNewPhrase('ma nouvelle phrase') : Ajouter une phrase à la liste");

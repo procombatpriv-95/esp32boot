@@ -146,7 +146,7 @@ function showRandomPhrase() {
     localStorage.setItem('displayedRandomPhrases', JSON.stringify(displayedRandomPhrases));
     
     // Afficher la notification
-    addNotification(selectedPhrase, "💬 Rappel", 10800000); // 3 heures en millisecondes
+    addNotification(selectedPhrase, "", 10800000); // 3 heures en millisecondes
 }
 
 // -------------------------

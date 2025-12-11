@@ -9,9 +9,10 @@ const TEXT_SCROLL_STEP = 20;
 // 📝 Liste des phrases à afficher aléatoirement
 // -------------------------
 const randomPhrases = [
-    "As-tu appelé ton père ?",
+    "📞: As-tu appelé ton père ?",
     "Check l'XAUUSD !!",
-    "T'as fait la prière ?"
+    "🤲: T'as fait la prière ?",
+    "La patience et la discipline mènent à la réussite."
 ];
 
 // Gestionnaire des phrases affichées (avec timestamp)

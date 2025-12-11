@@ -33,7 +33,7 @@ const birthdays = [
 // Système de notifications
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
 
-function addNotification(message, prefix = null, duration = 1200000) {
+function addNotification(message, prefix = "Notification", duration = 1200000) {
     const container = document.getElementById("notification-container");
     if (!container) {
         console.error("Container de notifications non trouvé!");
@@ -80,11 +80,7 @@ function addNotification(message, prefix = null, duration = 1200000) {
     }, 2000);
     
     setTimeout(() => {
-        if (prefix) {
-            notif.innerHTML = `<strong>${prefix}:</strong>&nbsp;`;
-        } else {
-            notif.innerHTML = "";
-        }
+        notif.innerHTML = `<strong>${prefix}:</strong>&nbsp;`;
     }, 4000);
     
     setTimeout(() => {
@@ -108,7 +104,7 @@ function addNotification(message, prefix = null, duration = 1200000) {
             }
         }
         typeWriter();
-    }, prefix ? 4200 : 4000);
+    }, 4200);
 }
 
 // -------------------------
@@ -148,8 +144,8 @@ function showRandomPhrase() {
     // Sauvegarder dans localStorage
     localStorage.setItem('displayedRandomPhrases', JSON.stringify(displayedRandomPhrases));
     
-    // Afficher la notification SANS PREFIXE
-    addNotification(selectedPhrase, null, 10800000); // 3 heures en millisecondes
+    // Afficher la notification
+    addNotification(selectedPhrase, "💬 Rappel", 10800000); // 3 heures en millisecondes
 }
 
 // -------------------------
@@ -315,7 +311,7 @@ async function fetchText() {
             }
             
             if (!displayedNotifications.has(line)) {
-                addNotification(line, "Notification");
+                addNotification(line);
                 displayedNotifications.add(line);
                 localStorage.setItem('displayedNotifications', JSON.stringify([...displayedNotifications]));
             }

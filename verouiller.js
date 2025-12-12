@@ -32,7 +32,7 @@ function hideLockScreen() {
 // Réinitialise le timer d'inactivité
 function resetTimer() {
   clearTimeout(inactivityTimer);
-  inactivityTimer = setTimeout(showLockScreen,120000); // 2 minutes
+  inactivityTimer = setTimeout(showLockScreen,300000);
 }
 
 // Vérifie les identifiants

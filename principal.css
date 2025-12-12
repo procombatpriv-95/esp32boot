@@ -116,7 +116,7 @@
 
 #notification-container {
     position: absolute;
-    margin-top: 10px;
+
     right: 40px;
     display: flex;
     flex-direction: column;

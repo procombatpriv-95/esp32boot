@@ -286,7 +286,7 @@
     function preloadStream() {
       if (!streamPreloaded) {
         streamPreloaded = true;
-        img.src = 'http://172.20.10.2:81/stream';
+        img.src = 'http://camera.local:81/stream';
       }
     }
     

@@ -9,6 +9,7 @@ const reminders = [
 
 let currentReminder = null;
 let reminderInterval = null;
+let currentReminderElement = null;
 
 // Fonction pour afficher un rappel aléatoire
 function showRandomReminder() {
@@ -16,9 +17,8 @@ function showRandomReminder() {
     if (!container) return;
     
     // Supprimer l'ancien rappel s'il existe
-    const existingReminder = document.getElementById('reminder-notification');
-    if (existingReminder) {
-        container.removeChild(existingReminder);
+    if (currentReminderElement && currentReminderElement.parentNode === container) {
+        container.removeChild(currentReminderElement);
     }
     
     // Choisir un nouveau rappel différent du précédent
@@ -37,22 +37,25 @@ function showRandomReminder() {
     
     // Ajouter au conteneur
     container.appendChild(reminderDiv);
+    currentReminderElement = reminderDiv;
     
     // Démarrer l'animation
     setTimeout(() => {
         reminderDiv.classList.add('show');
         
-        // Supprimer après 8 secondes
+        // Supprimer après 1 heure (3600000 ms)
         setTimeout(() => {
             if (reminderDiv.parentNode === container) {
                 reminderDiv.classList.remove('show');
                 setTimeout(() => {
                     if (reminderDiv.parentNode === container) {
                         container.removeChild(reminderDiv);
+                        // Créer un nouveau rappel immédiatement après suppression
+                        showRandomReminder();
                     }
                 }, 1300);
             }
-        }, 8000);
+        }, 3600000); // 1 heure = 3600000 millisecondes
     }, 100);
 }
 
@@ -60,9 +63,6 @@ function showRandomReminder() {
 function startReminderCycle() {
     // Afficher le premier rappel après 2 secondes
     setTimeout(showRandomReminder, 2000);
-    
-    // Afficher un nouveau rappel toutes les 60 secondes
-    reminderInterval = setInterval(showRandomReminder, 60000);
 }
 
 // Arrêter le cycle de rappels
@@ -73,9 +73,9 @@ function stopReminderCycle() {
     }
     
     // Supprimer le rappel actuel
-    const existingReminder = document.getElementById('reminder-notification');
-    if (existingReminder && existingReminder.parentNode) {
-        existingReminder.parentNode.removeChild(existingReminder);
+    if (currentReminderElement && currentReminderElement.parentNode) {
+        currentReminderElement.parentNode.removeChild(currentReminderElement);
+        currentReminderElement = null;
     }
 }
 
@@ -485,7 +485,7 @@ window.addEventListener('load', function () {
   // Vérification des anniversaires après 3 secondes
   setTimeout(checkBirthdays, 3000);
   
-  // Démarrer le cycle de rappels
+  // Démarrer le cycle de rappels (1 heure)
   startReminderCycle();
 });
 

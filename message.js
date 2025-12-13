@@ -120,7 +120,7 @@ function addNotification(message, prefix = "Notification") {
     row.style.display = "flex";
     row.style.justifyContent = "flex-end";
     row.style.width = "100%";
-    row.style.marginTop = "8px";
+    row.style.marginTop = "10px";
     container.appendChild(row);
 
     const notif = document.createElement("div");

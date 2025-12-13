@@ -39,7 +39,7 @@
         function startInactivityTimer() {
             clearTimeout(inactivityTimer);
             if (lockCheckbox.checked && !isLockModeActive) {
-                inactivityTimer = setTimeout(showLockScreen, 5000);
+                inactivityTimer = setTimeout(showLockScreen, 180000);
             }
         }
         

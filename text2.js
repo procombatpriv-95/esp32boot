@@ -4,7 +4,7 @@
 async function loadFromESP32() {
     try {
         console.log("📥 Chargement depuis ESP32...");
-        const response = await fetch('/load');
+        const response = await fetch('/load2');
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

@@ -1,4 +1,4 @@
-        const correctPass = "Codeurm95";
+        const correctPass = "Codeurm67";
         let inactivityTimer;
         let isLockModeActive = false;
         const lockScreen = document.getElementById("lock-screen");

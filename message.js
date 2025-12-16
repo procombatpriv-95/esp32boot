@@ -1,4 +1,4 @@
-comme tu vois ce programme affiche des notification et de message etc je veux maintenant une liste de phrase que tu devra affcihe separement bien evidement pour l instant 3 as tu appele ton pere ? check l xauusd !! t a fait la priere ? c ets trois phrase random doit etre nevoye au moin un des trois ou plus si je veux rajouter les phrase dans une liste et il rest pendant 3h maximum redonne moi le compte complet avec les modif demande let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
+let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
 let myMessages = JSON.parse(localStorage.getItem('myMessages')) || [];
 
 

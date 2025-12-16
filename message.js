@@ -1,109 +1,27 @@
-// -------------------------
-// 🔄 Système de rappels aléatoires
-// -------------------------
-const reminders = [
-    "As-tu appelé ton père ?",
-    "Check le XAUUSD !!",
-    "As-tu fait la prière ?"
-];
-
-let currentReminder = null;
-let reminderInterval = null;
-let currentReminderElement = null;
-
-// Fonction pour afficher un rappel aléatoire
-function showRandomReminder() {
-    const container = document.getElementById('notification-container');
-    if (!container) return;
-    
-    // Supprimer l'ancien rappel s'il existe
-    if (currentReminderElement && currentReminderElement.parentNode === container) {
-        container.removeChild(currentReminderElement);
-    }
-    
-    // Choisir un nouveau rappel différent du précédent
-    let newReminder;
-    do {
-        newReminder = reminders[Math.floor(Math.random() * reminders.length)];
-    } while (newReminder === currentReminder && reminders.length > 1);
-    
-    currentReminder = newReminder;
-    
-    // Créer l'élément de notification
-    const reminderDiv = document.createElement('div');
-    reminderDiv.id = 'reminder-notification';
-    reminderDiv.className = 'notification';
-    reminderDiv.innerHTML = `<strong>📝 Rappel:</strong> ${currentReminder}`;
-    
-    // Ajouter au conteneur
-    container.appendChild(reminderDiv);
-    currentReminderElement = reminderDiv;
-    
-    // Démarrer l'animation
-    setTimeout(() => {
-        reminderDiv.classList.add('show');
-        
-        // Supprimer après 1 heure (3600000 ms)
-        setTimeout(() => {
-            if (reminderDiv.parentNode === container) {
-                reminderDiv.classList.remove('show');
-                setTimeout(() => {
-                    if (reminderDiv.parentNode === container) {
-                        container.removeChild(reminderDiv);
-                        // Créer un nouveau rappel immédiatement après suppression
-                        showRandomReminder();
-                    }
-                }, 1300);
-            }
-        }, 3600000); // 1 heure = 3600000 millisecondes
-    }, 100);
-}
-
-// Fonction pour démarrer le cycle de rappels
-function startReminderCycle() {
-    // Afficher le premier rappel après 2 secondes
-    setTimeout(showRandomReminder, 2000);
-}
-
-// Arrêter le cycle de rappels
-function stopReminderCycle() {
-    if (reminderInterval) {
-        clearInterval(reminderInterval);
-        reminderInterval = null;
-    }
-    
-    // Supprimer le rappel actuel
-    if (currentReminderElement && currentReminderElement.parentNode) {
-        currentReminderElement.parentNode.removeChild(currentReminderElement);
-        currentReminderElement = null;
-    }
-}
-
-// -------------------------
-// Variables globales
-// -------------------------
-let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
+comme tu vois ce programme affiche des notification et de message etc je veux maintenant une liste de phrase que tu devra affcihe separement bien evidement pour l instant 3 as tu appele ton pere ? check l xauusd !! t a fait la priere ? c ets trois phrase random doit etre nevoye au moin un des trois ou plus si je veux rajouter les phrase dans une liste et il rest pendant 3h maximum redonne moi le compte complet avec les modif demande let savedLines = JSON.parse(localStorage.getItem('savedLines')) || [];
 let myMessages = JSON.parse(localStorage.getItem('myMessages')) || [];
+
+
 let textDivScroll = 0;
 let textDivScrollMax = 0;
 const TEXT_SCROLL_STEP = 20;
 
+// -------------------------
+// 🔔 Fonction pour afficher une notification animée
+// -------------------------
 // Liste des anniversaires (nom, jour, mois)
 const birthdays = [
-    { name: "Mohamed", day: 10, month: 6 },
-    { name: "Dad", day: 18, month: 6 },
-    { name: "Mom", day: 14, month: 3 },
-    { name: "Bilal", day: 28, month: 10 },
+    { name: "Mohamed", day: 10, month: 6 }, // Juillet = 6 (0-indexé)
+    { name: "Dad", day: 18, month: 6 },    // Octobre = 9
+    { name: "Mom", day: 14, month: 3 },    // Mai = 4
+    { name: "Bilal", day: 28, month: 10 }, // Décembre = 11
     { name: "Assya", day: 21, month: 9 },
-    { name: "Zackaria", day: 5, month: 4 }
+    { name: "Zackaria", day: 5, month: 4 }// Décembre = 11
 ];
 
 // Système de notifications
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
 
-// -------------------------
-// 🔔 Fonction pour afficher une notification animée
-// -------------------------
 function addNotification(message, prefix = "Notification") {
     const container = document.getElementById("notification-container");
     if (!container) {
@@ -120,7 +38,7 @@ function addNotification(message, prefix = "Notification") {
     row.style.display = "flex";
     row.style.justifyContent = "flex-end";
     row.style.width = "100%";
-    row.style.marginTop = "2px";
+    row.style.marginTop = "8px";
     container.appendChild(row);
 
     const notif = document.createElement("div");
@@ -178,9 +96,7 @@ function addNotification(message, prefix = "Notification") {
     }, 4200);
 }
 
-// -------------------------
 // Vérification des anniversaires
-// -------------------------
 function checkBirthdays() {
     const today = new Date();
     const currentDay = today.getDate();
@@ -210,6 +126,14 @@ function checkBirthdays() {
     
     console.log(`❌ Aucun anniversaire aujourd'hui (${today.toLocaleDateString()})`);
 }
+
+// Vérification automatique au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM chargé, vérification des anniversaires dans 3 secondes...");
+    
+    // Vérifier les anniversaires après 3 secondes
+    setTimeout(checkBirthdays, 3000);
+});
 
 // Pour tester manuellement depuis la console
 window.testBirthdayCheck = function() {
@@ -255,14 +179,13 @@ window.testNotification = function() {
     addNotification("Ceci est une notification de test!", "🔔");
 };
 
-// Fonction pour tester un rappel
-window.testReminder = function() {
-    showRandomReminder();
-};
+console.log("✅ Système de notifications d'anniversaires chargé!");
+console.log("Commandes disponibles:");
+console.log("- testBirthdayCheck() : Vérifier manuellement les anniversaires");
+console.log("- simulateDate(10, 6) : Simuler le 10 juillet (anniversaire de Mohamed)");
+console.log("- testNotification() : Tester une notification normale");
 
-// -------------------------
-// 📝 Fonction pour envoyer un message
-// -------------------------
+
 async function drawText() {
   const noteInput = document.getElementById('noteInput');
   const message = noteInput.value.trim();
@@ -481,19 +404,4 @@ window.addEventListener('load', function () {
 
   fetchText();
   setInterval(fetchText, 3000);
-  
-  // Vérification des anniversaires après 3 secondes
-  setTimeout(checkBirthdays, 3000);
-  
-  // Démarrer le cycle de rappels (1 heure)
-  startReminderCycle();
 });
-
-console.log("✅ Système complet chargé!");
-console.log("Commandes disponibles:");
-console.log("- testBirthdayCheck() : Vérifier manuellement les anniversaires");
-console.log("- simulateDate(10, 6) : Simuler le 10 juillet (anniversaire de Mohamed)");
-console.log("- testNotification() : Tester une notification normale");
-console.log("- testReminder() : Tester l'affichage d'un rappel");
-console.log("- stopReminderCycle() : Arrêter les rappels");
-console.log("- startReminderCycle() : Redémarrer les rappels");

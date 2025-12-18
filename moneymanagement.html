@@ -1,0 +1,238 @@
+    <div class="dashboard-container">
+        <!-- Pie Charts Section (Left Top) -->
+        <div class="pie-charts-section">
+            <!-- Expense Pie Chart -->
+            <div class="pie-chart-container">
+                <div class="chart-title">
+                    <span><i class="fas fa-chart-pie"></i> Expenses</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="expensePieChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Income Pie Chart -->
+            <div class="pie-chart-container">
+                <div class="chart-title">
+                    <span><i class="fas fa-chart-pie"></i> Income</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="incomePieChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Mini Add Investment Form -->
+            <div class="add-investment-form " style="background:#111216; background-color: rgba(17, 18, 22, 0.7);   margin-top: -20px;">
+                <div class="section-title" style="color:white;">
+                    <i class="fas fa-plus-circle"></i> Add Investment
+                </div>
+                <div class="form-row">
+                    <input type="text" id="investmentName" placeholder="Market name" style="border-radius: 30px;">
+                    <input type="number" id="initialInvestment" placeholder="Initial £" min="0" step="100" style="width: 20px; border-radius: 30px;">
+                </div>
+                <div class="form-row">
+                    <input type="number" id="annualReturn" placeholder="Return %" min="0" step="0.1"  style="border-radius: 30px;">
+                    <button class="btn-success btn-sm" id="addInvestmentBtn" style="flex: 1; border-radius: 30px;">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
+                <div class="form-row">
+                    <input type="number" id="investmentGoal" placeholder="Investment goal £" min="0" step="1000" style="border-radius: 30px; ">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Long-term Investment Section (Center Top) -->
+        <div class="long-term-section" style="color:white;">
+            <div class="long-term-header" style="color:white;">
+                <div class="section-title" style="color:white;">
+                    <i class="fas fa-line-chart"style="color:white;"></i> Long-term Investment (20 Years)
+                </div>
+            </div>
+            
+            <div class="long-term-content" style="color:white;">
+                <div class="line-chart-container" style="color:white;">
+                    <canvas id="lineChart" style="color:white;"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Transactions Section (Right) -->
+        <div class="recent-transactions-section" style="background:#111216; background-color: rgba(17, 18, 22, 0.7); color:white;">
+            <div class="recent-transactions-header">
+                <div class="section-title" id="recentTransactionsTitle" style="color:white;">
+                    <i class="fas fa-history"></i> Recent Transactions
+                </div>
+                <div class="month-selector">
+                    <button class="month-btn active" id="transacBtn" data-period="all" style="border-radius: 30px; ">Transaction</button>
+                    <button class="month-btn invest-btn" id="investViewBtn" style="border-radius: 30px;">Invest</button>
+                </div>
+            </div>
+            
+            <!-- Transactions Summary -->
+            <div class="transactions-summary" id="transactionsSummary">
+                <div class="transaction-summary-box">
+                    <div class="transaction-summary-label">Income</div>
+                    <div class="transaction-summary-value transaction-summary-income" id="recentIncome">£0.00</div>
+                </div>
+                <div class="transaction-summary-box">
+                    <div class="transaction-summary-label">Expenses</div>
+                    <div class="transaction-summary-value transaction-summary-expense" id="recentExpenses">£0.00</div>
+                </div>
+                <div class="transaction-summary-box">
+                    <div class="transaction-summary-label">Balance</div>
+                    <div class="transaction-summary-value" id="recentBalance">£0.00</div>
+                </div>
+            </div>
+            
+            <!-- Investments Summary (hidden by default) -->
+            <div class="transactions-summary" id="investmentsSummary" style="display: none;">
+                <div class="transaction-summary-box">
+                    <div class="transaction-summary-label">Total Invested</div>
+                    <div class="transaction-summary-value transaction-summary-income" id="totalInvested">£0.00</div>
+                </div>
+                <div class="transaction-summary-box">
+                    <div class="transaction-summary-label">Avg Return</div>
+                    <div class="transaction-summary-value transaction-summary-income" id="avgReturn">0%</div>
+                </div>
+                <div class="transaction-summary-box">
+                    <div class="transaction-summary-label">Investments</div>
+                    <div class="transaction-summary-value" id="totalInvestments">0</div>
+                </div>
+            </div>
+            
+            <!-- Transactions/Investments List -->
+            <div class="transactions-list" id="transactionsList" >
+                <div class="no-data">
+                    <i class="fas fa-exchange-alt"></i>
+                    <div>No transactions yet</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Controls Section (Left Bottom) -->
+        <div class="controls-section" style="    margin-top: -42px; background:#111216; background-color: rgba(17, 18, 22, 0.7); ">
+            <div class="section-title" style="color:white;">
+                <i class="fas fa-database"></i> New Transaction
+            </div>
+            
+            <!-- Summary Boxes -->
+            <div class="summary-container" style="margin-top:10px; color:white;">
+                <div class="summary-box" style="border-radius: 30px;">
+                    <div class="summary-label">Current Balance</div>
+                    <div class="summary-value" id="currentBalanceControl">£0.00</div>
+                </div>
+                <div class="summary-box" style="border-radius: 30px;">
+                    <div class="summary-label">Total Transactions</div>
+                    <div class="summary-value" id="totalTransactions">0</div>
+                </div>
+            </div>
+            
+            <!-- Input Form -->
+            <div class="input-group" style="border-radius: 30px;">
+                <label for="transactionType" style="color:white;"><i class="fas fa-exchange-alt" style="color:white;"></i> Transaction Type</label>
+                <select id="transactionType" style="border-radius: 30px; ">
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label for="amount" style="color:white;"><i class="fas fa-pound-sign" style="border-radius: 30px; color:white;"></i> Amount (£)</label>
+                <input type="number" id="amount" placeholder="Enter amount" min="0" step="0.01" value="" style="border-radius: 30px;">
+            </div>
+            
+            <div class="input-group">
+                <label for="category" style="color:white;"><i class="fas fa-tag" style="color:white;"></i> Category</label>
+                <select id="category" style="border-radius: 30px;">
+                    <option value="Other">Trading</option>
+                    <option value="Food">Food</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Shopping">Shopping</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Bills">Bills</option>
+                    <option value="Salary">Salary</option>
+                    <option value="Freelance">Freelance</option>
+                    <option value="Investment">Other</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label for="description" style="color:white;"><i class="fas fa-edit" style="border-radius: 30px; color:white;"></i> Description</label>
+                <input type="text" id="description" placeholder="Enter description" value="" style="border-radius: 30px;">
+            </div>
+            
+            <div class="input-group" >
+                <label for="date" style="color:white;"><i class="fas fa-calendar-alt" style="color:white;"></i> Date</label>
+                <input type="date" id="date"  style="border-radius: 30px;">
+            </div>
+            
+            <!-- Filter Buttons -->
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-period="today" style="border-radius: 30px;">Today</button>
+                <button class="filter-btn" data-period="week" style="border-radius: 30px;">Week</button>
+                <button class="filter-btn" data-period="month" style="border-radius: 30px;">Month</button>
+                <button class="filter-btn" data-period="year" style="border-radius: 30px;">Year</button>
+                <button class="filter-btn" data-period="all" style="border-radius: 30px;">All</button>
+            </div>
+            
+            <!-- Goal Input -->
+            <div class="input-group" >
+                <label for="goalAmount" style="color:white;"><i class="fas fa-bullseye" style="color:white;"></i> Monthly Goal (£)</label>
+                <div class="goal-input-container">
+                    <input type="number" id="goalAmount" placeholder="Enter monthly" min="0" step="0.01" value=""  style="border-radius: 30px;">
+                    <button class="btn-success btn-sm" id="setGoalBtn"  style="border-radius: 30px;">
+                        <i class="fas fa-bullseye"></i> Set Monthly
+                    </button>
+                </div>
+                <div class="goal-input-container">
+                    <input type="number" id="goalAllAmount" placeholder="Enter yearly" min="0" step="0.01" value="" style="border-radius: 30px;">
+                    <button class="btn-success btn-sm" id="setAllGoalBtn" style="border-radius: 30px;">
+                        <i class="fas fa-bullseye"></i> Set yearly
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="button-group">
+                <button class="btn-primary" id="addTransactionBtn" style="border-radius: 30px;">
+                    <i class="fas fa-plus" ></i> Add Transaction
+                </button>
+                <button class="trash-btn" id="clearAllBtn"  style="border-radius: 30px;">
+                    <i class="fas fa-trash"  ></i> Clear All
+                </button>
+            </div>
+        </div>
+        
+        <!-- Monthly Section (Bottom Center) -->
+        <div class="monthly-section" style="background:#111216; background-color: rgba(17, 18, 22, 0.7);">
+            <div class="monthly-header">
+                <div class="section-title" style="color:white;">
+                    <i class="fas fa-chart-bar"></i> Monthly Overview
+                </div>
+                <div class="month-selector">
+                    <button class="month-btn active" data-year="current"  style="border-radius: 30px;">Current Year</button>
+                    <button class="month-btn" data-year="previous" style="border-radius: 30px;">Previous Year</button>
+                </div>
+            </div>
+            
+            <div class="bar-chart-container">
+                <canvas id="monthlyBarChart"></canvas>
+            </div>
+            
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <div class="legend-color legend-goal"></div>
+                    <span>Monthly Goal</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-income"></div>
+                    <span>Income</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-expense"></div>
+                    <span>Expenses</span>
+                </div>
+            </div>
+        </div>
+    </div>

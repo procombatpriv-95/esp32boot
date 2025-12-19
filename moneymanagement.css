@@ -1,9 +1,9 @@
-        .board-container {
-            width: 1050px;
+        .dashboard-container {
+            width: 1000px;
             height: 590px;
-
+            background-color: transparent;
             border-radius: 25px;
-
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             overflow: hidden;
             display: grid;
             grid-template-columns: 1fr 1.8fr 1.2fr;
@@ -14,7 +14,6 @@
             gap: 5px;
             padding: 15px;
             color:white;
-            bckground-color: green;
         }
 
         .pie-charts-section {
@@ -463,6 +462,10 @@
             background-color: #e74c3c;
         }
         
+        .legend-balance {
+            background-color: #9b59b6;
+        }
+        
         /* Scrollbar styling */
         .controls-section::-webkit-scrollbar,
         .investment-list::-webkit-scrollbar,
@@ -628,4 +631,58 @@
         
         #investmentGoal {
             flex: 2;
+        }
+        
+        /* Style pour le fond du graphique monthly overview */
+        .monthly-section .bar-chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 10px;
+            height: 210px;
+        }
+        
+        /* Ajustement de la légende */
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 5px;
+            font-size: 9px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 0 3px;
+        }
+        
+        .legend-color {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        /* Style pour les points de la ligne */
+        .chartjs-render-monitor .chart-point {
+            stroke: #ffffff;
+            stroke-width: 1px;
+        }
+        
+        /* Amélioration de l'apparence du tooltip */
+        .chartjs-tooltip {
+            background-color: rgba(0, 0, 0, 0.8) !important;
+            border-radius: 5px !important;
+            border: 1px solid #3498db !important;
+            padding: 8px !important;
+            font-size: 11px !important;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1100px) {
+            .chart-legend {
+                font-size: 8px;
+                gap: 5px;
+            }
         }

@@ -1,3 +1,5 @@
+        console.log("Démarrage de l'application...");
+        
         // Variables globales
         let transactions = [];
         let investments = [];
@@ -164,7 +166,7 @@
             if (currentView === 'transactions') {
                 // Afficher les transactions
                 recentTransactionsTitle.innerHTML = '<i class="fas fa-history"></i> Recent Transactions';
-                transacBtn.textContent = 'Transac';
+                transacBtn.textContent = 'Transaction';
                 transacBtn.classList.add('active');
                 investViewBtn.classList.remove('active');
                 
@@ -226,7 +228,7 @@
             } else {
                 // Afficher les investissements
                 recentTransactionsTitle.innerHTML = '<i class="fas fa-line-chart"></i> Investments';
-                transacBtn.textContent = 'Transac';
+                transacBtn.textContent = 'Transaction';
                 transacBtn.classList.remove('active');
                 investViewBtn.classList.add('active');
                 
@@ -456,141 +458,177 @@
             
             // Line Chart pour les investissements (20 ans)
             const lineCtx = document.getElementById('lineChart').getContext('2d');
-lineChart = new Chart(lineCtx, {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: []
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Years',
-                    font: {
-                        size: 10
-                    },
-                    color: 'white'
+            lineChart = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
                 },
-                ticks: {
-                    font: {
-                        size: 9
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Years',
+                                font: {
+                                    size: 10
+                                },
+                                color: 'white'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 9
+                                },
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'white'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Value (£)',
+                                font: {
+                                    size: 10
+                                },
+                                color: 'white'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 9
+                                },
+                                color: 'white',
+                                callback: function(value) {
+                                    return '£' + (value/1000).toFixed(0) + 'K';
+                                }
+                            },
+                            grid: {
+                                color: 'white'
+                            }
+                        }
                     },
-                    color: 'white'
-                },
-                grid: {
-                    color: 'white'
-                }
-            },
-            y: {
-                title: {
-                    display: true,
-                    text: 'Value (£)',
-                    font: {
-                        size: 10
-                    },
-                    color: 'white'
-                },
-                ticks: {
-                    font: {
-                        size: 9
-                    },
-                    color: 'white',
-                    callback: function(value) {
-                        return '£' + (value/1000).toFixed(0) + 'K';
+                    plugins: {
+                        legend: {
+                            labels: {
+                                font: {
+                                    size: 9
+                                },
+                                color: 'white',
+                                boxWidth: 10,
+                                padding: 5
+                            },
+                            position: 'top'
+                        }
                     }
-                },
-                grid: {
-                    color: 'white'
                 }
-            }
-        },
-        plugins: {
-            legend: {
-                labels: {
-                    font: {
-                        size: 9
-                    },
-                    color: 'white',
-                    boxWidth: 10,
-                    padding: 5
-                },
-                position: 'top'
-            }
-        }
-    }
-});
+            });
             
-            // Monthly Bar Chart
+            // Monthly Bar Chart avec filled line chart intégré
             const monthlyBarCtx = document.getElementById('monthlyBarChart').getContext('2d');
-monthlyBarChart = new Chart(monthlyBarCtx, {
-    type: 'bar',
-    data: {
-        labels: getLast12Months().labels,
-        datasets: [
-            {
-                label: 'Goal',
-                data: [],
-                backgroundColor: '#3498db',
-                borderWidth: 1
-            },
-            {
-                label: 'Income',
-                data: [],
-                backgroundColor: '#2ecc71',
-                borderWidth: 1
-            },
-            {
-                label: 'Expenses',
-                data: [],
-                backgroundColor: '#e74c3c',
-                borderWidth: 1
-            }
-        ]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        scales: {
-            x: {
-                ticks: {
-                    maxRotation: 45,
-                    minRotation: 45,
-                    font: {
-                        size: 8
-                    },
-                    color: 'white'
+            monthlyBarChart = new Chart(monthlyBarCtx, {
+                type: 'bar',
+                data: {
+                    labels: getLast12Months().labels,
+                    datasets: [
+                        {
+                            label: 'Goal',
+                            data: [],
+                            backgroundColor: 'rgba(52, 152, 219, 0.5)',
+                            borderColor: '#3498db',
+                            borderWidth: 1,
+                            type: 'bar'
+                        },
+                        {
+                            label: 'Income',
+                            data: [],
+                            backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                            borderColor: '#2ecc71',
+                            borderWidth: 1,
+                            type: 'bar'
+                        },
+                        {
+                            label: 'Expenses',
+                            data: [],
+                            backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                            borderColor: '#e74c3c',
+                            borderWidth: 1,
+                            type: 'bar'
+                        },
+                        {
+                            label: 'Balance Trend',
+                            data: [],
+                            backgroundColor: 'rgba(155, 89, 182, 0.2)',
+                            borderColor: '#9b59b6',
+                            borderWidth: 2,
+                            fill: true,
+                            type: 'line',
+                            tension: 0.3,
+                            pointBackgroundColor: '#9b59b6',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }
+                    ]
                 },
-                grid: {
-                    color: 'white'
-                }
-            },
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    font: {
-                        size: 8
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
                     },
-                    color: 'white',
-                    callback: function(value) {
-                        return '£' + value;
+                    scales: {
+                        x: {
+                            stacked: false,
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: {
+                                    size: 8
+                                },
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            stacked: false,
+                            ticks: {
+                                font: {
+                                    size: 8
+                                },
+                                color: 'white',
+                                callback: function(value) {
+                                    return '£' + value;
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            titleColor: 'white',
+                            bodyColor: 'white',
+                            borderColor: '#3498db',
+                            borderWidth: 1
+                        }
                     }
-                },
-                grid: {
-                    color: 'white'
                 }
-            }
-        },
-        plugins: {
-            legend: {
-                display: false
-            }
-        }
-    }
-});
+            });
         }
         
         // Mettre à jour les graphiques
@@ -692,13 +730,14 @@ monthlyBarChart = new Chart(monthlyBarCtx, {
             lineChart.data.datasets = datasets;
             lineChart.update();
             
-            // Monthly Bar Chart - 12 mois
+            // Monthly Bar Chart - 12 mois - AVEC FILLED LINE CHART
             const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
             monthlyBarChart.data.labels = monthData.labels;
             
             const goalData = [];
             const incomeData = [];
             const expenseData = [];
+            const balanceTrendData = [];
             
             monthData.keys.forEach(monthKey => {
                 const [year, month] = monthKey.split('-');
@@ -721,14 +760,20 @@ monthlyBarChart = new Chart(monthlyBarCtx, {
                 incomeData.push(monthIncome);
                 expenseData.push(monthExpense);
                 
+                // Calculer le balance (income - expense) pour le trend
+                const monthBalance = monthIncome - monthExpense;
+                balanceTrendData.push(monthBalance);
+                
                 const goalKey = `${year}-${month}`;
                 const goalForMonth = monthlyGoals[goalKey] || 0;
                 goalData.push(goalForMonth);
             });
             
+            // Mettre à jour tous les datasets
             monthlyBarChart.data.datasets[0].data = goalData;
             monthlyBarChart.data.datasets[1].data = incomeData;
             monthlyBarChart.data.datasets[2].data = expenseData;
+            monthlyBarChart.data.datasets[3].data = balanceTrendData;
             monthlyBarChart.update();
         }
         
@@ -917,22 +962,22 @@ monthlyBarChart = new Chart(monthlyBarCtx, {
         });
         
         // **INITIALISATION DE L'APPLICATION**
-function initApp() {
-    console.log("Initialisation de l'application");
-    loadData();
-    initCharts();
-    
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        if (btn.dataset.period === 'month') {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
+        function initApp() {
+            console.log("Initialisation de l'application");
+            loadData();
+            initCharts();
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.dataset.period === 'month') {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            updateDashboard();
+            console.log("Application initialisée");
         }
-    });
-    
-    updateDashboard();
-    console.log("Application initialisée");
-}
         
         // Démarrer l'application quand la page est chargée
         window.addEventListener('load', initApp);

@@ -1,6 +1,4 @@
-       // Variables globales
         let transactions = [];
-        let investments = [];
         let monthlyGoals = {};
         let currentFilter = 'month';
         let currentYearView = 'current';
@@ -84,17 +82,11 @@
         function loadData() {
             try {
                 const savedTransactions = localStorage.getItem('moneyManagerTransactions');
-                const savedInvestments = localStorage.getItem('moneyManagerInvestments');
                 const savedGoals = localStorage.getItem('moneyManagerGoals');
                 
                 if (savedTransactions) {
                     transactions = JSON.parse(savedTransactions);
                     console.log("Transactions chargées:", transactions.length);
-                }
-                
-                if (savedInvestments) {
-                    investments = JSON.parse(savedInvestments);
-                    console.log("Investissements chargés:", investments.length);
                 }
                 
                 if (savedGoals) {
@@ -110,7 +102,6 @@
         function saveData() {
             try {
                 localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
-                localStorage.setItem('moneyManagerInvestments', JSON.stringify(investments));
                 localStorage.setItem('moneyManagerGoals', JSON.stringify(monthlyGoals));
                 console.log("Données sauvegardées");
             } catch (e) {
@@ -158,7 +149,7 @@
             }
             
             let html = '';
-            filtered.slice(0, 20).forEach(transaction => {
+            filtered.slice(0, 15).forEach(transaction => {
                 const sign = transaction.type === 'income' ? '+' : '-';
                 const amountClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
                 
@@ -288,6 +279,8 @@
         function initCharts() {
             // Monthly Bar Chart avec filled line chart intégré
             const monthlyBarCtx = document.getElementById('monthlyBarChart').getContext('2d');
+            
+            // Configurer le graphique pour avoir une meilleure résolution
             monthlyBarChart = new Chart(monthlyBarCtx, {
                 type: 'bar',
                 data: {
@@ -296,31 +289,37 @@
                         {
                             label: 'Goal',
                             data: [],
-                            backgroundColor: 'rgba(52, 152, 219, 0.5)',
+                            backgroundColor: 'rgba(52, 152, 219, 0.6)',
                             borderColor: '#3498db',
                             borderWidth: 1,
-                            type: 'bar'
+                            type: 'bar',
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.7
                         },
                         {
                             label: 'Income',
                             data: [],
-                            backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                            backgroundColor: 'rgba(46, 204, 113, 0.6)',
                             borderColor: '#2ecc71',
                             borderWidth: 1,
-                            type: 'bar'
+                            type: 'bar',
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.7
                         },
                         {
                             label: 'Expenses',
                             data: [],
-                            backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                            backgroundColor: 'rgba(231, 76, 60, 0.6)',
                             borderColor: '#e74c3c',
                             borderWidth: 1,
-                            type: 'bar'
+                            type: 'bar',
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.7
                         },
                         {
                             label: 'Balance Trend',
                             data: [],
-                            backgroundColor: 'rgba(155, 89, 182, 0.2)',
+                            backgroundColor: 'rgba(155, 89, 182, 0.3)',
                             borderColor: '#9b59b6',
                             borderWidth: 2,
                             fill: true,
@@ -328,15 +327,15 @@
                             tension: 0.3,
                             pointBackgroundColor: '#9b59b6',
                             pointBorderColor: '#ffffff',
-                            pointBorderWidth: 1,
-                            pointRadius: 4,
-                            pointHoverRadius: 6
+                            pointBorderWidth: 1.5,
+                            pointRadius: 3.5,
+                            pointHoverRadius: 5
                         }
                     ]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
+                    maintainAspectRatio: false,
                     interaction: {
                         mode: 'index',
                         intersect: false
@@ -350,10 +349,12 @@
                                 font: {
                                     size: 9
                                 },
-                                color: 'white'
+                                color: 'white',
+                                padding: 3
                             },
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
                             }
                         },
                         y: {
@@ -364,12 +365,17 @@
                                     size: 9
                                 },
                                 color: 'white',
+                                padding: 5,
                                 callback: function(value) {
+                                    if (value >= 1000) {
+                                        return '£' + (value/1000).toFixed(0) + 'k';
+                                    }
                                     return '£' + value;
                                 }
                             },
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
                             }
                         }
                     },
@@ -380,12 +386,23 @@
                         tooltip: {
                             mode: 'index',
                             intersect: false,
-                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
                             titleColor: 'white',
                             bodyColor: 'white',
                             borderColor: '#3498db',
-                            borderWidth: 1
+                            borderWidth: 1,
+                            titleFont: {
+                                size: 11
+                            },
+                            bodyFont: {
+                                size: 11
+                            },
+                            padding: 10
                         }
+                    },
+                    animation: {
+                        duration: 500,
+                        easing: 'easeOutQuart'
                     }
                 }
             });
@@ -395,7 +412,7 @@
         function updateCharts() {
             console.log("Mise à jour des graphiques");
             
-            // Monthly Bar Chart - 12 mois - AVEC FILLED LINE CHART
+            // Monthly Bar Chart - 12 mois
             const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
             monthlyBarChart.data.labels = monthData.labels;
             
@@ -439,7 +456,11 @@
             monthlyBarChart.data.datasets[1].data = incomeData;
             monthlyBarChart.data.datasets[2].data = expenseData;
             monthlyBarChart.data.datasets[3].data = balanceTrendData;
-            monthlyBarChart.update();
+            
+            // Forcer une mise à jour avec un redraw
+            monthlyBarChart.update('none');
+            
+            console.log("Graphique mis à jour avec succès");
         }
         
         // Ajouter une transaction

@@ -1,3 +1,4 @@
+       // Variables globales
         let transactions = [];
         let investments = [];
         let monthlyGoals = {};

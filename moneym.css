@@ -6,106 +6,282 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             overflow: hidden;
             display: grid;
-            grid-template-columns: 1fr 1.8fr 1.2fr;
-            grid-template-rows: 280px 1fr;
+            grid-template-columns: 630px 350px;
+            grid-template-rows: 280px 300px;
             grid-template-areas: 
-                "pie-charts long-term recent-transactions"
-                "controls monthly recent-transactions";
-            gap: 5px;
+                "monthly transactions"
+                "controls transactions";
+            gap: 10px;
             padding: 15px;
             color: white;
         }
 
-        /* === CORRECTIONS PIE CHARTS === */
-        .pie-charts-section {
-            grid-area: pie-charts;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 90px 90px 100px;
-            gap: 8px;
-            height: 280px;
-        }
-        
-        .pie-chart-container {
-            background: #111216;
-            border-radius: 10px;
-            padding: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        /* Monthly Overview Section */
+        .monthly-section {
+            grid-area: monthly;
             display: flex;
             flex-direction: column;
-            height: 90px;
-            position: relative;
+            background: #111216;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            height: 100%;
             overflow: hidden;
         }
         
-        .pie-chart-container .chart-title {
-            font-size: 11px;
-            margin-bottom: 5px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            height: 15px;
-            color: white;
+        .monthly-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            height: 30px;
         }
         
-        .pie-chart-container .chart-wrapper {
-            height: 65px;
-            width: 100%;
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #3498db;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-title i {
+            color: #3498db;
+        }
+        
+        .bar-chart-container {
+            flex: 1;
             position: relative;
+            height: calc(100% - 70px);
+            min-height: 180px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .chart-legend {
             display: flex;
             justify-content: center;
-            align-items: center;
-        }
-        
-        .pie-chart-container .chart-wrapper canvas {
-            width: 65px !important;
-            height: 65px !important;
-            max-width: 65px;
-            max-height: 65px;
-        }
-        
-        /* === ADD INVESTMENT FORM === */
-        .add-investment-form {
-            grid-column: 1 / span 2;
-            background: #111216;
-            border-radius: 10px;
-            padding: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            height: 100px;
-            margin-top: 0;
-        }
-        
-        .add-investment-form .section-title {
-            font-size: 12px;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #3498db;
-            color: white;
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 10px;
+            flex-wrap: wrap;
             height: 20px;
         }
         
-        .form-row {
+        .legend-item {
             display: flex;
+            align-items: center;
             gap: 5px;
-            margin-bottom: 6px;
+        }
+        
+        .legend-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .legend-goal {
+            background-color: #3498db;
+        }
+        
+        .legend-income {
+            background-color: #2ecc71;
+        }
+        
+        .legend-expense {
+            background-color: #e74c3c;
+        }
+        
+        .legend-balance {
+            background-color: #9b59b6;
+        }
+        
+        /* Recent Transactions Section */
+        .recent-transactions-section {
+            grid-area: transactions;
+            display: flex;
+            flex-direction: column;
+            background: #111216;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .recent-transactions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
             height: 30px;
         }
         
-        .form-row input {
+        .transactions-summary {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            height: 60px;
+        }
+        
+        .transaction-summary-box {
             flex: 1;
-            padding: 6px;
-            border: 1px solid #ddd;
-            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        
+        .transaction-summary-label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 5px;
+        }
+        
+        .transaction-summary-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .transaction-summary-income {
+            color: #2ecc71;
+        }
+        
+        .transaction-summary-expense {
+            color: #e74c3c;
+        }
+        
+        .month-selector {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .month-btn {
+            padding: 5px 10px;
             font-size: 11px;
-            background: white;
-            height: 30px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
         }
         
-        .form-row button {
-            height: 30px;
-            padding: 0 10px;
+        .month-btn.active {
+            background-color: #3498db;
+            color: white;
         }
         
-        /* === CONTROLS SECTION === */
+        .month-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .transactions-list {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            min-height: 350px;
+        }
+        
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 11px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-bottom: 6px;
+        }
+        
+        .transaction-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .transaction-info {
+            flex: 1;
+        }
+        
+        .transaction-category {
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 12px !important;
+        }
+        
+        .transaction-description {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 2px;
+        }
+        
+        .transaction-date {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+        
+        .transaction-amount {
+            font-weight: 600;
+            margin-right: 5px;
+            font-size: 12px;
+        }
+        
+        .transaction-income {
+            color: #2ecc71;
+        }
+        
+        .transaction-expense {
+            color: #e74c3c;
+        }
+        
+        .transaction-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            cursor: pointer;
+            padding: 3px;
+            font-size: 11px;
+            transition: transform 0.2s;
+        }
+        
+        .delete-btn:hover {
+            transform: scale(1.2);
+        }
+        
+        .no-data {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .no-data i {
+            font-size: 30px;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Controls Section */
         .controls-section {
             grid-area: controls;
             display: flex;
@@ -114,39 +290,8 @@
             border-radius: 15px;
             padding: 15px;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            height: 100%;
             overflow-y: auto;
-            height: 290px;
-            margin-top: 0;
-        }
-        
-        .controls-section .section-title {
-            color: white;
-            margin-bottom: 10px;
-        }
-        
-        .summary-container {
-            margin-top: 10px;
-        }
-        
-        .summary-box {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-            padding: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .summary-label {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-        
-        .summary-value {
-            font-size: 14px;
-            font-weight: 600;
-            color: white;
         }
         
         .input-group {
@@ -167,35 +312,133 @@
             border: 1px solid #ddd;
             border-radius: 30px;
             font-size: 12px;
+            transition: border-color 0.3s;
             background: white;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        button {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-secondary {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-sm {
+            padding: 7px 10px;
+            font-size: 11px;
+        }
+        
+        .summary-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .summary-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .summary-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .summary-income {
+            color: #2ecc71;
+        }
+        
+        .summary-expense {
+            color: #e74c3c;
         }
         
         .filter-buttons {
             display: flex;
-            gap: 5px;
-            margin-top: 10px;
-            margin-bottom: 10px;
+            gap: 6px;
+            margin-top: 8px;
+            margin-bottom: 12px;
         }
         
         .filter-btn {
             flex: 1;
-            padding: 8px;
-            font-size: 10px;
+            padding: 7px;
+            font-size: 11px;
             background-color: rgba(255, 255, 255, 0.1);
             color: white;
+            cursor: pointer;
             border: none;
             border-radius: 30px;
-            cursor: pointer;
+            transition: all 0.3s;
         }
         
         .filter-btn.active {
             background-color: #3498db;
+            color: white;
+        }
+        
+        .filter-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .filter-btn.active:hover {
+            background-color: #2980b9;
         }
         
         .goal-input-container {
             display: flex;
             gap: 8px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         
         .goal-input-container input {
@@ -207,56 +450,86 @@
             background: white;
         }
         
-        .goal-input-container button {
-            padding: 10px;
+        .goal-display {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 5px;
+            text-align: center;
         }
         
-        .button-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
+        /* Scrollbar styling */
+        .controls-section::-webkit-scrollbar,
+        .transactions-list::-webkit-scrollbar {
+            width: 5px;
         }
         
-        button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 30px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            font-size: 12px;
+        .controls-section::-webkit-scrollbar-track,
+        .transactions-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
         }
         
-        .btn-primary {
-            background-color: #3498db;
-            color: white;
+        .controls-section::-webkit-scrollbar-thumb,
+        .transactions-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
         }
         
-        .btn-success {
-            background-color: #2ecc71;
-            color: white;
+        /* Style pour les points de la ligne */
+        .chartjs-render-monitor .chart-point {
+            stroke: #ffffff;
+            stroke-width: 1px;
+        }
+        
+        /* Amélioration de l'apparence du tooltip */
+        .chartjs-tooltip {
+            background-color: rgba(0, 0, 0, 0.8) !important;
+            border-radius: 5px !important;
+            border: 1px solid #3498db !important;
+            padding: 8px !important;
+            font-size: 11px !important;
+        }
+
+        /* Assurer que tous les canvas ont une taille fixe */
+        canvas {
+            display: block !important;
+            position: relative !important;
+            width: 100% !important;
+            height: 100% !important;
         }
         
         .trash-btn {
             background-color: #e74c3c;
             color: white;
+            padding: 10px 14px;
         }
         
-        /* Scrollbar styling */
-        .controls-section::-webkit-scrollbar {
-            width: 4px;
+        .trash-btn:hover {
+            background-color: #c0392b;
         }
         
-        .controls-section::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+        /* Modifications pour les inputs et boutons de goal */
+        .goal-input-container input {
+            flex: 3;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 30px;
+            font-size: 12px;
+            height: 38px;
+            background: white;
         }
         
-        .controls-section::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
+        .goal-input-container button {
+            flex: 1;
+            padding: 10px 7px;
+            font-size: 11px;
+            height: 38px;
+        }
+        
+        /* Fix pour le graphique */
+        #monthlyBarChart {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 180px;
+            max-height: 200px;
         }

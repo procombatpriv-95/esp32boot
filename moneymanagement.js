@@ -1,4 +1,3 @@
-        // Variables globales
         let transactions = [];
         let investments = [];
         let monthlyGoals = {};
@@ -471,13 +470,13 @@
                                 display: true,
                                 text: 'Years',
                                 font: {
-                                    size: 11
+                                    size: 10
                                 },
                                 color: 'white'
                             },
                             ticks: {
                                 font: {
-                                    size: 10
+                                    size: 9
                                 },
                                 color: 'white'
                             },
@@ -490,13 +489,13 @@
                                 display: true,
                                 text: 'Value (£)',
                                 font: {
-                                    size: 11
+                                    size: 10
                                 },
                                 color: 'white'
                             },
                             ticks: {
                                 font: {
-                                    size: 10
+                                    size: 9
                                 },
                                 color: 'white',
                                 callback: function(value) {
@@ -512,7 +511,7 @@
                         legend: {
                             labels: {
                                 font: {
-                                    size: 10
+                                    size: 9
                                 },
                                 color: 'white',
                                 boxWidth: 10,
@@ -586,7 +585,7 @@
                                 maxRotation: 45,
                                 minRotation: 45,
                                 font: {
-                                    size: 9
+                                    size: 8
                                 },
                                 color: 'white'
                             },
@@ -599,7 +598,7 @@
                             stacked: false,
                             ticks: {
                                 font: {
-                                    size: 9
+                                    size: 8
                                 },
                                 color: 'white',
                                 callback: function(value) {
@@ -792,12 +791,12 @@
             const category = categorySelect.value;
             
             if (!amount || amount <= 0) {
-                alert('Please enter a valid amount');
+                console.log('Please enter a valid amount');
                 return;
             }
             
             if (!description) {
-                alert('Please enter a description');
+                console.log('Please enter a description');
                 return;
             }
             
@@ -831,17 +830,17 @@
             const goal = parseFloat(investmentGoalInput.value);
             
             if (!name) {
-                alert('Please enter a market name');
+                console.log('Please enter a market name');
                 return;
             }
             
             if (!initialAmount || initialAmount <= 0) {
-                alert('Please enter a valid initial investment');
+                console.log('Please enter a valid initial investment');
                 return;
             }
             
             if (!annualReturn || annualReturn <= 0) {
-                alert('Please enter a valid annual return');
+                console.log('Please enter a valid annual return');
                 return;
             }
             
@@ -874,7 +873,7 @@
             const amount = parseFloat(goalAmountInput.value);
             
             if (!amount || amount <= 0) {
-                alert('Please enter a valid goal amount');
+                console.log('Please enter a valid goal amount');
                 return;
             }
             
@@ -898,7 +897,7 @@
             const amount = parseFloat(goalAllAmountInput.value);
             
             if (!amount || amount <= 0) {
-                alert('Please enter a valid goal amount');
+                console.log('Please enter a valid goal amount');
                 return;
             }
             
@@ -976,6 +975,9 @@
             updateDashboard();
             console.log("Application initialisée");
         }
+        
+        // Démarrer l'application quand la page est chargée
+        window.addEventListener('load', initApp);
         
         // Démarrer l'application quand la page est chargée
         window.addEventListener('load', initApp);

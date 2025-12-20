@@ -1,5 +1,3 @@
-        console.log("Démarrage de l'application...");
-        
         // Variables globales
         let transactions = [];
         let investments = [];
@@ -410,9 +408,9 @@
             return null;
         }
         
-        // Initialiser les graphiques avec des dimensions fixes pour les pie charts
+        // Initialiser les graphiques
         function initCharts() {
-            // Expense Pie Chart - avec aspect ratio carré
+            // Expense Pie Chart
             const expensePieCtx = document.getElementById('expensePieChart').getContext('2d');
             expensePieChart = new Chart(expensePieCtx, {
                 type: 'pie',
@@ -434,7 +432,7 @@
                 }
             });
             
-            // Income Pie Chart - avec aspect ratio carré
+            // Income Pie Chart
             const incomePieCtx = document.getElementById('incomePieChart').getContext('2d');
             incomePieChart = new Chart(incomePieCtx, {
                 type: 'pie',
@@ -473,13 +471,13 @@
                                 display: true,
                                 text: 'Years',
                                 font: {
-                                    size: 10
+                                    size: 11
                                 },
                                 color: 'white'
                             },
                             ticks: {
                                 font: {
-                                    size: 9
+                                    size: 10
                                 },
                                 color: 'white'
                             },
@@ -492,13 +490,13 @@
                                 display: true,
                                 text: 'Value (£)',
                                 font: {
-                                    size: 10
+                                    size: 11
                                 },
                                 color: 'white'
                             },
                             ticks: {
                                 font: {
-                                    size: 9
+                                    size: 10
                                 },
                                 color: 'white',
                                 callback: function(value) {
@@ -514,7 +512,7 @@
                         legend: {
                             labels: {
                                 font: {
-                                    size: 9
+                                    size: 10
                                 },
                                 color: 'white',
                                 boxWidth: 10,
@@ -588,7 +586,7 @@
                                 maxRotation: 45,
                                 minRotation: 45,
                                 font: {
-                                    size: 8
+                                    size: 9
                                 },
                                 color: 'white'
                             },
@@ -601,7 +599,7 @@
                             stacked: false,
                             ticks: {
                                 font: {
-                                    size: 8
+                                    size: 9
                                 },
                                 color: 'white',
                                 callback: function(value) {
@@ -794,12 +792,12 @@
             const category = categorySelect.value;
             
             if (!amount || amount <= 0) {
-                console.log('Please enter a valid amount');
+                alert('Please enter a valid amount');
                 return;
             }
             
             if (!description) {
-                console.log('Please enter a description');
+                alert('Please enter a description');
                 return;
             }
             
@@ -833,17 +831,17 @@
             const goal = parseFloat(investmentGoalInput.value);
             
             if (!name) {
-                console.log('Please enter a market name');
+                alert('Please enter a market name');
                 return;
             }
             
             if (!initialAmount || initialAmount <= 0) {
-                console.log('Please enter a valid initial investment');
+                alert('Please enter a valid initial investment');
                 return;
             }
             
             if (!annualReturn || annualReturn <= 0) {
-                console.log('Please enter a valid annual return');
+                alert('Please enter a valid annual return');
                 return;
             }
             
@@ -876,7 +874,7 @@
             const amount = parseFloat(goalAmountInput.value);
             
             if (!amount || amount <= 0) {
-                console.log('Please enter a valid goal amount');
+                alert('Please enter a valid goal amount');
                 return;
             }
             
@@ -900,7 +898,7 @@
             const amount = parseFloat(goalAllAmountInput.value);
             
             if (!amount || amount <= 0) {
-                console.log('Please enter a valid goal amount');
+                alert('Please enter a valid goal amount');
                 return;
             }
             
@@ -980,4 +978,4 @@
         }
         
         // Démarrer l'application quand la page est chargée
-        window.addEventListener('load', initApp);;
+        window.addEventListener('load', initApp);

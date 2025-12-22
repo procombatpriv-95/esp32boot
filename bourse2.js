@@ -157,7 +157,6 @@
         const sideMenu = document.getElementById('sideMenu');
         const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
         const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-        const panelInfoMessage = document.getElementById('panelInfoMessage');
 
         // === SUPPRESSION DES TOOLTIPS ===
         function removeAllTooltips() {
@@ -463,9 +462,6 @@
             kinfopaneltousContainer.classList.add('active');
             loader.classList.remove('hidden');
 
-            // Mettre à jour le message du panel
-            panelInfoMessage.textContent = `Informations pour ${selectedAsset.displayName}`;
-            
             // Charger les kinfopaneltous DIRECTEMENT
             loadKinfopaneltousDirect(selectedAsset);
 
@@ -503,10 +499,10 @@
             kinfopaneltousContainer.classList.remove('active');
             carousel.classList.remove('carousel-paused');
             
-            panelInfoMessage.textContent = 'Sélectionnez un marché pour voir les détails et les kinfopaneltous.';
+            // Réinitialiser le contenu des kinfopaneltous
+            kinfopaneltousContent.innerHTML = '<div class="kinfopaneltous-loader">Sélectionnez un marché pour voir les actualités</div>';
             
             if (currentKinfopaneltousWidget) {
-                kinfopaneltousContent.innerHTML = '';
                 currentKinfopaneltousWidget = null;
             }
             

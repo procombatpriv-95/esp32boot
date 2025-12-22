@@ -325,7 +325,7 @@
 .menu-dots {
   position: absolute;
   margin-top: 650px;          /* ✅ reste toujours 40px du bas */
-  left: 59%;                  /* centre horizontalement */
+  left: 45%;                  /* centre horizontalement */
   transform: translateX(-50%);
   display: flex;
   justify-content: center;

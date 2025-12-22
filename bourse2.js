@@ -8,7 +8,7 @@
                     symbol: 'BTC',
                     tradingViewSymbol: 'BITSTAMP:BTCUSD',
                     displayName: 'Bitcoin',
-                    newsCategory: 'crypto'
+                    kinfopaneltousSymbol: 'BTCUSD'
                 },
                 {
                     id: 'litecoin',
@@ -16,7 +16,7 @@
                     symbol: 'LTC',
                     tradingViewSymbol: 'BITSTAMP:LTCUSD',
                     displayName: 'Litecoin',
-                    newsCategory: 'crypto'
+                    kinfopaneltousSymbol: 'LTCUSD'
                 },
                 {
                     id: 'ethereum',
@@ -24,7 +24,7 @@
                     symbol: 'ETH',
                     tradingViewSymbol: 'BITSTAMP:ETHUSD',
                     displayName: 'Ethereum',
-                    newsCategory: 'crypto'
+                    kinfopaneltousSymbol: 'ETHUSD'
                 },
                 {
                     id: 'xrp',
@@ -32,7 +32,7 @@
                     symbol: 'XRP',
                     tradingViewSymbol: 'BITSTAMP:XRPUSD',
                     displayName: 'XRP',
-                    newsCategory: 'crypto'
+                    kinfopaneltousSymbol: 'XRPUSD'
                 }
             ],
             shares: [
@@ -42,7 +42,7 @@
                    symbol: 'NASDAQ',
                    tradingViewSymbol: 'NASDAQ:IXIC',
                    displayName: 'NASDAQ',
-                   newsCategory: 'stock'
+                   kinfopaneltousSymbol: 'NASDAQ:IXIC'
                 },
                 {
                     id: 'apple',
@@ -50,7 +50,7 @@
                     symbol: 'AAPL',
                     tradingViewSymbol: 'NASDAQ:AAPL',
                     displayName: 'Apple',
-                    newsCategory: 'stock'
+                    kinfopaneltousSymbol: 'NASDAQ:AAPL'
                 },
                 {
                     id: 'tesla',
@@ -58,7 +58,7 @@
                     symbol: 'TSLA',
                     tradingViewSymbol: 'NASDAQ:TSLA',
                     displayName: 'Tesla',
-                    newsCategory: 'stock'
+                    kinfopaneltousSymbol: 'NASDAQ:TSLA'
                 },
                 {
                     id: 'microsoft',
@@ -66,7 +66,7 @@
                     symbol: 'MSFT',
                     tradingViewSymbol: 'NASDAQ:MSFT',
                     displayName: 'Microsoft',
-                    newsCategory: 'stock'
+                    kinfopaneltousSymbol: 'NASDAQ:MSFT'
                 }
             ],
             commodities: [
@@ -76,7 +76,7 @@
                     symbol: 'XAU',
                     tradingViewSymbol: 'OANDA:XAUUSD',
                     displayName: 'Gold',
-                    newsCategory: 'commodity'
+                    kinfopaneltousSymbol: 'XAUUSD'
                 },
                 {
                     id: 'silver',
@@ -84,7 +84,7 @@
                     symbol: 'XAG',
                     tradingViewSymbol: 'OANDA:XAGUSD',
                     displayName: 'Silver',
-                    newsCategory: 'commodity'
+                    kinfopaneltousSymbol: 'XAGUSD'
                 },
                 {
                     id: 'platinum',
@@ -92,7 +92,7 @@
                     symbol: 'XPT',
                     tradingViewSymbol: 'TVC:PLATINUM',
                     displayName: 'Platinum',
-                    newsCategory: 'commodity'
+                    kinfopaneltousSymbol: 'PLATINUM'
                 },
                 {
                     id: 'oil',
@@ -100,7 +100,7 @@
                     symbol: 'OIL',
                     tradingViewSymbol: 'TVC:USOIL',
                     displayName: 'Crude Oil',
-                    newsCategory: 'commodity'
+                    kinfopaneltousSymbol: 'USOIL'
                 }
             ],
             forex: [
@@ -110,7 +110,7 @@
                     symbol: 'EUR',
                     tradingViewSymbol: 'FX_IDC:EURUSD',
                     displayName: 'EUR/USD',
-                    newsCategory: 'forex'
+                    kinfopaneltousSymbol: 'EURUSD'
                 },
                 {
                     id: 'gbpusd',
@@ -118,7 +118,7 @@
                     symbol: 'GBP',
                     tradingViewSymbol: 'FX_IDC:GBPUSD',
                     displayName: 'GBP/USD',
-                    newsCategory: 'forex'
+                    kinfopaneltousSymbol: 'GBPUSD'
                 },
                 {
                     id: 'audusd',
@@ -126,7 +126,7 @@
                     symbol: 'AUD',
                     tradingViewSymbol: 'FX_IDC:AUDUSD',
                     displayName: 'AUD/USD',
-                    newsCategory: 'forex'
+                    kinfopaneltousSymbol: 'AUDUSD'
                 },
                 {
                     id: 'nzdusd',
@@ -134,7 +134,7 @@
                     symbol: 'NZD',
                     tradingViewSymbol: 'FX_IDC:NZDUSD',
                     displayName: 'NZD/USD',
-                    newsCategory: 'forex'
+                    kinfopaneltousSymbol: 'NZDUSD'
                 }
             ]
         };
@@ -145,7 +145,7 @@
         let tvWidgets = {};
         let selectedTVWidget = null;
         let chartStates = {};
-        let currentNewsWidget = null;
+        let currentKinfopaneltousWidget = null;
 
         // Éléments du DOM
         const carousel = document.getElementById('mainCarousel');
@@ -155,12 +155,93 @@
         const loader = document.getElementById('loader');
         const menuSections = document.querySelectorAll('.menu-section');
         const sideMenu = document.getElementById('sideMenu');
-        const newsContainer = document.getElementById('newsContainer');
-        const newsHeader = document.getElementById('newsHeader');
-        const newsContent = document.getElementById('newsContent');
+        const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
+        const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+        const panelInfoMessage = document.getElementById('panelInfoMessage');
 
-        // Charger les états des graphiques depuis localStorage
-        function loadChartStates() {
+        // === SUPPRESSION DES TOOLTIPS ===
+        function removeAllTooltips() {
+            const elements = document.querySelectorAll('[title]');
+            elements.forEach(el => {
+                if (el.title && el.title !== '') {
+                    el.setAttribute('data-original-title', el.title);
+                    el.removeAttribute('title');
+                }
+            });
+            
+            const ariaElements = document.querySelectorAll('[aria-label]');
+            ariaElements.forEach(el => {
+                el.setAttribute('data-original-aria-label', el.getAttribute('aria-label'));
+                el.removeAttribute('aria-label');
+            });
+            
+            document.addEventListener('mouseover', function(e) {
+                if (e.target.hasAttribute('title') || e.target.hasAttribute('aria-label')) {
+                    e.stopPropagation();
+                }
+            }, true);
+        }
+
+        // === CHARGEMENT DES KINFOPANELTOUS DIRECT ===
+        function loadKinfopaneltousDirect(asset) {
+            // Nettoyer le contenu précédent
+            kinfopaneltousContent.innerHTML = '';
+            
+            // Créer un loader temporaire
+            const loaderDiv = document.createElement('div');
+            loaderDiv.className = 'kinfopaneltous-loader';
+            loaderDiv.textContent = 'Chargement des actualités...';
+            kinfopaneltousContent.appendChild(loaderDiv);
+            
+            // Créer une div directe pour le widget
+            const widgetDiv = document.createElement('div');
+            widgetDiv.className = 'tradingview-kinfopaneltous-direct';
+            widgetDiv.id = 'tradingview_kinfopaneltous_direct';
+            
+            // Supprimer le loader et ajouter le widget DIRECTEMENT
+            setTimeout(() => {
+                kinfopaneltousContent.removeChild(loaderDiv);
+                kinfopaneltousContent.appendChild(widgetDiv);
+                
+                // Créer le script TradingView directement dans le container
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
+                script.async = true;
+                
+                // Configuration optimisée pour 250px de width
+                script.textContent = JSON.stringify({
+                    "feedMode": "symbol",
+                    "symbol": asset.tradingViewSymbol,
+                    "isTransparent": true,
+                    "displayMode": "compact",
+                    "width": "250", // Largeur fixe de 250px
+                    "height": "400", // Hauteur adaptée
+                    "colorTheme": "dark",
+                    "locale": "fr",
+                    "utm_source": "tradingview.com",
+                    "utm_medium": "widget",
+                    "utm_campaign": "timeline",
+                    "noReferrer": true,
+                    "showSymbolLogo": false,
+                    "fontSize": "small", // Taille petite pour 250px
+                    "textColor": "#ffffff" // Texte blanc
+                });
+                
+                widgetDiv.appendChild(script);
+                
+                // Stocker la référence au widget
+                currentKinfopaneltousWidget = widgetDiv;
+                
+                // Supprimer les tooltips après chargement
+                setTimeout(removeAllTooltips, 1500);
+                
+            }, 500);
+        }
+
+        // === INITIALISATION ===
+        function init() {
+            // Charger les états des graphiques
             const saved = localStorage.getItem('chartStates');
             if (saved) {
                 try {
@@ -170,48 +251,8 @@
                     chartStates = {};
                 }
             }
-        }
-
-        // Sauvegarder les états des graphiques dans localStorage
-        function saveChartStates() {
-            try {
-                localStorage.setItem('chartStates', JSON.stringify(chartStates));
-            } catch (e) {
-                console.error('Erreur lors de la sauvegarde des états:', e);
-            }
-        }
-
-        // Obtenir la clé de stockage pour un actif
-        function getChartKey(assetId) {
-            return `chart_${assetId}`;
-        }
-
-        // Sauvegarder l'état actuel du graphique
-        function saveCurrentChartState() {
-            if (!selectedAsset || !selectedTVWidget) return;
             
-            try {
-                const chart = selectedTVWidget.chart();
-                if (chart) {
-                    chart.getSavedStudies((studies) => {
-                        const state = {
-                            studies: studies,
-                            timestamp: Date.now(),
-                            symbol: selectedAsset.tradingViewSymbol
-                        };
-                        
-                        chartStates[getChartKey(selectedAsset.id)] = state;
-                        saveChartStates();
-                        console.log('État du graphique sauvegardé pour:', selectedAsset.id);
-                    });
-                }
-            } catch (e) {
-                console.error('Erreur lors de la sauvegarde de l\'état:', e);
-            }
-        }
-
-        // === GESTION DU MENU LATÉRAL ===
-        function initMenu() {
+            // Initialiser le menu
             menuSections.forEach(section => {
                 section.addEventListener('click', function() {
                     const type = this.getAttribute('data-type');
@@ -224,6 +265,25 @@
                    
                     updateCarousel();
                 });
+            });
+            
+            updateCarousel();
+            
+            // Supprimer les tooltips initialement
+            setTimeout(removeAllTooltips, 1000);
+            
+            // Surveillance des mutations
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.addedNodes.length) {
+                        removeAllTooltips();
+                    }
+                });
+            });
+            
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
             });
         }
 
@@ -241,7 +301,6 @@
                 return null;
             }
 
-            // Configuration du widget
             const widgetConfig = {
                 width: isCarousel ? '400' : '1000',
                 height: isCarousel ? '200' : '500',
@@ -257,7 +316,6 @@
                 container_id: containerId
             };
 
-            // Configuration différente pour carousel vs vue sélectionnée
             if (isCarousel) {
                 widgetConfig.toolbar_bg = "#111216";
                 widgetConfig.hide_legend = true;
@@ -286,23 +344,19 @@
                 widgetConfig.hotlist = true;
                 widgetConfig.calendar = true;
                 
-                // Charger l'état sauvegardé si disponible
-                const chartKey = getChartKey(assetId);
+                const chartKey = `chart_${assetId}`;
                 const savedState = chartStates[chartKey];
                 
                 if (savedState && savedState.symbol === symbol) {
                     widgetConfig.studies_overrides = savedState.studies;
                 } else {
-                    // Indicateurs par défaut : RSI(14) et MAWeighted(50)
                     widgetConfig.studies = ["RSI@tv-basicstudies", "MAWeighted@tv-basicstudies"];
                     widgetConfig.studies_overrides = {
                         "volume.volume.color.0": "rgba(0, 0, 0, 0)",
                         "volume.volume.color.1": "rgba(0, 0, 0, 0)",
-                        // Configuration RSI
                         "RSI.rsi.linewidth": 2,
                         "RSI.rsi.period": 14,
                         "RSI.rsi.plottype": "line",
-                        // Configuration MAWeighted (Moyenne Mobile Pondérée) - Taille 50
                         "MAWeighted.ma.color": "#FF6B00",
                         "MAWeighted.ma.linewidth": 50,
                         "MAWeighted.ma.period": 50,
@@ -315,20 +369,26 @@
             try {
                 const widget = new TradingView.widget(widgetConfig);
                 
-                // Pour la vue sélectionnée, sauvegarder périodiquement
                 if (!isCarousel) {
                     widget.onChartReady(() => {
                         const chart = widget.chart();
-                        
-                        // Sauvegarder toutes les 30 secondes
-                        setInterval(saveCurrentChartState, 30000);
-                        
-                        // Sauvegarder quand l'utilisateur quitte la page
-                        window.addEventListener('beforeunload', saveCurrentChartState);
-                        
-                        // Sauvegarder quand l'utilisateur change de graphique
-                        chart.onIntervalChanged().subscribe(null, saveCurrentChartState);
-                        chart.onSymbolChanged().subscribe(null, saveCurrentChartState);
+                        setInterval(() => {
+                            if (selectedAsset && selectedTVWidget) {
+                                try {
+                                    chart.getSavedStudies((studies) => {
+                                        const state = {
+                                            studies: studies,
+                                            timestamp: Date.now(),
+                                            symbol: selectedAsset.tradingViewSymbol
+                                        };
+                                        chartStates[`chart_${selectedAsset.id}`] = state;
+                                        localStorage.setItem('chartStates', JSON.stringify(chartStates));
+                                    });
+                                } catch (e) {
+                                    console.error('Erreur sauvegarde:', e);
+                                }
+                            }
+                        }, 30000);
                     });
                 }
                 
@@ -337,139 +397,6 @@
                 console.error('Erreur création widget TradingView:', error);
                 return null;
             }
-        }
-
-        // === CHARGEMENT DES NEWS TRADINGVIEW ===
-        function loadTradingViewNews(asset) {
-            // Nettoyer le contenu précédent
-            newsContent.innerHTML = '';
-            
-            // Créer un loader temporaire
-            const loaderDiv = document.createElement('div');
-            loaderDiv.className = 'news-loader';
-            loaderDiv.textContent = 'Chargement des actualités...';
-            newsContent.appendChild(loaderDiv);
-            
-            // Créer un iframe pour les news TradingView
-            // TradingView n'autorise pas l'intégration directe dans iframe, donc on utilise leur widget embed
-            // Nous allons créer une div pour le widget TradingView
-            
-            const widgetDiv = document.createElement('div');
-            widgetDiv.id = 'tradingview_news_widget';
-            widgetDiv.style.width = '100%';
-            widgetDiv.style.height = '100%';
-            
-            // Supprimer le loader
-            setTimeout(() => {
-                newsContent.removeChild(loaderDiv);
-                newsContent.appendChild(widgetDiv);
-                
-                // Créer le script TradingView pour les news
-                const script = document.createElement('script');
-                script.type = 'text/javascript';
-                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
-                script.async = true;
-                
-                // Configuration du widget de news
-                script.textContent = JSON.stringify({
-                    "feedMode": "all_symbols",
-                    "isTransparent": true,
-                    "displayMode": "compact",
-                    "width": "100%",
-                    "height": "100%",
-                    "colorTheme": "dark",
-                    "locale": "fr",
-                    "utm_source": "tradingview.com",
-                    "utm_medium": "widget",
-                    "utm_campaign": "timeline"
-                });
-                
-                widgetDiv.appendChild(script);
-                
-                // Stocker la référence au widget
-                currentNewsWidget = widgetDiv;
-                
-            }, 500);
-        }
-
-        // === CHARGEMENT DES NEWS PAR CATÉGORIE ===
-        function loadNewsByCategory(category) {
-            newsContent.innerHTML = '';
-            
-            const loaderDiv = document.createElement('div');
-            loaderDiv.className = 'news-loader';
-            loaderDiv.textContent = 'Chargement des actualités...';
-            newsContent.appendChild(loaderDiv);
-            
-            const widgetDiv = document.createElement('div');
-            widgetDiv.id = 'tradingview_category_news';
-            widgetDiv.style.width = '100%';
-            widgetDiv.style.height = '100%';
-            
-            setTimeout(() => {
-                newsContent.removeChild(loaderDiv);
-                newsContent.appendChild(widgetDiv);
-                
-                const script = document.createElement('script');
-                script.type = 'text/javascript';
-                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
-                script.async = true;
-                
-                script.textContent = JSON.stringify({
-                    "feedMode": "market",
-                    "market": category,
-                    "isTransparent": true,
-                    "displayMode": "compact",
-                    "width": "100%",
-                    "height": "100%",
-                    "colorTheme": "dark",
-                    "locale": "fr"
-                });
-                
-                widgetDiv.appendChild(script);
-                currentNewsWidget = widgetDiv;
-                
-            }, 500);
-        }
-
-        // === CHARGEMENT DES NEWS PAR SYMBOLE ===
-        function loadNewsBySymbol(symbol) {
-            newsContent.innerHTML = '';
-            
-            const loaderDiv = document.createElement('div');
-            loaderDiv.className = 'news-loader';
-            loaderDiv.textContent = 'Chargement des actualités...';
-            newsContent.appendChild(loaderDiv);
-            
-            const widgetDiv = document.createElement('div');
-            widgetDiv.id = 'tradingview_symbol_news';
-            widgetDiv.style.width = '100%';
-            widgetDiv.style.height = '100%';
-            
-            setTimeout(() => {
-                newsContent.removeChild(loaderDiv);
-                newsContent.appendChild(widgetDiv);
-                
-                const script = document.createElement('script');
-                script.type = 'text/javascript';
-                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
-                script.async = true;
-                
-                script.textContent = JSON.stringify({
-                    "feedMode": "symbol",
-                    "symbol": symbol,
-                    "isTransparent": true,
-                    "displayMode": "compact",
-                    "width": "100%",
-                    "height": "100%",
-                    "colorTheme": "dark",
-                    "locale": "fr"
-                });
-                
-                widgetDiv.appendChild(script);
-                currentNewsWidget = widgetDiv;
-                
-            }, 500);
         }
 
         // === MISE À JOUR DU CAROUSEL ===
@@ -505,9 +432,10 @@
                         true
                     );
                 });
+                
+                setTimeout(removeAllTooltips, 2000);
+                initCarouselClicks();
             }, 1000);
-           
-            initCarouselClicks();
         }
 
         // === INITIALISATION DES CLICS DU CAROUSEL ===
@@ -526,28 +454,22 @@
             selectedAsset = currentAssets.find(c => c.id === assetId);
             if (!selectedAsset) return;
 
-            // Sauvegarder l'état actuel avant de changer
-            saveCurrentChartState();
-
+            // Animation et transition
             carousel.classList.add('carousel-paused');
             carouselScene.classList.add('hidden');
             sideMenu.classList.add('hidden');
             selectedView.classList.add('active');
             backBtn.classList.remove('hidden');
-            newsContainer.classList.add('active');
+            kinfopaneltousContainer.classList.add('active');
             loader.classList.remove('hidden');
 
-            // Mettre à jour le header des news
-            newsHeader.textContent = `News - ${selectedAsset.displayName}`;
+            // Mettre à jour le message du panel
+            panelInfoMessage.textContent = `Informations pour ${selectedAsset.displayName}`;
             
-            // Charger les news TradingView pour cet actif
-            // Utiliser la catégorie ou le symbole selon ce qui fonctionne mieux
-            if (selectedAsset.newsCategory) {
-                loadNewsByCategory(selectedAsset.newsCategory);
-            } else {
-                loadNewsBySymbol(selectedAsset.tradingViewSymbol);
-            }
+            // Charger les kinfopaneltous DIRECTEMENT
+            loadKinfopaneltousDirect(selectedAsset);
 
+            // Préparer le graphique TradingView
             const tvContainer = document.getElementById('tradingview_selected');
             if (tvContainer) {
                 tvContainer.innerHTML = '';
@@ -555,8 +477,7 @@
 
             setTimeout(() => {
                 if (selectedTVWidget) {
-                    // Supprimer les écouteurs d'événements avant de détruire
-                    window.removeEventListener('beforeunload', saveCurrentChartState);
+                    window.removeEventListener('beforeunload', () => {});
                 }
                
                 selectedTVWidget = createTradingViewWidget(
@@ -568,41 +489,29 @@
                
                 setTimeout(() => {
                     loader.classList.add('hidden');
+                    removeAllTooltips();
                 }, 1500);
             }, 500);
         }
 
         // === RETOUR AU CAROUSEL ===
         backBtn.addEventListener('click', function() {
-            // Sauvegarder l'état avant de quitter
-            saveCurrentChartState();
-            
             selectedView.classList.remove('active');
             carouselScene.classList.remove('hidden');
             backBtn.classList.add('hidden');
             sideMenu.classList.remove('hidden');
-            newsContainer.classList.remove('active');
+            kinfopaneltousContainer.classList.remove('active');
             carousel.classList.remove('carousel-paused');
             
-            // Nettoyer les news
-            if (currentNewsWidget) {
-                newsContent.innerHTML = '';
-                currentNewsWidget = null;
+            panelInfoMessage.textContent = 'Sélectionnez un marché pour voir les détails et les kinfopaneltous.';
+            
+            if (currentKinfopaneltousWidget) {
+                kinfopaneltousContent.innerHTML = '';
+                currentKinfopaneltousWidget = null;
             }
+            
+            removeAllTooltips();
         });
-
-        // === INITIALISATION ===
-        function init() {
-            loadChartStates();
-            initMenu();
-            updateCarousel();
-            
-            // Le panelinfo est toujours visible
-            // Seul le conteneur de news sera caché/affiché
-            
-            // Sauvegarder avant que l'utilisateur ne quitte la page
-            window.addEventListener('beforeunload', saveCurrentChartState);
-        }
 
         // DÉMARRER L'APPLICATION
         init();
@@ -611,4 +520,4 @@
             sideMenu.style.top = '50%';
             sideMenu.style.transform = 'translateY(-50%)';
         });
-    });;
+    });

@@ -146,7 +146,6 @@
         let selectedTVWidget = null;
         let chartStates = {};
         let currentNewsWidget = null;
-        let newsCheckInterval = null;
 
         // Éléments du DOM
         const carousel = document.getElementById('mainCarousel');
@@ -159,7 +158,6 @@
         const newsContainer = document.getElementById('newsContainer');
         const newsHeader = document.getElementById('newsHeader');
         const newsContent = document.getElementById('newsContent');
-        const panelInfo = document.getElementById('panelInfo');
 
         // Charger les états des graphiques depuis localStorage
         function loadChartStates() {
@@ -352,17 +350,18 @@
             loaderDiv.textContent = 'Chargement des actualités...';
             newsContent.appendChild(loaderDiv);
             
-            // Créer une div pour le widget TradingView
+            // Créer un iframe pour les news TradingView
+            // TradingView n'autorise pas l'intégration directe dans iframe, donc on utilise leur widget embed
+            // Nous allons créer une div pour le widget TradingView
+            
             const widgetDiv = document.createElement('div');
             widgetDiv.id = 'tradingview_news_widget';
             widgetDiv.style.width = '100%';
             widgetDiv.style.height = '100%';
             
-            // Supprimer le loader après un court délai et ajouter le widget
+            // Supprimer le loader
             setTimeout(() => {
-                if (newsContent.contains(loaderDiv)) {
-                    newsContent.removeChild(loaderDiv);
-                }
+                newsContent.removeChild(loaderDiv);
                 newsContent.appendChild(widgetDiv);
                 
                 // Créer le script TradingView pour les news
@@ -408,9 +407,7 @@
             widgetDiv.style.height = '100%';
             
             setTimeout(() => {
-                if (newsContent.contains(loaderDiv)) {
-                    newsContent.removeChild(loaderDiv);
-                }
+                newsContent.removeChild(loaderDiv);
                 newsContent.appendChild(widgetDiv);
                 
                 const script = document.createElement('script');
@@ -450,9 +447,7 @@
             widgetDiv.style.height = '100%';
             
             setTimeout(() => {
-                if (newsContent.contains(loaderDiv)) {
-                    newsContent.removeChild(loaderDiv);
-                }
+                newsContent.removeChild(loaderDiv);
                 newsContent.appendChild(widgetDiv);
                 
                 const script = document.createElement('script');
@@ -475,42 +470,6 @@
                 currentNewsWidget = widgetDiv;
                 
             }, 500);
-        }
-
-        // === VÉRIFIER L'ÉTAT DE menu2Content ===
-        function checkMenu2ContentState() {
-            const menu2Content = document.getElementById('menu2Content');
-            const isSelectedView = selectedView.classList.contains('active');
-            
-            if (menu2Content && menu2Content.classList.contains('active') && isSelectedView) {
-                // Si menu2Content est actif ET nous sommes en selected view, afficher les news
-                newsContainer.classList.add('active');
-            } else {
-                // Sinon, cacher les news
-                newsContainer.classList.remove('active');
-            }
-        }
-
-        // === DÉMARRER LA VÉRIFICATION PÉRIODIQUE ===
-        function startNewsContainerCheck() {
-            // Vérifier immédiatement
-            checkMenu2ContentState();
-            
-            // Vérifier toutes les 500ms
-            if (newsCheckInterval) {
-                clearInterval(newsCheckInterval);
-            }
-            newsCheckInterval = setInterval(checkMenu2ContentState, 500);
-        }
-
-        // === ARRÊTER LA VÉRIFICATION PÉRIODIQUE ===
-        function stopNewsContainerCheck() {
-            if (newsCheckInterval) {
-                clearInterval(newsCheckInterval);
-                newsCheckInterval = null;
-            }
-            // Cacher les news quand on quitte le mode selected view
-            newsContainer.classList.remove('active');
         }
 
         // === MISE À JOUR DU CAROUSEL ===
@@ -575,20 +534,19 @@
             sideMenu.classList.add('hidden');
             selectedView.classList.add('active');
             backBtn.classList.remove('hidden');
+            newsContainer.classList.add('active');
             loader.classList.remove('hidden');
 
             // Mettre à jour le header des news
             newsHeader.textContent = `News - ${selectedAsset.displayName}`;
             
             // Charger les news TradingView pour cet actif
+            // Utiliser la catégorie ou le symbole selon ce qui fonctionne mieux
             if (selectedAsset.newsCategory) {
                 loadNewsByCategory(selectedAsset.newsCategory);
             } else {
                 loadNewsBySymbol(selectedAsset.tradingViewSymbol);
             }
-
-            // Démarrer la vérification pour afficher/cacher les news
-            startNewsContainerCheck();
 
             const tvContainer = document.getElementById('tradingview_selected');
             if (tvContainer) {
@@ -623,22 +581,14 @@
             carouselScene.classList.remove('hidden');
             backBtn.classList.add('hidden');
             sideMenu.classList.remove('hidden');
+            newsContainer.classList.remove('active');
             carousel.classList.remove('carousel-paused');
-            
-            // Arrêter la vérification et cacher les news
-            stopNewsContainerCheck();
             
             // Nettoyer les news
             if (currentNewsWidget) {
                 newsContent.innerHTML = '';
                 currentNewsWidget = null;
             }
-            
-            // Réinitialiser le contenu des news
-            const newsLoader = document.createElement('div');
-            newsLoader.className = 'news-loader';
-            newsLoader.textContent = 'Sélectionnez un marché pour voir les actualités';
-            newsContent.appendChild(newsLoader);
         });
 
         // === INITIALISATION ===
@@ -661,4 +611,4 @@
             sideMenu.style.top = '50%';
             sideMenu.style.transform = 'translateY(-50%)';
         });
-    });
+    });;

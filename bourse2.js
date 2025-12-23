@@ -1,4 +1,4 @@
-
+<script>
     document.addEventListener('DOMContentLoaded', function() {
         // Configuration des actifs avec symboles TradingView
         const assetTypes = {
@@ -148,6 +148,7 @@
         let chartStates = {};
         let currentKinfopaneltousWidget = null;
         let isInSelectedView = false; // Nouvelle variable pour suivre l'état
+        let currentPage = 'menu-1'; // Variable pour suivre la page active
 
         // Éléments du DOM
         const carousel = document.getElementById('mainCarousel');
@@ -159,7 +160,7 @@
         const sideMenu = document.getElementById('sideMenu');
         const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
         const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-        const megaBox = document.getElementById('megaBox'); // Ajout pour détecter la page active
+        const megaBox = document.getElementById('megaBox');
 
         // === SUPPRESSION DES TOOLTIPS ===
         function removeAllTooltips() {
@@ -205,6 +206,31 @@
                 padding: 20px;
             `;
             messageDiv.textContent = 'Bonjour Mohamed';
+            
+            kinfopaneltousContent.appendChild(messageDiv);
+        }
+
+        // === AFFICHER LE MESSAGE RESULTAT ===
+        function showResultMessage() {
+            // Vider le contenu
+            kinfopaneltousContent.innerHTML = '';
+            
+            // Créer un message simple
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'kinfopaneltous-result';
+            messageDiv.style.cssText = `
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 18px;
+                font-weight: bold;
+                text-align: center;
+                padding: 20px;
+            `;
+            messageDiv.textContent = 'resultat';
             
             kinfopaneltousContent.appendChild(messageDiv);
         }
@@ -266,30 +292,28 @@
             }, 500);
         }
 
-        // === GESTION DU PANEL INFO EN FONCTION DE LA PAGE ===
+        // === GESTION DU PANEL INFO EN FONCTION DE L'ÉTAT ===
         function updatePanelInfo() {
-            // Vérifier si nous sommes dans le menu 1 (Menu)
-            const isMenu1 = megaBox.classList.contains('menu-1');
-            const isMenu2 = megaBox.classList.contains('menu-2');
+            // Toujours afficher le container
+            kinfopaneltousContainer.classList.add('active');
             
-            if (isMenu1) {
-                // Menu 1: Afficher "Bonjour Mohamed"
-                kinfopaneltousContainer.classList.add('active');
-                showDefaultMessage();
-                isInSelectedView = false;
-            } else if (isMenu2 && isInSelectedView) {
-                // Menu 2 ET en mode Selected View: Afficher les actualités
-                kinfopaneltousContainer.classList.add('active');
-                if (selectedAsset) {
-                    loadKinfopaneltousNews(selectedAsset);
-                }
-            } else if (isMenu2 && !isInSelectedView) {
-                // Menu 2 mais pas en Selected View: Afficher message par défaut
-                kinfopaneltousContainer.classList.add('active');
-                showDefaultMessage();
+            // Logique de priorité :
+            // 1. Si on est en mode Selected View, afficher les news (priorité absolue)
+            // 2. Sinon, afficher selon la page
+            if (isInSelectedView && selectedAsset) {
+                // Mode Selected View : afficher les actualités
+                loadKinfopaneltousNews(selectedAsset);
             } else {
-                // Autres menus: Masquer le panel
-                kinfopaneltousContainer.classList.remove('active');
+                // Pas en Selected View : afficher selon la page
+                if (currentPage === 'menu-1') {
+                    showDefaultMessage();
+                } else if (currentPage === 'menu-3') {
+                    showResultMessage();
+                } else {
+                    // Pour les autres pages (menu-2 hors selected view, menu-4, menu-5)
+                    // Afficher le message par défaut
+                    showDefaultMessage();
+                }
             }
         }
 
@@ -513,6 +537,7 @@
 
             // Mettre à jour l'état
             isInSelectedView = true;
+            currentPage = 'menu-2'; // On est dans la page Bourse quand on sélectionne un actif
             
             // Animation et transition
             carousel.classList.add('carousel-paused');
@@ -522,7 +547,7 @@
             backBtn.classList.remove('hidden');
             loader.classList.remove('hidden');
 
-            // Charger les actualités
+            // Mettre à jour le panel info (affichera les news)
             updatePanelInfo();
 
             // Préparer le graphique TradingView
@@ -551,7 +576,7 @@
         }
 
         // === RETOUR AU CAROUSEL ===
-        backBtn.addEventListener('click', function() {
+        function returnToCarousel() {
             // Mettre à jour l'état
             isInSelectedView = false;
             
@@ -565,13 +590,24 @@
             updatePanelInfo();
             
             removeAllTooltips();
-        });
+        }
+
+        backBtn.addEventListener('click', returnToCarousel);
 
         // === SURVEILLANCE DU CHANGEMENT DE MENU ===
         // Observer les changements de classe sur megaBox pour détecter le changement de menu
         const observerMenuChange = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.attributeName === 'class') {
+                    // Détecter quelle page est active
+                    const classes = megaBox.classList;
+                    if (classes.contains('menu-1')) currentPage = 'menu-1';
+                    else if (classes.contains('menu-2')) currentPage = 'menu-2';
+                    else if (classes.contains('menu-3')) currentPage = 'menu-3';
+                    else if (classes.contains('menu-4')) currentPage = 'menu-4';
+                    else if (classes.contains('menu-5')) currentPage = 'menu-5';
+                    
+                    // Mettre à jour le panel info
                     updatePanelInfo();
                 }
             });
@@ -582,6 +618,25 @@
             attributeFilter: ['class']
         });
 
+        // === FONCTION SWITCHMENU MODIFIÉE ===
+        // Surcharge de la fonction switchMenu pour gérer le retour au carousel
+        // si on quitte la page Bourse alors qu'on est en mode Selected View
+        const originalSwitchMenu = window.switchMenu;
+        
+        window.switchMenu = function(n) {
+            // Si on est en Selected View et qu'on change de page
+            if (isInSelectedView) {
+                // Si on quitte la page Bourse (menu-2)
+                if (n !== 2) {
+                    // On retourne d'abord au carousel
+                    returnToCarousel();
+                }
+            }
+            
+            // Appeler la fonction originale
+            originalSwitchMenu(n);
+        };
+
         // DÉMARRER L'APPLICATION
         init();
 
@@ -590,4 +645,4 @@
             sideMenu.style.transform = 'translateY(-50%)';
         });
     });
-
+</script>

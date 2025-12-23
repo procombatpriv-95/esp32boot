@@ -1,280 +1,199 @@
-        let transactions = [];
-        let investments = [];
-        let monthlyGoals = {};
-        let currentFilter = 'month';
-        let currentYearView = 'current';
-        let currentTransactionFilter = 'all';
-        let currentView = 'transactions';
+// Money Management JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Vérifier si nous sommes dans menu4Content
+    const menu4Content = document.getElementById('menu4Content');
+    if (!menu4Content) return;
+    
+    // Variables globales
+    let transactions = [];
+    let investments = [];
+    let monthlyGoals = {};
+    let currentFilter = 'month';
+    let currentYearView = 'current';
+    let currentTransactionFilter = 'all';
+    let currentView = 'transactions';
+    
+    // Récupérer les éléments DOM
+    const amountInput = document.getElementById('amount');
+    const descriptionInput = document.getElementById('description');
+    const dateInput = document.getElementById('date');
+    const goalAmountInput = document.getElementById('goalAmount');
+    const goalAllAmountInput = document.getElementById('goalAllAmount');
+    const transactionTypeSelect = document.getElementById('transactionType');
+    const categorySelect = document.getElementById('category');
+    const investmentNameInput = document.getElementById('investmentName');
+    const initialInvestmentInput = document.getElementById('initialInvestment');
+    const annualReturnInput = document.getElementById('annualReturn');
+    const investmentGoalInput = document.getElementById('investmentGoal');
+    const transacBtn = document.getElementById('transacBtn');
+    const investViewBtn = document.getElementById('investViewBtn');
+    const recentTransactionsTitle = document.getElementById('recentTransactionsTitle');
+    const transactionsSummary = document.getElementById('transactionsSummary');
+    const investmentsSummary = document.getElementById('investmentsSummary');
+    
+    // Variables pour les graphiques
+    let expensePieChart, incomePieChart, lineChart, monthlyBarChart;
+    
+    // Initialiser la date à aujourd'hui
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
+    
+    // Générer les noms des 12 mois
+    function getMonthNames() {
+        return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    }
+    
+    // Générer les données pour les 12 derniers mois
+    function getLast12Months(yearOffset = 0) {
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear() - yearOffset;
+        const months = getMonthNames();
         
-        // Récupérer les éléments DOM
-        const amountInput = document.getElementById('amount');
-        const descriptionInput = document.getElementById('description');
-        const dateInput = document.getElementById('date');
-        const goalAmountInput = document.getElementById('goalAmount');
-        const goalAllAmountInput = document.getElementById('goalAllAmount');
-        const transactionTypeSelect = document.getElementById('transactionType');
-        const categorySelect = document.getElementById('category');
-        const investmentNameInput = document.getElementById('investmentName');
-        const initialInvestmentInput = document.getElementById('initialInvestment');
-        const annualReturnInput = document.getElementById('annualReturn');
-        const investmentGoalInput = document.getElementById('investmentGoal');
-        const transacBtn = document.getElementById('transacBtn');
-        const investViewBtn = document.getElementById('investViewBtn');
-        const recentTransactionsTitle = document.getElementById('recentTransactionsTitle');
-        const transactionsSummary = document.getElementById('transactionsSummary');
-        const investmentsSummary = document.getElementById('investmentsSummary');
+        let startMonth = yearOffset === 1 ? 11 : currentDate.getMonth();
+        let startYear = currentYear;
         
-        // Variables pour les graphiques
-        let expensePieChart, incomePieChart, lineChart, monthlyBarChart;
+        const monthLabels = [];
+        const monthKeys = [];
         
-        // Initialiser la date à aujourd'hui
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        dateInput.value = `${yyyy}-${mm}-${dd}`;
-        
-        // Générer les noms des 12 mois
-        function getMonthNames() {
-            return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        }
-        
-        // Générer les données pour les 12 derniers mois
-        function getLast12Months(yearOffset = 0) {
-            const currentDate = new Date();
-            const currentYear = currentDate.getFullYear() - yearOffset;
-            const months = getMonthNames();
+        for (let i = 0; i < 12; i++) {
+            let monthIndex = (startMonth - i + 12) % 12;
+            let year = startYear;
             
-            let startMonth = yearOffset === 1 ? 11 : currentDate.getMonth();
-            let startYear = currentYear;
-            
-            const monthLabels = [];
-            const monthKeys = [];
-            
-            for (let i = 0; i < 12; i++) {
-                let monthIndex = (startMonth - i + 12) % 12;
-                let year = startYear;
-                
-                if (startMonth - i < 0) {
-                    year = startYear - 1;
-                }
-                
-                monthLabels.unshift(months[monthIndex] + ' ' + year);
-                monthKeys.unshift(`${year}-${String(monthIndex + 1).padStart(2, '0')}`);
+            if (startMonth - i < 0) {
+                year = startYear - 1;
             }
             
-            return { labels: monthLabels, keys: monthKeys };
+            monthLabels.unshift(months[monthIndex] + ' ' + year);
+            monthKeys.unshift(`${year}-${String(monthIndex + 1).padStart(2, '0')}`);
         }
         
-        // Formater la date pour l'affichage
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-            });
-        }
-        
-        // Calculer le solde total
-        function calculateTotalBalance() {
-            const totalIncome = transactions
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalExpenses = transactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            return totalIncome - totalExpenses;
-        }
-        
-        // Calculer le total investi
-        function calculateTotalInvested() {
-            return investments.reduce((sum, i) => sum + i.initialAmount, 0);
-        }
-        
-        // Calculer le rendement moyen
-        function calculateAverageReturn() {
-            if (investments.length === 0) return 0;
-            const totalReturn = investments.reduce((sum, i) => sum + i.annualReturn, 0);
-            return totalReturn / investments.length;
-        }
-        
-        // Calculer le temps écoulé depuis le début de l'investissement (en années)
-        function calculateYearsSinceStart(startDate) {
-            const start = new Date(startDate);
-            const now = new Date();
-            const diffInMs = now - start;
-            const years = diffInMs / (1000 * 60 * 60 * 24 * 365.25);
-            return Math.max(0, Math.min(years, 20)); // Limiter à 0-20 ans
-        }
-        
-        // Charger les données depuis localStorage
-        function loadData() {
-            try {
-                const savedTransactions = localStorage.getItem('moneyManagerTransactions');
-                const savedInvestments = localStorage.getItem('moneyManagerInvestments');
-                const savedGoals = localStorage.getItem('moneyManagerGoals');
-                
-                if (savedTransactions) {
-                    transactions = JSON.parse(savedTransactions);
-                    console.log("Transactions chargées:", transactions.length);
-                }
-                
-                if (savedInvestments) {
-                    investments = JSON.parse(savedInvestments);
-                    console.log("Investissements chargés:", investments.length);
-                }
-                
-                if (savedGoals) {
-                    monthlyGoals = JSON.parse(savedGoals);
-                    console.log("Objectifs mensuels chargés:", Object.keys(monthlyGoals).length);
-                }
-            } catch (e) {
-                console.error("Erreur de chargement:", e);
-            }
-        }
-        
-        // Sauvegarder les données dans localStorage
-        function saveData() {
-            try {
-                localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
-                localStorage.setItem('moneyManagerInvestments', JSON.stringify(investments));
-                localStorage.setItem('moneyManagerGoals', JSON.stringify(monthlyGoals));
-                console.log("Données sauvegardées");
-            } catch (e) {
-                console.error("Erreur de sauvegarde:", e);
-            }
-        }
-        
-        // Mettre à jour tout le dashboard
-        function updateDashboard() {
-            updateView();
-            updateSummary();
-            updateRecentTransactionsSummary();
-            updateCharts();
-        }
-        
-        // Mettre à jour la vue (transactions ou investissements)
-        function updateView() {
-            const list = document.getElementById('transactionsList');
+        return { labels: monthLabels, keys: monthKeys };
+    }
+    
+    // Formater la date pour l'affichage
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+    }
+    
+    // Calculer le solde total
+    function calculateTotalBalance() {
+        const totalIncome = transactions
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
             
-            if (currentView === 'transactions') {
-                // Afficher les transactions
+        const totalExpenses = transactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        return totalIncome - totalExpenses;
+    }
+    
+    // Calculer le total investi
+    function calculateTotalInvested() {
+        return investments.reduce((sum, i) => sum + i.initialAmount, 0);
+    }
+    
+    // Calculer le rendement moyen
+    function calculateAverageReturn() {
+        if (investments.length === 0) return 0;
+        const totalReturn = investments.reduce((sum, i) => sum + i.annualReturn, 0);
+        return totalReturn / investments.length;
+    }
+    
+    // Calculer le temps écoulé depuis le début de l'investissement (en années)
+    function calculateYearsSinceStart(startDate) {
+        const start = new Date(startDate);
+        const now = new Date();
+        const diffInMs = now - start;
+        const years = diffInMs / (1000 * 60 * 60 * 24 * 365.25);
+        return Math.max(0, Math.min(years, 20)); // Limiter à 0-20 ans
+    }
+    
+    // Charger les données depuis localStorage
+    function loadData() {
+        try {
+            const savedTransactions = localStorage.getItem('moneyManagerTransactions');
+            const savedInvestments = localStorage.getItem('moneyManagerInvestments');
+            const savedGoals = localStorage.getItem('moneyManagerGoals');
+            
+            if (savedTransactions) {
+                transactions = JSON.parse(savedTransactions);
+                console.log("Transactions chargées:", transactions.length);
+            }
+            
+            if (savedInvestments) {
+                investments = JSON.parse(savedInvestments);
+                console.log("Investissements chargés:", investments.length);
+            }
+            
+            if (savedGoals) {
+                monthlyGoals = JSON.parse(savedGoals);
+                console.log("Objectifs mensuels chargés:", Object.keys(monthlyGoals).length);
+            }
+        } catch (e) {
+            console.error("Erreur de chargement:", e);
+            // Initialiser avec des données par défaut si erreur
+            transactions = [];
+            investments = [];
+            monthlyGoals = {};
+        }
+    }
+    
+    // Sauvegarder les données dans localStorage
+    function saveData() {
+        try {
+            localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
+            localStorage.setItem('moneyManagerInvestments', JSON.stringify(investments));
+            localStorage.setItem('moneyManagerGoals', JSON.stringify(monthlyGoals));
+            console.log("Données sauvegardées");
+        } catch (e) {
+            console.error("Erreur de sauvegarde:", e);
+        }
+    }
+    
+    // Mettre à jour tout le dashboard
+    function updateDashboard() {
+        updateView();
+        updateSummary();
+        updateRecentTransactionsSummary();
+        updateCharts();
+    }
+    
+    // Mettre à jour la vue (transactions ou investissements)
+    function updateView() {
+        const list = document.getElementById('transactionsList');
+        if (!list) return;
+        
+        if (currentView === 'transactions') {
+            // Afficher les transactions
+            if (recentTransactionsTitle) {
                 recentTransactionsTitle.innerHTML = '<i class="fas fa-history"></i> Recent Transactions';
-                transacBtn.textContent = 'Transaction';
-                transacBtn.classList.add('active');
-                investViewBtn.classList.remove('active');
-                
-                transactionsSummary.style.display = 'flex';
-                investmentsSummary.style.display = 'none';
-                
-                let filtered;
-                
-                if (currentTransactionFilter === 'month') {
-                    const now = new Date();
-                    const currentMonth = now.getMonth();
-                    const currentYear = now.getFullYear();
-                    filtered = transactions.filter(t => {
-                        const tDate = new Date(t.date);
-                        return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-                    });
-                } else {
-                    filtered = transactions;
-                }
-                
-                // Trier par date (du plus récent au plus ancien)
-                filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-                
-                if (filtered.length === 0) {
-                    list.innerHTML = `
-                        <div class="no-data">
-                            <i class="fas fa-exchange-alt"></i>
-                            <div>No transactions yet</div>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                let html = '';
-                filtered.slice(0, 12).forEach(transaction => {
-                    const sign = transaction.type === 'income' ? '+' : '-';
-                    const amountClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
-                    
-                    html += `
-                        <div class="transaction-item" data-id="${transaction.id}">
-                            <div class="transaction-info">
-                                <div class="transaction-category">${transaction.category}</div>
-                                <div class="transaction-description">${transaction.description}</div>
-                                <div class="transaction-date">${formatDate(transaction.date)}</div>
-                            </div>
-                            <div class="transaction-actions">
-                                <div class="transaction-amount ${amountClass}">
-                                    ${sign}£${transaction.amount.toFixed(2)}
-                                </div>
-                                <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                list.innerHTML = html;
-            } else {
-                // Afficher les investissements
-                recentTransactionsTitle.innerHTML = '<i class="fas fa-line-chart"></i> Investments';
-                transacBtn.textContent = 'Transaction';
-                transacBtn.classList.remove('active');
-                investViewBtn.classList.add('active');
-                
-                transactionsSummary.style.display = 'none';
-                investmentsSummary.style.display = 'flex';
-                
-                // Mettre à jour le résumé des investissements
-                document.getElementById('totalInvested').textContent = '£' + calculateTotalInvested().toLocaleString();
-                document.getElementById('avgReturn').textContent = calculateAverageReturn().toFixed(1) + '%';
-                document.getElementById('totalInvestments').textContent = investments.length;
-                
-                if (investments.length === 0) {
-                    list.innerHTML = `
-                        <div class="no-data">
-                            <i class="fas fa-briefcase"></i>
-                            <div>No investments yet</div>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                let html = '';
-                investments.forEach(investment => {
-                    const goalText = investment.goal ? ` | Goal: £${investment.goal.toLocaleString()}` : '';
-                    html += `
-                        <div class="transaction-item" data-id="${investment.id}">
-                            <div class="transaction-info">
-                                <div class="transaction-category">${investment.name}</div>
-                                <div class="transaction-description">Return: ${investment.annualReturn}%${goalText}</div>
-                                <div class="transaction-date">Started: ${formatDate(investment.startDate)}</div>
-                            </div>
-                            <div class="transaction-actions">
-                                <div class="transaction-amount transaction-income">
-                                    £${investment.initialAmount.toLocaleString()}
-                                </div>
-                                <button class="delete-btn" onclick="deleteInvestment(${investment.id})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                list.innerHTML = html;
             }
-        }
-        
-        // Mettre à jour les résumés des transactions récentes
-        function updateRecentTransactionsSummary() {
+            
+            if (transacBtn) {
+                transacBtn.classList.add('active');
+            }
+            
+            if (investViewBtn) {
+                investViewBtn.classList.remove('active');
+            }
+            
+            if (transactionsSummary) {
+                transactionsSummary.style.display = 'flex';
+            }
+            
+            if (investmentsSummary) {
+                investmentsSummary.style.display = 'none';
+            }
+            
             let filtered;
             
             if (currentTransactionFilter === 'month') {
@@ -289,128 +208,278 @@
                 filtered = transactions;
             }
             
-            const totalIncome = filtered
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalExpenses = filtered
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const balance = totalIncome - totalExpenses;
+            // Trier par date (du plus récent au plus ancien)
+            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
             
-            document.getElementById('recentIncome').textContent = '£' + totalIncome.toFixed(2);
-            document.getElementById('recentExpenses').textContent = '£' + totalExpenses.toFixed(2);
-            document.getElementById('recentBalance').textContent = '£' + balance.toFixed(2);
-        }
-        
-        // Supprimer une transaction
-        function deleteTransaction(id) {
-            if (confirm('Are you sure you want to delete this transaction?')) {
-                transactions = transactions.filter(t => t.id !== id);
-                saveData();
-                updateDashboard();
-                console.log('Transaction deleted');
-            }
-        }
-        
-        // Supprimer un investissement
-        function deleteInvestment(id) {
-            if (confirm('Are you sure you want to delete this investment?')) {
-                investments = investments.filter(i => i.id !== id);
-                saveData();
-                updateDashboard();
-                console.log('Investment deleted');
-            }
-        }
-        
-        // Effacer toutes les transactions
-        function clearAllTransactions() {
-            if (transactions.length === 0) {
-                console.log('No transactions to delete');
+            if (filtered.length === 0) {
+                list.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-exchange-alt"></i>
+                        <div>No transactions yet</div>
+                    </div>
+                `;
                 return;
             }
             
-            if (confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.')) {
-                transactions = [];
-                saveData();
-                updateDashboard();
-                console.log('All transactions deleted');
+            let html = '';
+            filtered.slice(0, 12).forEach(transaction => {
+                const sign = transaction.type === 'income' ? '+' : '-';
+                const amountClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
+                
+                html += `
+                    <div class="transaction-item" data-id="${transaction.id}">
+                        <div class="transaction-info">
+                            <div class="transaction-category">${transaction.category}</div>
+                            <div class="transaction-description">${transaction.description}</div>
+                            <div class="transaction-date">${formatDate(transaction.date)}</div>
+                        </div>
+                        <div class="transaction-actions">
+                            <div class="transaction-amount ${amountClass}">
+                                ${sign}£${transaction.amount.toFixed(2)}
+                            </div>
+                            <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            list.innerHTML = html;
+        } else {
+            // Afficher les investissements
+            if (recentTransactionsTitle) {
+                recentTransactionsTitle.innerHTML = '<i class="fas fa-line-chart"></i> Investments';
             }
+            
+            if (transacBtn) {
+                transacBtn.classList.remove('active');
+            }
+            
+            if (investViewBtn) {
+                investViewBtn.classList.add('active');
+            }
+            
+            if (transactionsSummary) {
+                transactionsSummary.style.display = 'none';
+            }
+            
+            if (investmentsSummary) {
+                investmentsSummary.style.display = 'flex';
+            }
+            
+            // Mettre à jour le résumé des investissements
+            const totalInvested = calculateTotalInvested();
+            const avgReturn = calculateAverageReturn();
+            
+            if (document.getElementById('totalInvested')) {
+                document.getElementById('totalInvested').textContent = '£' + totalInvested.toLocaleString();
+            }
+            
+            if (document.getElementById('avgReturn')) {
+                document.getElementById('avgReturn').textContent = avgReturn.toFixed(1) + '%';
+            }
+            
+            if (document.getElementById('totalInvestments')) {
+                document.getElementById('totalInvestments').textContent = investments.length;
+            }
+            
+            if (investments.length === 0) {
+                list.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-briefcase"></i>
+                        <div>No investments yet</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            investments.forEach(investment => {
+                const goalText = investment.goal ? ` | Goal: £${investment.goal.toLocaleString()}` : '';
+                html += `
+                    <div class="transaction-item" data-id="${investment.id}">
+                        <div class="transaction-info">
+                            <div class="transaction-category">${investment.name}</div>
+                            <div class="transaction-description">Return: ${investment.annualReturn}%${goalText}</div>
+                            <div class="transaction-date">Started: ${formatDate(investment.startDate)}</div>
+                        </div>
+                        <div class="transaction-actions">
+                            <div class="transaction-amount transaction-income">
+                                £${investment.initialAmount.toLocaleString()}
+                            </div>
+                            <button class="delete-btn" onclick="deleteInvestment(${investment.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            list.innerHTML = html;
+        }
+    }
+    
+    // Mettre à jour les résumés des transactions récentes
+    function updateRecentTransactionsSummary() {
+        let filtered;
+        
+        if (currentTransactionFilter === 'month') {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            filtered = transactions.filter(t => {
+                const tDate = new Date(t.date);
+                return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+            });
+        } else {
+            filtered = transactions;
         }
         
-        // Mettre à jour les résumés
-        function updateSummary() {
-            const filtered = filterTransactions(transactions, currentFilter);
+        const totalIncome = filtered
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
             
-            const filteredIncome = filtered
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const filteredExpenses = filtered
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const balance = calculateTotalBalance();
+        const totalExpenses = filtered
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        const balance = totalIncome - totalExpenses;
+        
+        if (document.getElementById('recentIncome')) {
+            document.getElementById('recentIncome').textContent = '£' + totalIncome.toFixed(2);
+        }
+        
+        if (document.getElementById('recentExpenses')) {
+            document.getElementById('recentExpenses').textContent = '£' + totalExpenses.toFixed(2);
+        }
+        
+        if (document.getElementById('recentBalance')) {
+            document.getElementById('recentBalance').textContent = '£' + balance.toFixed(2);
+        }
+    }
+    
+    // Supprimer une transaction
+    window.deleteTransaction = function(id) {
+        if (confirm('Are you sure you want to delete this transaction?')) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveData();
+            updateDashboard();
+            console.log('Transaction deleted');
+        }
+    }
+    
+    // Supprimer un investissement
+    window.deleteInvestment = function(id) {
+        if (confirm('Are you sure you want to delete this investment?')) {
+            investments = investments.filter(i => i.id !== id);
+            saveData();
+            updateDashboard();
+            console.log('Investment deleted');
+        }
+    }
+    
+    // Effacer toutes les transactions
+    function clearAllTransactions() {
+        if (transactions.length === 0) {
+            console.log('No transactions to delete');
+            return;
+        }
+        
+        if (confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.')) {
+            transactions = [];
+            saveData();
+            updateDashboard();
+            console.log('All transactions deleted');
+        }
+    }
+    
+    // Mettre à jour les résumés
+    function updateSummary() {
+        const filtered = filterTransactions(transactions, currentFilter);
+        
+        const filteredIncome = filtered
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        const filteredExpenses = filtered
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        const balance = calculateTotalBalance();
 
+        if (document.getElementById('currentBalanceControl')) {
             document.getElementById('currentBalanceControl').textContent = '£' + balance.toFixed(2);
+        }
+        
+        if (document.getElementById('totalTransactions')) {
             document.getElementById('totalTransactions').textContent = filtered.length;
         }
+    }
+    
+    // Filtrer les transactions
+    function filterTransactions(transactions, period) {
+        const now = new Date();
         
-        // Filtrer les transactions
-        function filterTransactions(transactions, period) {
-            const now = new Date();
-            
-            switch(period) {
-                case 'today':
-                    const today = new Date().toISOString().split('T')[0];
-                    return transactions.filter(t => t.date === today);
-                case 'week':
-                    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    return transactions.filter(t => new Date(t.date) >= oneWeekAgo);
-                case 'month':
-                    const currentMonth = now.getMonth();
-                    const currentYear = now.getFullYear();
-                    return transactions.filter(t => {
-                        const tDate = new Date(t.date);
-                        return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-                    });
-                case 'year':
-                    const currentYearOnly = now.getFullYear();
-                    return transactions.filter(t => new Date(t.date).getFullYear() === currentYearOnly);
-                default:
-                    return transactions;
-            }
+        switch(period) {
+            case 'today':
+                const today = new Date().toISOString().split('T')[0];
+                return transactions.filter(t => t.date === today);
+            case 'week':
+                const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return transactions.filter(t => new Date(t.date) >= oneWeekAgo);
+            case 'month':
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                return transactions.filter(t => {
+                    const tDate = new Date(t.date);
+                    return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+                });
+            case 'year':
+                const currentYearOnly = now.getFullYear();
+                return transactions.filter(t => new Date(t.date).getFullYear() === currentYearOnly);
+            default:
+                return transactions;
+        }
+    }
+    
+    // Calculer la croissance d'un investissement sur 20 ans
+    function calculateInvestmentGrowth(investment, years = 20) {
+        const growth = [];
+        
+        for (let i = 0; i <= years; i++) {
+            const value = investment.initialAmount * Math.pow(1 + investment.annualReturn / 100, i);
+            growth.push(value);
         }
         
-        // Calculer la croissance d'un investissement sur 20 ans
-        function calculateInvestmentGrowth(investment, years = 20) {
-            const growth = [];
-            
-            for (let i = 0; i <= years; i++) {
-                const value = investment.initialAmount * Math.pow(1 + investment.annualReturn / 100, i);
-                growth.push(value);
+        return growth;
+    }
+    
+    // Trouver l'année où l'objectif d'un investissement est atteint
+    function findGoalYear(investment, growth) {
+        if (!investment.goal) return null;
+        
+        for (let i = 0; i < growth.length; i++) {
+            if (growth[i] >= investment.goal) {
+                return i;
             }
-            
-            return growth;
+        }
+        return null;
+    }
+    
+    // Initialiser les graphiques
+    function initCharts() {
+        // Vérifier si Chart.js est chargé
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js n\'est pas chargé');
+            setTimeout(initCharts, 100);
+            return;
         }
         
-        // Trouver l'année où l'objectif d'un investissement est atteint
-        function findGoalYear(investment, growth) {
-            if (!investment.goal) return null;
-            
-            for (let i = 0; i < growth.length; i++) {
-                if (growth[i] >= investment.goal) {
-                    return i;
-                }
-            }
-            return null;
-        }
-        
-        // Initialiser les graphiques
-        function initCharts() {
-            // Expense Pie Chart
-            const expensePieCtx = document.getElementById('expensePieChart').getContext('2d');
+        // Expense Pie Chart
+        const expensePieCanvas = document.getElementById('expensePieChart');
+        if (expensePieCanvas) {
+            const expensePieCtx = expensePieCanvas.getContext('2d');
             expensePieChart = new Chart(expensePieCtx, {
                 type: 'pie',
                 data: {
@@ -430,9 +499,12 @@
                     }
                 }
             });
-            
-            // Income Pie Chart
-            const incomePieCtx = document.getElementById('incomePieChart').getContext('2d');
+        }
+        
+        // Income Pie Chart
+        const incomePieCanvas = document.getElementById('incomePieChart');
+        if (incomePieCanvas) {
+            const incomePieCtx = incomePieCanvas.getContext('2d');
             incomePieChart = new Chart(incomePieCtx, {
                 type: 'pie',
                 data: {
@@ -452,9 +524,12 @@
                     }
                 }
             });
-            
-            // Line Chart pour les investissements (20 ans)
-            const lineCtx = document.getElementById('lineChart').getContext('2d');
+        }
+        
+        // Line Chart pour les investissements (20 ans)
+        const lineCanvas = document.getElementById('lineChart');
+        if (lineCanvas) {
+            const lineCtx = lineCanvas.getContext('2d');
             lineChart = new Chart(lineCtx, {
                 type: 'line',
                 data: {
@@ -463,7 +538,7 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
+                    maintainAspectRatio: false,
                     scales: {
                         x: {
                             title: {
@@ -522,9 +597,12 @@
                     }
                 }
             });
-            
-            // Monthly Bar Chart avec filled line chart intégré
-            const monthlyBarCtx = document.getElementById('monthlyBarChart').getContext('2d');
+        }
+        
+        // Monthly Bar Chart avec filled line chart intégré
+        const monthlyBarCanvas = document.getElementById('monthlyBarChart');
+        if (monthlyBarCanvas) {
+            const monthlyBarCtx = monthlyBarCanvas.getContext('2d');
             monthlyBarChart = new Chart(monthlyBarCtx, {
                 type: 'bar',
                 data: {
@@ -627,14 +705,16 @@
                 }
             });
         }
+    }
+    
+    // Mettre à jour les graphiques
+    function updateCharts() {
+        console.log("Mise à jour des graphiques");
         
-        // Mettre à jour les graphiques
-        function updateCharts() {
-            console.log("Mise à jour des graphiques");
-            
-            const filtered = filterTransactions(transactions, currentFilter);
-            
-            // Pie Chart des Dépenses
+        const filtered = filterTransactions(transactions, currentFilter);
+        
+        // Pie Chart des Dépenses
+        if (expensePieChart) {
             const expenses = filtered.filter(t => t.type === 'expense');
             const expenseCategories = {};
             expenses.forEach(expense => {
@@ -647,8 +727,10 @@
             expensePieChart.data.labels = Object.keys(expenseCategories);
             expensePieChart.data.datasets[0].data = Object.values(expenseCategories);
             expensePieChart.update();
-            
-            // Pie Chart des Revenus
+        }
+        
+        // Pie Chart des Revenus
+        if (incomePieChart) {
             const incomes = filtered.filter(t => t.type === 'income');
             const incomeCategories = {};
             incomes.forEach(income => {
@@ -661,8 +743,10 @@
             incomePieChart.data.labels = Object.keys(incomeCategories);
             incomePieChart.data.datasets[0].data = Object.values(incomeCategories);
             incomePieChart.update();
-            
-            // Line Chart des investissements (20 ans)
+        }
+        
+        // Line Chart des investissements (20 ans)
+        if (lineChart) {
             const years = 20;
             const yearLabels = [];
             for (let i = 0; i <= years; i++) {
@@ -726,8 +810,10 @@
             
             lineChart.data.datasets = datasets;
             lineChart.update();
-            
-            // Monthly Bar Chart - 12 mois - AVEC FILLED LINE CHART
+        }
+        
+        // Monthly Bar Chart - 12 mois - AVEC FILLED LINE CHART
+        if (monthlyBarChart) {
             const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
             monthlyBarChart.data.labels = monthData.labels;
             
@@ -773,211 +859,257 @@
             monthlyBarChart.data.datasets[3].data = balanceTrendData;
             monthlyBarChart.update();
         }
+    }
+    
+    // Générer une couleur pour les investissements
+    function getColor(index) {
+        const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
+        return colors[index % colors.length];
+    }
+    
+    // Ajouter une transaction
+    function addTransaction() {
+        console.log("Bouton Add Transaction cliqué");
         
-        // Générer une couleur pour les investissements
-        function getColor(index) {
-            const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
-            return colors[index % colors.length];
+        const amount = parseFloat(amountInput.value);
+        const description = descriptionInput.value.trim();
+        const date = dateInput.value;
+        const type = transactionTypeSelect.value;
+        const category = categorySelect.value;
+        
+        if (!amount || amount <= 0) {
+            alert('Please enter a valid amount');
+            return;
         }
         
-        // Ajouter une transaction
-        function addTransaction() {
-            console.log("Bouton Add Transaction cliqué");
-            
-            const amount = parseFloat(amountInput.value);
-            const description = descriptionInput.value.trim();
-            const date = dateInput.value;
-            const type = transactionTypeSelect.value;
-            const category = categorySelect.value;
-            
-            if (!amount || amount <= 0) {
-                console.log('Please enter a valid amount');
-                return;
-            }
-            
-            if (!description) {
-                console.log('Please enter a description');
-                return;
-            }
-            
-            const transaction = {
-                id: Date.now(),
-                amount: amount,
-                category: category,
-                description: description,
-                date: date,
-                type: type,
-                timestamp: new Date().getTime()
-            };
-            
-            transactions.push(transaction);
-            saveData();
-            updateDashboard();
-            
-            amountInput.value = '';
-            descriptionInput.value = '';
-            
-            console.log('Transaction added successfully!');
+        if (!description) {
+            alert('Please enter a description');
+            return;
         }
         
-        // Ajouter un investissement
-        function addInvestment() {
-            console.log("Bouton Add Investment cliqué");
-            
-            const name = investmentNameInput.value.trim();
-            const initialAmount = parseFloat(initialInvestmentInput.value);
-            const annualReturn = parseFloat(annualReturnInput.value);
-            const goal = parseFloat(investmentGoalInput.value);
-            
-            if (!name) {
-                console.log('Please enter a market name');
-                return;
-            }
-            
-            if (!initialAmount || initialAmount <= 0) {
-                console.log('Please enter a valid initial investment');
-                return;
-            }
-            
-            if (!annualReturn || annualReturn <= 0) {
-                console.log('Please enter a valid annual return');
-                return;
-            }
-            
-            const investment = {
-                id: Date.now(),
-                name: name,
-                initialAmount: initialAmount,
-                annualReturn: annualReturn,
-                startDate: new Date().toISOString().split('T')[0],
-                color: getColor(investments.length),
-                goal: goal > 0 ? goal : null
-            };
-            
-            investments.push(investment);
-            saveData();
-            updateDashboard();
-            
-            investmentNameInput.value = '';
-            initialInvestmentInput.value = '';
-            annualReturnInput.value = '';
-            investmentGoalInput.value = '';
-            
-            console.log('Investment added successfully!');
+        if (!date) {
+            alert('Please select a date');
+            return;
         }
         
-        // Définir l'objectif pour le mois en cours
-        function setGoal() {
-            console.log("Bouton Set Goal cliqué");
-            
-            const amount = parseFloat(goalAmountInput.value);
-            
-            if (!amount || amount <= 0) {
-                console.log('Please enter a valid goal amount');
-                return;
-            }
-            
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-            const goalKey = `${currentYear}-${currentMonth}`;
-            
-            monthlyGoals[goalKey] = amount;
-            saveData();
-            updateDashboard();
-            
-            goalAmountInput.value = '';
-            console.log(`Goal for ${currentMonth}/${currentYear} set to £${amount.toFixed(2)}`);
+        const transaction = {
+            id: Date.now(),
+            amount: amount,
+            category: category,
+            description: description,
+            date: date,
+            type: type,
+            timestamp: new Date().getTime()
+        };
+        
+        transactions.push(transaction);
+        saveData();
+        updateDashboard();
+        
+        amountInput.value = '';
+        descriptionInput.value = '';
+        
+        console.log('Transaction added successfully!');
+    }
+    
+    // Ajouter un investissement
+    function addInvestment() {
+        console.log("Bouton Add Investment cliqué");
+        
+        const name = investmentNameInput.value.trim();
+        const initialAmount = parseFloat(initialInvestmentInput.value);
+        const annualReturn = parseFloat(annualReturnInput.value);
+        const goal = parseFloat(investmentGoalInput.value);
+        
+        if (!name) {
+            alert('Please enter a market name');
+            return;
         }
         
-        // Définir l'objectif pour tous les mois
-        function setAllGoals() {
-            console.log("Bouton Set All Goals cliqué");
-            
-            const amount = parseFloat(goalAllAmountInput.value);
-            
-            if (!amount || amount <= 0) {
-                console.log('Please enter a valid goal amount');
-                return;
-            }
-            
-            const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
-            
-            monthData.keys.forEach(monthKey => {
-                monthlyGoals[monthKey] = amount;
-            });
-            
-            saveData();
-            updateDashboard();
-            
-            goalAllAmountInput.value = '';
-            console.log(`Goal for all months set to £${amount.toFixed(2)}`);
+        if (!initialAmount || initialAmount <= 0) {
+            alert('Please enter a valid initial investment');
+            return;
         }
         
-        // Basculer entre les vues Transactions et Investissements
-        function toggleView(view) {
-            currentView = view;
-            updateView();
+        if (!annualReturn || annualReturn <= 0) {
+            alert('Please enter a valid annual return');
+            return;
         }
         
-        // **CONFIGURATION DES ÉVÉNEMENTS**
+        const investment = {
+            id: Date.now(),
+            name: name,
+            initialAmount: initialAmount,
+            annualReturn: annualReturn,
+            startDate: new Date().toISOString().split('T')[0],
+            color: getColor(investments.length),
+            goal: goal > 0 ? goal : null
+        };
         
-        // Configuration directe des événements
-        document.getElementById('addTransactionBtn').onclick = addTransaction;
-        document.getElementById('addInvestmentBtn').onclick = addInvestment;
-        document.getElementById('setGoalBtn').onclick = setGoal;
-        document.getElementById('setAllGoalBtn').onclick = setAllGoals;
-        document.getElementById('clearAllBtn').onclick = clearAllTransactions;
+        investments.push(investment);
+        saveData();
+        updateDashboard();
         
-        // Configuration des boutons de vue
-        transacBtn.onclick = function() {
+        investmentNameInput.value = '';
+        initialInvestmentInput.value = '';
+        annualReturnInput.value = '';
+        investmentGoalInput.value = '';
+        
+        console.log('Investment added successfully!');
+    }
+    
+    // Définir l'objectif pour le mois en cours
+    function setGoal() {
+        console.log("Bouton Set Goal cliqué");
+        
+        const amount = parseFloat(goalAmountInput.value);
+        
+        if (!amount || amount <= 0) {
+            alert('Please enter a valid goal amount');
+            return;
+        }
+        
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+        const goalKey = `${currentYear}-${currentMonth}`;
+        
+        monthlyGoals[goalKey] = amount;
+        saveData();
+        updateDashboard();
+        
+        goalAmountInput.value = '';
+        console.log(`Goal for ${currentMonth}/${currentYear} set to £${amount.toFixed(2)}`);
+    }
+    
+    // Définir l'objectif pour tous les mois
+    function setAllGoals() {
+        console.log("Bouton Set All Goals cliqué");
+        
+        const amount = parseFloat(goalAllAmountInput.value);
+        
+        if (!amount || amount <= 0) {
+            alert('Please enter a valid goal amount');
+            return;
+        }
+        
+        const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
+        
+        monthData.keys.forEach(monthKey => {
+            monthlyGoals[monthKey] = amount;
+        });
+        
+        saveData();
+        updateDashboard();
+        
+        goalAllAmountInput.value = '';
+        console.log(`Goal for all months set to £${amount.toFixed(2)}`);
+    }
+    
+    // Basculer entre les vues Transactions et Investissements
+    function toggleView(view) {
+        currentView = view;
+        updateView();
+    }
+    
+    // **CONFIGURATION DES ÉVÉNEMENTS**
+    
+    // Configuration directe des événements
+    const addTransactionBtn = document.getElementById('addTransactionBtn');
+    const addInvestmentBtn = document.getElementById('addInvestmentBtn');
+    const setGoalBtn = document.getElementById('setGoalBtn');
+    const setAllGoalBtn = document.getElementById('setAllGoalBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    
+    if (addTransactionBtn) {
+        addTransactionBtn.addEventListener('click', addTransaction);
+    }
+    
+    if (addInvestmentBtn) {
+        addInvestmentBtn.addEventListener('click', addInvestment);
+    }
+    
+    if (setGoalBtn) {
+        setGoalBtn.addEventListener('click', setGoal);
+    }
+    
+    if (setAllGoalBtn) {
+        setAllGoalBtn.addEventListener('click', setAllGoals);
+    }
+    
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', clearAllTransactions);
+    }
+    
+    // Configuration des boutons de vue
+    if (transacBtn) {
+        transacBtn.addEventListener('click', function() {
             toggleView('transactions');
-        };
-        
-        investViewBtn.onclick = function() {
+        });
+    }
+    
+    if (investViewBtn) {
+        investViewBtn.addEventListener('click', function() {
             toggleView('investments');
-        };
-        
-        // Configuration des boutons de filtre
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.onclick = function() {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                currentFilter = this.dataset.period;
-                updateDashboard();
-            };
         });
-        
-        // Configuration des boutons d'année (Current/Previous)
-        document.querySelectorAll('.month-btn[data-year]').forEach(btn => {
-            btn.onclick = function() {
-                document.querySelectorAll('.month-btn[data-year]').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                currentYearView = this.dataset.year;
-                updateDashboard();
-            };
-        });
-        
-        // **INITIALISATION DE L'APPLICATION**
-        function initApp() {
-            console.log("Initialisation de l'application");
-            loadData();
-            initCharts();
-            
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                if (btn.dataset.period === 'month') {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-            
+    }
+    
+    // Configuration des boutons de filtre
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.dataset.period;
             updateDashboard();
-            console.log("Application initialisée");
+        });
+    });
+    
+    // Configuration des boutons d'année (Current/Previous)
+    document.querySelectorAll('.month-btn[data-year]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.month-btn[data-year]').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentYearView = this.dataset.year;
+            updateDashboard();
+        });
+    });
+    
+    // **INITIALISATION DE L'APPLICATION**
+    function initApp() {
+        console.log("Initialisation de l'application Money Management");
+        loadData();
+        
+        // Charger Chart.js si nécessaire
+        if (typeof Chart === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
+            script.onload = function() {
+                initCharts();
+                updateDashboard();
+            };
+            document.head.appendChild(script);
+        } else {
+            initCharts();
+            updateDashboard();
         }
         
-        // Démarrer l'application quand la page est chargée
-        window.addEventListener('load', initApp);
+        // Initialiser les filtres
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            if (btn.dataset.period === 'month') {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
         
-        // Démarrer l'application quand la page est chargée
-        window.addEventListener('load', initApp);
+        console.log("Application Money Management initialisée");
+    }
+    
+    // Démarrer l'application quand la page est chargée
+    initApp();
+    
+    // Réinitialiser les dimensions si besoin
+    window.addEventListener('resize', function() {
+        setTimeout(updateCharts, 100);
+    });
+});

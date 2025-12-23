@@ -292,7 +292,7 @@
             else {
                 if (currentMenuPage === 'menu-1') {
                     showDefaultMessage();
-                } else if (currentMenuPage === 'menu-3') {
+                } else if (currentMenuPage === 'menu-4') {
                     showResultMessage();
                 } else {
                     // Pour les autres pages

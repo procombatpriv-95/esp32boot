@@ -1,0 +1,144 @@
+.panelinfo{
+  width: 250px;
+  height: 700px;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border-radius: 20px;
+
+}
+
+          .status-container {
+            position: fixed;
+            margin-top: 10px;
+            margin-right: 10px;
+            border: 1px solid white;
+            border-radius: 30px;
+            padding: 10px;
+            background: transparent;
+          }
+          .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 5px;
+            display: inline-block;
+          }
+            .status-text {
+              color: white;
+              font-size: 18px;
+              font-family: 'Lobster', cursive;
+            }
+
+        /* INFO CONTENT (Premier div) */
+        .info-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            color: #39d353;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(57, 211, 83, 0.3);
+        }
+
+        .info-message {
+            color: #ccc;
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            line-height: 1.4;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* KINFOPANELTOUS CONTAINER (Deuxième div) - MODIFIÉ */
+        .kinfopaneltous-container {
+            width: 250px; /* Largeur fixe de 250px */
+            height: 420px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            padding: 0; /* Pas de padding pour que le widget prenne toute la place */
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 280px;
+            align-self: center; /* Centre le container dans le panelinfo */
+        }
+
+        .kinfopaneltous-container.active {
+            display: flex;
+        }
+
+        /* KINFOPANELTOUS HEADER CACHÉ */
+        .kinfopaneltous-header {
+            display: none; /* Cache le header des kinfopaneltous */
+        }
+
+        /* KINFOPANELTOUS CONTENT DIRECT - CENTRÉ */
+        .kinfopaneltous-content {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* SUPPRESSION DES TOOLTIPS GÉNANTS */
+        [title] {
+            text-decoration: none !important;
+        }
+        
+        /* Cacher tous les tooltips */
+        *[title]:hover::after,
+        *[data-title]:hover::after,
+        *[aria-label]:hover::after {
+            display: none !important;
+        }
+        
+        /* Désactiver les tooltips natifs */
+        * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* Pour les iframes TradingView */
+        iframe {
+            pointer-events: auto !important;
+        }
+        
+        /* Cacher les tooltips spécifiques TradingView */
+        .tradingview-widget-copyright,
+        .tradingview-widget-copyright a,
+        .tv-widget-copyright,
+        .tv-widget-copyright a {
+            text-decoration: none !important;
+        }
+        
+        /* Style pour éviter les tooltips sur les éléments cliquables */
+        a, button, .clickable {
+            text-decoration: none !important;
+        }
+        
+        /* Supprimer les attributs title des éléments */
+        [title=""] {
+            text-decoration: none !important;
+        }

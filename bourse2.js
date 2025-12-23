@@ -238,7 +238,7 @@
             
             const loaderDiv = document.createElement('div');
             loaderDiv.className = 'kinfopaneltous-loader';
-            loaderDiv.textContent = 'Chargement des actualités...';
+            loaderDiv.textContent = 'Loading...';
             kinfopaneltousContent.appendChild(loaderDiv);
             
             const widgetDiv = document.createElement('div');

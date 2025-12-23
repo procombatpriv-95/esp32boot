@@ -147,8 +147,7 @@
         let selectedTVWidget = null;
         let chartStates = {};
         let currentKinfopaneltousWidget = null;
-        let isInSelectedView = false;
-        let defaultMessageShown = false; // Pour suivre si le message par défaut a été affiché
+        let isInSelectedView = false; // Nouvelle variable pour suivre l'état
 
         // Éléments du DOM
         const carousel = document.getElementById('mainCarousel');
@@ -160,7 +159,7 @@
         const sideMenu = document.getElementById('sideMenu');
         const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
         const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-        const megaBox = document.getElementById('megaBox');
+        const megaBox = document.getElementById('megaBox'); // Ajout pour détecter la page active
 
         // === SUPPRESSION DES TOOLTIPS ===
         function removeAllTooltips() {
@@ -185,12 +184,12 @@
             }, true);
         }
 
-        // === AFFICHER LE MESSAGE PAR DÉFAUT "BONJOUR MOHAMED" ===
+        // === AFFICHER LE MESSAGE PAR DÉFAUT ===
         function showDefaultMessage() {
             // Vider le contenu
             kinfopaneltousContent.innerHTML = '';
             
-            // Créer le message "Bonjour Mohamed"
+            // Créer un message simple
             const messageDiv = document.createElement('div');
             messageDiv.className = 'kinfopaneltous-default';
             messageDiv.style.cssText = `
@@ -208,11 +207,10 @@
             messageDiv.textContent = 'Bonjour Mohamed';
             
             kinfopaneltousContent.appendChild(messageDiv);
-            defaultMessageShown = true;
         }
 
-        // === CHARGER LES NEWS POUR L'ACTIF SÉLECTIONNÉ ===
-        function loadNewsForSelectedAsset(asset) {
+        // === CHARGEMENT DES KINFOPANELTOUS POUR LES ACTUALITÉS ===
+        function loadKinfopaneltousNews(asset) {
             // Nettoyer le contenu précédent
             kinfopaneltousContent.innerHTML = '';
             
@@ -222,7 +220,7 @@
             loaderDiv.textContent = 'Chargement des actualités...';
             kinfopaneltousContent.appendChild(loaderDiv);
             
-            // Créer une div pour le widget
+            // Créer une div directe pour le widget
             const widgetDiv = document.createElement('div');
             widgetDiv.className = 'tradingview-kinfopaneltous-news';
             widgetDiv.id = 'tradingview_kinfopaneltous_news';
@@ -238,7 +236,7 @@
                 script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
                 script.async = true;
                 
-                // Configuration
+                // Configuration optimisée
                 script.textContent = JSON.stringify({
                     "feedMode": "symbol",
                     "symbol": asset.tradingViewSymbol,
@@ -262,36 +260,35 @@
                 // Stocker la référence au widget
                 currentKinfopaneltousWidget = widgetDiv;
                 
-                // Supprimer les tooltips
+                // Supprimer les tooltips après chargement
                 setTimeout(removeAllTooltips, 1500);
                 
             }, 500);
         }
 
-        // === GESTION DU CONTENU DU PANEL INFO ===
-        function updatePanelContent() {
+        // === GESTION DU PANEL INFO EN FONCTION DE LA PAGE ===
+        function updatePanelInfo() {
+            // Vérifier si nous sommes dans le menu 1 (Menu)
             const isMenu1 = megaBox.classList.contains('menu-1');
             const isMenu2 = megaBox.classList.contains('menu-2');
             
-            // Toujours montrer le container si on est dans menu1 ou menu2
-            if (isMenu1 || isMenu2) {
+            if (isMenu1) {
+                // Menu 1: Afficher "Bonjour Mohamed"
                 kinfopaneltousContainer.classList.add('active');
-                
-                if (isMenu1) {
-                    // Menu 1: Toujours "Bonjour Mohamed"
-                    showDefaultMessage();
-                } else if (isMenu2) {
-                    // Menu 2: Dépend si on est en selected view ou non
-                    if (isInSelectedView && selectedAsset) {
-                        // En selected view: afficher les news
-                        loadNewsForSelectedAsset(selectedAsset);
-                    } else {
-                        // Pas en selected view (carousel): "Bonjour Mohamed"
-                        showDefaultMessage();
-                    }
+                showDefaultMessage();
+                isInSelectedView = false;
+            } else if (isMenu2 && isInSelectedView) {
+                // Menu 2 ET en mode Selected View: Afficher les actualités
+                kinfopaneltousContainer.classList.add('active');
+                if (selectedAsset) {
+                    loadKinfopaneltousNews(selectedAsset);
                 }
+            } else if (isMenu2 && !isInSelectedView) {
+                // Menu 2 mais pas en Selected View: Afficher message par défaut
+                kinfopaneltousContainer.classList.add('active');
+                showDefaultMessage();
             } else {
-                // Autres menus: cacher le container
+                // Autres menus: Masquer le panel
                 kinfopaneltousContainer.classList.remove('active');
             }
         }
@@ -326,32 +323,13 @@
             
             updateCarousel();
             
-            // Afficher le message par défaut au démarrage
-            showDefaultMessage();
-            kinfopaneltousContainer.classList.add('active');
+            // Initialiser le panel info
+            updatePanelInfo();
             
-            // Supprimer les tooltips
+            // Supprimer les tooltips initialement
             setTimeout(removeAllTooltips, 1000);
             
-            // Observer les changements de classe sur megaBox
-            const observerMenuChange = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.attributeName === 'class') {
-                        // Si on change de menu et qu'on n'est plus dans le menu2, quitter le selected view
-                        if (!megaBox.classList.contains('menu-2')) {
-                            isInSelectedView = false;
-                        }
-                        updatePanelContent();
-                    }
-                });
-            });
-            
-            observerMenuChange.observe(megaBox, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
-            
-            // Surveillance des mutations pour les tooltips
+            // Surveillance des mutations
             const observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     if (mutation.addedNodes.length) {
@@ -533,7 +511,7 @@
             selectedAsset = currentAssets.find(c => c.id === assetId);
             if (!selectedAsset) return;
 
-            // Passer en mode selected view
+            // Mettre à jour l'état
             isInSelectedView = true;
             
             // Animation et transition
@@ -544,8 +522,8 @@
             backBtn.classList.remove('hidden');
             loader.classList.remove('hidden');
 
-            // Mettre à jour le contenu du panel info
-            updatePanelContent();
+            // Charger les actualités
+            updatePanelInfo();
 
             // Préparer le graphique TradingView
             const tvContainer = document.getElementById('tradingview_selected');
@@ -574,20 +552,34 @@
 
         // === RETOUR AU CAROUSEL ===
         backBtn.addEventListener('click', function() {
-            // Quitter le mode selected view
+            // Mettre à jour l'état
             isInSelectedView = false;
             
-            // Animation
             selectedView.classList.remove('active');
             carouselScene.classList.remove('hidden');
             backBtn.classList.add('hidden');
             sideMenu.classList.remove('hidden');
             carousel.classList.remove('carousel-paused');
             
-            // Réafficher "Bonjour Mohamed" dans le panel info
-            updatePanelContent();
+            // Mettre à jour le panel info
+            updatePanelInfo();
             
             removeAllTooltips();
+        });
+
+        // === SURVEILLANCE DU CHANGEMENT DE MENU ===
+        // Observer les changements de classe sur megaBox pour détecter le changement de menu
+        const observerMenuChange = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'class') {
+                    updatePanelInfo();
+                }
+            });
+        });
+        
+        observerMenuChange.observe(megaBox, {
+            attributes: true,
+            attributeFilter: ['class']
         });
 
         // DÉMARRER L'APPLICATION
@@ -598,5 +590,4 @@
             sideMenu.style.transform = 'translateY(-50%)';
         });
     });
-
 

@@ -1,4 +1,5 @@
 
+
     document.addEventListener('DOMContentLoaded', function() {
         // Configuration des actifs avec symboles TradingView
         const assetTypes = {
@@ -147,8 +148,8 @@
         let selectedTVWidget = null;
         let chartStates = {};
         let currentKinfopaneltousWidget = null;
-        let isInSelectedView = false; // Nouvelle variable pour suivre l'état
-        let currentPage = 'menu-1'; // Variable pour suivre la page active
+        let isInSelectedView = false;
+        let currentMenuPage = 'menu-1';
 
         // Éléments du DOM
         const carousel = document.getElementById('mainCarousel');
@@ -185,12 +186,10 @@
             }, true);
         }
 
-        // === AFFICHER LE MESSAGE PAR DÉFAUT ===
+        // === AFFICHER LE MESSAGE PAR DÉFAUT (Menu 1) ===
         function showDefaultMessage() {
-            // Vider le contenu
             kinfopaneltousContent.innerHTML = '';
             
-            // Créer un message simple
             const messageDiv = document.createElement('div');
             messageDiv.className = 'kinfopaneltous-default';
             messageDiv.style.cssText = `
@@ -210,12 +209,10 @@
             kinfopaneltousContent.appendChild(messageDiv);
         }
 
-        // === AFFICHER LE MESSAGE RESULTAT ===
+        // === AFFICHER LE MESSAGE RESULTAT (Menu 3) ===
         function showResultMessage() {
-            // Vider le contenu
             kinfopaneltousContent.innerHTML = '';
             
-            // Créer un message simple
             const messageDiv = document.createElement('div');
             messageDiv.className = 'kinfopaneltous-result';
             messageDiv.style.cssText = `
@@ -237,32 +234,26 @@
 
         // === CHARGEMENT DES KINFOPANELTOUS POUR LES ACTUALITÉS ===
         function loadKinfopaneltousNews(asset) {
-            // Nettoyer le contenu précédent
             kinfopaneltousContent.innerHTML = '';
             
-            // Créer un loader temporaire
             const loaderDiv = document.createElement('div');
             loaderDiv.className = 'kinfopaneltous-loader';
             loaderDiv.textContent = 'Chargement des actualités...';
             kinfopaneltousContent.appendChild(loaderDiv);
             
-            // Créer une div directe pour le widget
             const widgetDiv = document.createElement('div');
             widgetDiv.className = 'tradingview-kinfopaneltous-news';
             widgetDiv.id = 'tradingview_kinfopaneltous_news';
             
-            // Supprimer le loader et ajouter le widget
             setTimeout(() => {
                 kinfopaneltousContent.removeChild(loaderDiv);
                 kinfopaneltousContent.appendChild(widgetDiv);
                 
-                // Créer le script TradingView pour les actualités
                 const script = document.createElement('script');
                 script.type = 'text/javascript';
                 script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
                 script.async = true;
                 
-                // Configuration optimisée
                 script.textContent = JSON.stringify({
                     "feedMode": "symbol",
                     "symbol": asset.tradingViewSymbol,
@@ -283,43 +274,45 @@
                 
                 widgetDiv.appendChild(script);
                 
-                // Stocker la référence au widget
                 currentKinfopaneltousWidget = widgetDiv;
                 
-                // Supprimer les tooltips après chargement
                 setTimeout(removeAllTooltips, 1500);
-                
             }, 500);
         }
 
         // === GESTION DU PANEL INFO EN FONCTION DE L'ÉTAT ===
         function updatePanelInfo() {
-            // Toujours afficher le container
             kinfopaneltousContainer.classList.add('active');
             
-            // Logique de priorité :
-            // 1. Si on est en mode Selected View, afficher les news (priorité absolue)
-            // 2. Sinon, afficher selon la page
+            // PRIORITÉ 1: Si Selected View est ouvert, TOUJOURS afficher les news
             if (isInSelectedView && selectedAsset) {
-                // Mode Selected View : afficher les actualités
                 loadKinfopaneltousNews(selectedAsset);
-            } else {
-                // Pas en Selected View : afficher selon la page
-                if (currentPage === 'menu-1') {
+            } 
+            // PRIORITÉ 2: Sinon, afficher selon la page active
+            else {
+                if (currentMenuPage === 'menu-1') {
                     showDefaultMessage();
-                } else if (currentPage === 'menu-3') {
+                } else if (currentMenuPage === 'menu-3') {
                     showResultMessage();
                 } else {
-                    // Pour les autres pages (menu-2 hors selected view, menu-4, menu-5)
-                    // Afficher le message par défaut
+                    // Pour les autres pages
                     showDefaultMessage();
                 }
             }
         }
 
+        // === DÉTECTION DE LA PAGE ACTIVE ===
+        function updateCurrentMenuPage() {
+            const classes = megaBox.classList;
+            if (classes.contains('menu-1')) currentMenuPage = 'menu-1';
+            else if (classes.contains('menu-2')) currentMenuPage = 'menu-2';
+            else if (classes.contains('menu-3')) currentMenuPage = 'menu-3';
+            else if (classes.contains('menu-4')) currentMenuPage = 'menu-4';
+            else if (classes.contains('menu-5')) currentMenuPage = 'menu-5';
+        }
+
         // === INITIALISATION ===
         function init() {
-            // Charger les états des graphiques
             const saved = localStorage.getItem('chartStates');
             if (saved) {
                 try {
@@ -330,7 +323,6 @@
                 }
             }
             
-            // Initialiser le menu
             menuSections.forEach(section => {
                 section.addEventListener('click', function() {
                     const type = this.getAttribute('data-type');
@@ -347,13 +339,12 @@
             
             updateCarousel();
             
-            // Initialiser le panel info
+            // Détecter la page initiale
+            updateCurrentMenuPage();
             updatePanelInfo();
             
-            // Supprimer les tooltips initialement
             setTimeout(removeAllTooltips, 1000);
             
-            // Surveillance des mutations
             const observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     if (mutation.addedNodes.length) {
@@ -535,9 +526,8 @@
             selectedAsset = currentAssets.find(c => c.id === assetId);
             if (!selectedAsset) return;
 
-            // Mettre à jour l'état
+            // Activer le mode Selected View
             isInSelectedView = true;
-            currentPage = 'menu-2'; // On est dans la page Bourse quand on sélectionne un actif
             
             // Animation et transition
             carousel.classList.add('carousel-paused');
@@ -547,7 +537,7 @@
             backBtn.classList.remove('hidden');
             loader.classList.remove('hidden');
 
-            // Mettre à jour le panel info (affichera les news)
+            // Mettre à jour le panel info (afficher les news)
             updatePanelInfo();
 
             // Préparer le graphique TradingView
@@ -575,9 +565,9 @@
             }, 500);
         }
 
-        // === RETOUR AU CAROUSEL ===
-        function returnToCarousel() {
-            // Mettre à jour l'état
+        // === RETOUR AU CAROUSEL (MANUEL SEULEMENT) ===
+        backBtn.addEventListener('click', function() {
+            // Désactiver le mode Selected View
             isInSelectedView = false;
             
             selectedView.classList.remove('active');
@@ -586,29 +576,24 @@
             sideMenu.classList.remove('hidden');
             carousel.classList.remove('carousel-paused');
             
-            // Mettre à jour le panel info
+            // Mettre à jour le panel info selon la page active
             updatePanelInfo();
             
             removeAllTooltips();
-        }
-
-        backBtn.addEventListener('click', returnToCarousel);
+        });
 
         // === SURVEILLANCE DU CHANGEMENT DE MENU ===
-        // Observer les changements de classe sur megaBox pour détecter le changement de menu
         const observerMenuChange = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.attributeName === 'class') {
-                    // Détecter quelle page est active
-                    const classes = megaBox.classList;
-                    if (classes.contains('menu-1')) currentPage = 'menu-1';
-                    else if (classes.contains('menu-2')) currentPage = 'menu-2';
-                    else if (classes.contains('menu-3')) currentPage = 'menu-3';
-                    else if (classes.contains('menu-4')) currentPage = 'menu-4';
-                    else if (classes.contains('menu-5')) currentPage = 'menu-5';
+                    // Mettre à jour la page active
+                    updateCurrentMenuPage();
                     
-                    // Mettre à jour le panel info
-                    updatePanelInfo();
+                    // Mettre à jour le panel info seulement si Selected View n'est PAS actif
+                    if (!isInSelectedView) {
+                        updatePanelInfo();
+                    }
+                    // Si Selected View est actif, on NE CHANGE RIEN - les news restent
                 }
             });
         });
@@ -618,25 +603,6 @@
             attributeFilter: ['class']
         });
 
-        // === FONCTION SWITCHMENU MODIFIÉE ===
-        // Surcharge de la fonction switchMenu pour gérer le retour au carousel
-        // si on quitte la page Bourse alors qu'on est en mode Selected View
-        const originalSwitchMenu = window.switchMenu;
-        
-        window.switchMenu = function(n) {
-            // Si on est en Selected View et qu'on change de page
-            if (isInSelectedView) {
-                // Si on quitte la page Bourse (menu-2)
-                if (n !== 2) {
-                    // On retourne d'abord au carousel
-                    returnToCarousel();
-                }
-            }
-            
-            // Appeler la fonction originale
-            originalSwitchMenu(n);
-        };
-
         // DÉMARRER L'APPLICATION
         init();
 
@@ -645,4 +611,3 @@
             sideMenu.style.transform = 'translateY(-50%)';
         });
     });
-

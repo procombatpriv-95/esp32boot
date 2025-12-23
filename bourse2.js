@@ -1,4 +1,4 @@
-<script>
+
     document.addEventListener('DOMContentLoaded', function() {
         // Configuration des actifs avec symboles TradingView
         const assetTypes = {
@@ -590,4 +590,4 @@
             sideMenu.style.transform = 'translateY(-50%)';
         });
     });
-</script>
+

@@ -50,10 +50,22 @@
     gap: 5px;
     padding: 15px;
     color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+
     transform: none !important;
     position: relative;
     z-index: 1;
+}
+
+/* NOUVEAU STYLE SECTION-TITLE2 */
+.section-title2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #39d353;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 /* PIE CHARTS SECTION */
@@ -102,7 +114,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.add-investment-form .section-title {
+.add-investment-form .section-title2 {
     font-size: 12px;
     margin-bottom: 6px;
     color: white;
@@ -170,17 +182,6 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
-}
-
-.section-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: white;
-    padding-bottom: 6px;
-    border-bottom: 2px solid #39d353;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
 .long-term-content {

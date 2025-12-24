@@ -45,8 +45,8 @@
     grid-template-columns: 1fr 1.8fr 1.2fr;
     grid-template-rows: auto 1fr;
     grid-template-areas: 
-        "pie-charts long-term recent-transactions"
-        "controls monthly recent-transactions";
+                "pie-charts monthly recent-transactions"
+                "controls long-term recent-transactions";
     gap: 5px;
     padding: 15px;
     color: white;

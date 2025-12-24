@@ -37,9 +37,9 @@
 .board-container {
     width: 1000px;
     height: 590px;
-    background: rgba(17, 18, 22, 0.95);
+    background: transparent;
     border-radius: 25px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
     overflow: hidden;
     display: grid;
     grid-template-columns: 1fr 1.8fr 1.2fr;

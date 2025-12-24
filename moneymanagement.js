@@ -233,11 +233,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="transaction-description">${transaction.description}</div>
                             <div class="transaction-date">${formatDate(transaction.date)}</div>
                         </div>
+                        <div class="transaction-amount ${amountClass}">
+                            ${sign}£${transaction.amount.toFixed(2)}
+                        </div>
                         <div class="transaction-actions">
-                            <div class="transaction-amount ${amountClass}">
-                                ${sign}£${transaction.amount.toFixed(2)}
-                            </div>
-                            <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">
+                            <button class="trash-icon-btn" onclick="window.deleteTransaction(${transaction.id})">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -304,11 +304,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="transaction-description">Return: ${investment.annualReturn}%${goalText}</div>
                             <div class="transaction-date">Started: ${formatDate(investment.startDate)}</div>
                         </div>
+                        <div class="transaction-amount transaction-income">
+                            £${investment.initialAmount.toLocaleString()}
+                        </div>
                         <div class="transaction-actions">
-                            <div class="transaction-amount transaction-income">
-                                £${investment.initialAmount.toLocaleString()}
-                            </div>
-                            <button class="delete-btn" onclick="deleteInvestment(${investment.id})">
+                            <button class="trash-icon-btn" onclick="window.deleteInvestment(${investment.id})">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>

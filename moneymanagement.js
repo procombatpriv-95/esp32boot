@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const investmentsSummary = document.getElementById('investmentsSummary');
     
     // Variables pour les graphiques
-    let expensePieChart, incomePieChart, lineChart, monthlyBarChart;
+    let expensePieChart, incomePieChart, lineChart, monthlyBarChart, horizontalBarChart;
     
     // Initialiser la date à aujourd'hui
     const today = new Date();
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             let html = '';
-            filtered.slice(0, 12).forEach(transaction => {
+            filtered.slice(0, 8).forEach(transaction => { // Réduit à 8 transactions
                 const sign = transaction.type === 'income' ? '+' : '-';
                 const amountClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
                 
@@ -467,6 +467,65 @@ document.addEventListener('DOMContentLoaded', function() {
         return null;
     }
     
+    // Calculer les données pour le graphique horizontal AVEC POURCENTAGES
+    function calculateCategoryContributionData() {
+        const categories = {};
+        
+        // Calculer les totaux globaux
+        const totalIncome = transactions
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        const totalExpenses = transactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+        
+        // Initialiser les catégories
+        const allCategories = ['Trading', 'Food', 'Transport', 'Shopping', 'Entertainment', 'Bills', 'Salary', 'Selling', 'Other'];
+        allCategories.forEach(cat => {
+            categories[cat] = {
+                income: 0,
+                expense: 0,
+                incomePercentage: 0,
+                expensePercentage: 0
+            };
+        });
+        
+        // Calculer les totaux par catégorie
+        transactions.forEach(transaction => {
+            if (transaction.type === 'income') {
+                categories[transaction.category].income += transaction.amount;
+            } else {
+                categories[transaction.category].expense += transaction.amount;
+            }
+        });
+        
+        // Calculer les pourcentages
+        Object.keys(categories).forEach(cat => {
+            if (totalIncome > 0) {
+                categories[cat].incomePercentage = (categories[cat].income / totalIncome) * 100;
+            }
+            if (totalExpenses > 0) {
+                categories[cat].expensePercentage = (categories[cat].expense / totalExpenses) * 100;
+            }
+        });
+        
+        // Filtrer les catégories qui ont des données
+        const filteredCategories = Object.keys(categories).filter(cat => 
+            categories[cat].income > 0 || categories[cat].expense > 0
+        );
+        
+        // Trier par pourcentage d'income (décroissant)
+        filteredCategories.sort((a, b) => categories[b].incomePercentage - categories[a].incomePercentage);
+        
+        return {
+            categories: filteredCategories,
+            data: categories,
+            totalIncome: totalIncome,
+            totalExpenses: totalExpenses
+        };
+    }
+    
     // Initialiser les graphiques
     function initCharts() {
         // Vérifier si Chart.js est chargé
@@ -705,6 +764,129 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+        
+        // NOUVEAU: Horizontal Bar Chart - AVEC POURCENTAGES À LA FIN DES BARRES
+        const horizontalBarCanvas = document.getElementById('horizontalBarChart');
+        if (horizontalBarCanvas) {
+            const horizontalBarCtx = horizontalBarCanvas.getContext('2d');
+            
+            // Créer un plugin personnalisé pour afficher les pourcentages
+            const percentagePlugin = {
+                id: 'percentageLabels',
+                afterDatasetsDraw(chart, args, options) {
+                    const { ctx, chartArea: { top, bottom, left, right, width, height }, scales: { x, y } } = chart;
+                    
+                    ctx.save();
+                    
+                    chart.data.datasets.forEach((dataset, datasetIndex) => {
+                        const meta = chart.getDatasetMeta(datasetIndex);
+                        
+                        meta.data.forEach((bar, index) => {
+                            const percentage = dataset.percentages ? dataset.percentages[index] : null;
+                            
+                            if (percentage && percentage > 0) {
+                                // Position du pourcentage à la fin de la barre
+                                let xPos;
+                                let textAlign;
+                                
+                                if (datasetIndex === 0) { // Income (vert à GAUCHE)
+                                    xPos = bar.x - 10; // 10px avant la fin de la barre (à gauche)
+                                    textAlign = 'right';
+                                } else { // Expenses (rouge à DROITE)
+                                    xPos = bar.x + 10; // 10px après la fin de la barre (à droite)
+                                    textAlign = 'left';
+                                }
+                                
+                                // Style du texte
+                                ctx.font = 'bold 10px Arial';
+                                ctx.fillStyle = 'white';
+                                ctx.textAlign = textAlign;
+                                ctx.textBaseline = 'middle';
+                                
+                                // Dessiner le pourcentage
+                                ctx.fillText(percentage + '%', xPos, bar.y);
+                            }
+                        });
+                    });
+                    
+                    ctx.restore();
+                }
+            };
+            
+            // Enregistrer le plugin
+            Chart.register(percentagePlugin);
+            
+            horizontalBarChart = new Chart(horizontalBarCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: [],
+                            backgroundColor: '#2ecc71', // Vert pour income (GAUCHE)
+                            borderColor: '#27ae60',
+                            borderWidth: 1,
+                            barPercentage: 0.7,
+                            categoryPercentage: 0.8,
+                            percentages: [] // Stocker les pourcentages ici
+                        },
+                        {
+                            label: 'Expenses',
+                            data: [],
+                            backgroundColor: '#e74c3c', // Rouge pour expenses (DROITE)
+                            borderColor: '#c0392b',
+                            borderWidth: 1,
+                            barPercentage: 0.7,
+                            categoryPercentage: 0.8,
+                            percentages: [] // Stocker les pourcentages ici
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y', // Graphique horizontal
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false // Pas de légende
+                        },
+                        tooltip: {
+                            enabled: false // Désactiver les tooltips
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false, // MASQUER l'axe des x COMPLÈTEMENT
+                            grid: {
+                                display: false // Pas de grille
+                            },
+                            ticks: {
+                                display: false // Pas de valeurs
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                display: true
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
+                                },
+                                color: 'white',
+                                padding: 5
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
     }
     
     // Mettre à jour les graphiques
@@ -858,6 +1040,42 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyBarChart.data.datasets[2].data = expenseData;
             monthlyBarChart.data.datasets[3].data = balanceTrendData;
             monthlyBarChart.update();
+        }
+        
+        // NOUVEAU: Horizontal Bar Chart - AVEC POURCENTAGES À LA FIN DES BARRES
+        if (horizontalBarChart) {
+            const categoryData = calculateCategoryContributionData();
+            const labels = categoryData.categories;
+            const incomeData = [];
+            const expenseData = [];
+            const incomePercentages = [];
+            const expensePercentages = [];
+            
+            // Limiter à 7 catégories maximum pour la lisibilité
+            const maxCategories = 7;
+            const displayLabels = labels.slice(0, maxCategories);
+            
+            displayLabels.forEach(category => {
+                const data = categoryData.data[category];
+                
+                // Utiliser les valeurs brutes (pas négatives)
+                incomeData.push(data.income);
+                expenseData.push(data.expense);
+                
+                // Calculer les pourcentages arrondis
+                incomePercentages.push(data.incomePercentage.toFixed(1));
+                expensePercentages.push(data.expensePercentage.toFixed(1));
+            });
+            
+            horizontalBarChart.data.labels = displayLabels;
+            horizontalBarChart.data.datasets[0].data = incomeData;
+            horizontalBarChart.data.datasets[1].data = expenseData;
+            
+            // Stocker les pourcentages dans les datasets pour le plugin
+            horizontalBarChart.data.datasets[0].percentages = incomePercentages;
+            horizontalBarChart.data.datasets[1].percentages = expensePercentages;
+            
+            horizontalBarChart.update();
         }
     }
     

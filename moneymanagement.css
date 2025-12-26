@@ -33,24 +33,22 @@
     perspective: none !important;
 }
 
-/* BOARD CONTAINER PRINCIPAL */
+/* BOARD CONTAINER PRINCIPAL - MODIFIÉ */
 .board-container {
-    width: 1000px;
+    width: 1050px;
     height: 590px;
     background: transparent;
     border-radius: 25px;
-
     overflow: hidden;
     display: grid;
-    grid-template-columns: 1fr 1.8fr 1.2fr;
+    grid-template-columns: 1fr 1.8fr 0.8fr 0.8fr;
     grid-template-rows: auto 1fr;
     grid-template-areas: 
-                "pie-charts monthly recent-transactions"
-                "controls long-term recent-transactions";
+        "pie-charts monthly recent-transactions recent-transactions"
+        "controls long-term horizontal-chart horizontal-chart";
     gap: 5px;
     padding: 15px;
     color: white;
-
     transform: none !important;
     position: relative;
     z-index: 1;
@@ -197,7 +195,7 @@
     width: 100%;
 }
 
-/* RECENT TRANSACTIONS SECTION */
+/* RECENT TRANSACTIONS SECTION - RÉDUIT */
 .recent-transactions-section {
     grid-area: recent-transactions;
     display: flex;
@@ -206,7 +204,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 580px;
+    height: 280px; /* Réduit la hauteur */
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -289,7 +287,7 @@
     color: #e74c3c;
 }
 
-/* TRANSACTIONS LIST */
+/* TRANSACTIONS LIST - ADAPTÉ */
 .transactions-list {
     flex: 1;
     overflow-y: auto;
@@ -317,7 +315,7 @@
 
 .transaction-info {
     flex: 1;
-    padding-right: 40px; /* Espace pour le bouton poubelle */
+    padding-right: 40px;
 }
 
 .transaction-category {
@@ -606,7 +604,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 290px;
+    height: 280px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -619,6 +617,36 @@
 }
 
 .bar-chart-container {
+    flex: 1;
+    position: relative;
+    height: 210px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+/* NOUVEAU GRAPHIQUE HORIZONTAL */
+.horizontal-chart-section {
+    grid-area: horizontal-chart;
+    display: flex;
+    flex-direction: column;
+    background: rgba(30, 31, 35, 0.8);
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    height: 280px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.horizontal-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.horizontal-chart-container {
     flex: 1;
     position: relative;
     height: 210px;

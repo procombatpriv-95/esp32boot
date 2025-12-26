@@ -765,7 +765,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // NOUVEAU: Horizontal Bar Chart - BARRES FACE À FACE
+        // NOUVEAU: Horizontal Bar Chart - BARRES COLLÉES AUX BORDS
         const horizontalBarCanvas = document.getElementById('horizontalBarChart');
         if (horizontalBarCanvas) {
             const horizontalBarCtx = horizontalBarCanvas.getContext('2d');
@@ -774,10 +774,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const percentagePlugin = {
                 id: 'percentageLabels',
                 afterDatasetsDraw(chart, args, options) {
-                    const { ctx, chartArea: { top, bottom, left, right, width, height }, scales: { x, y } } = chart;
+                    const { ctx, chartArea: { top, bottom, left, right, width, height }, scales } = chart;
                     
                     ctx.save();
-                    ctx.font = 'bold 10px Arial';
+                    ctx.font = 'bold 11px Arial';
                     ctx.fillStyle = 'white';
                     ctx.textBaseline = 'middle';
                     
@@ -792,10 +792,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 let textAlign;
                                 
                                 if (datasetIndex === 0) { // Income (vert à GAUCHE)
-                                    xPos = bar.x - 8; // À gauche de la barre
+                                    // Pourcentage à la fin de la barre (droite)
+                                    xPos = bar.x - 5; // 5px avant la fin
                                     textAlign = 'right';
                                 } else { // Expenses (rouge à DROITE)
-                                    xPos = bar.x + 8; // À droite de la barre
+                                    // Pourcentage au début de la barre (gauche)
+                                    xPos = bar.x + 5; // 5px après le début
                                     textAlign = 'left';
                                 }
                                 
@@ -823,8 +825,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             backgroundColor: '#2ecc71', // Vert pour income (GAUCHE)
                             borderColor: '#27ae60',
                             borderWidth: 1,
-                            barPercentage: 0.4, // Réduit la largeur pour laisser de la place
-                            categoryPercentage: 0.8,
+                            barPercentage: 0.7, // Largeur des barres
+                            categoryPercentage: 0.9, // Espace entre catégories
                             percentages: [] // Stocker les pourcentages ici
                         },
                         {
@@ -833,8 +835,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             backgroundColor: '#e74c3c', // Rouge pour expenses (DROITE)
                             borderColor: '#c0392b',
                             borderWidth: 1,
-                            barPercentage: 0.4, // Réduit la largeur pour laisser de la place
-                            categoryPercentage: 0.8,
+                            barPercentage: 0.7, // Largeur des barres
+                            categoryPercentage: 0.9, // Espace entre catégories
                             percentages: [] // Stocker les pourcentages ici
                         }
                     ]
@@ -842,7 +844,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 options: {
                     indexAxis: 'y', // Graphique horizontal
                     responsive: true,
-                    maintainAspectRatio: true,
+                    maintainAspectRatio: false, // Important pour que la hauteur soit respectée
                     plugins: {
                         legend: {
                             display: false // Pas de légende
@@ -853,39 +855,51 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     scales: {
                         x: {
-                            display: false, // MASQUER l'axe des x COMPLÈTEMENT
-                            grid: {
-                                display: false // Pas de grille
-                            },
-                            ticks: {
-                                display: false // Pas de valeurs
-                            },
-                            // Pour forcer le centre à 0 pour les barres face à face
                             type: 'linear',
                             position: 'bottom',
-                            min: -100, // Pour que les barres négatives partent de la droite
-                            max: 100   // Pour que les barres positives partent de la gauche
+                            display: false, // Masquer l'axe X complètement
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false
+                            },
+                            min: 0,
+                            max: 100 // Pourcentage maximum
                         },
                         y: {
                             beginAtZero: true,
                             grid: {
                                 color: 'rgba(255, 255, 255, 0.1)',
-                                display: true
+                                display: true,
+                                drawBorder: false
                             },
                             ticks: {
                                 font: {
-                                    size: 10
+                                    size: 11
                                 },
                                 color: 'white',
-                                padding: 5
+                                padding: 8,
+                                callback: function(value, index, values) {
+                                    // Limiter la longueur des labels
+                                    const label = this.getLabelForValue(value);
+                                    return label.length > 12 ? label.substring(0, 12) + '...' : label;
+                                }
                             },
-                            // Pour que les deux barres soient sur la même ligne
-                            offset: true
+                            offset: true // Pour espacer les barres
                         }
                     },
                     animation: {
                         duration: 1000,
                         easing: 'easeOutQuart'
+                    },
+                    layout: {
+                        padding: {
+                            left: 5,
+                            right: 5,
+                            top: 10,
+                            bottom: 10
+                        }
                     }
                 }
             });
@@ -1045,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyBarChart.update();
         }
         
-        // NOUVEAU: Horizontal Bar Chart - BARRES FACE À FACE
+        // NOUVEAU: Horizontal Bar Chart - BARRES COLLÉES AUX BORDS
         if (horizontalBarChart) {
             const categoryData = calculateCategoryContributionData();
             const labels = categoryData.categories;
@@ -1054,33 +1068,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const incomePercentages = [];
             const expensePercentages = [];
             
-            // Limiter à 7 catégories maximum pour la lisibilité
-            const maxCategories = 7;
+            // Limiter à 6 catégories maximum pour la lisibilité avec la nouvelle hauteur
+            const maxCategories = 6;
             const displayLabels = labels.slice(0, maxCategories);
-            
-            // Pour les barres face à face, on utilise des valeurs normalisées
-            // Les barres d'income seront positives (vers la droite)
-            // Les barres d'expense seront négatives (vers la gauche)
-            
-            // Trouver la valeur maximale pour normaliser
-            let maxIncome = 0;
-            let maxExpense = 0;
-            
-            displayLabels.forEach(category => {
-                const data = categoryData.data[category];
-                if (data.income > maxIncome) maxIncome = data.income;
-                if (data.expense > maxExpense) maxExpense = data.expense;
-            });
-            
-            // Normaliser les valeurs entre 0 et 100
-            const scaleFactor = 100 / Math.max(maxIncome, maxExpense);
             
             displayLabels.forEach(category => {
                 const data = categoryData.data[category];
                 
-                // Valeurs normalisées (income positive, expense négative)
-                incomeData.push(data.income * scaleFactor);
-                expenseData.push(-(data.expense * scaleFactor)); // Négatif pour aller vers la gauche
+                // Utiliser directement les pourcentages comme données (0-100)
+                incomeData.push(data.incomePercentage);
+                expenseData.push(data.expensePercentage);
                 
                 // Pourcentages arrondis
                 incomePercentages.push(data.incomePercentage.toFixed(1));
@@ -1088,16 +1085,16 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             horizontalBarChart.data.labels = displayLabels;
-            horizontalBarChart.data.datasets[0].data = incomeData;
-            horizontalBarChart.data.datasets[1].data = expenseData;
+            horizontalBarChart.data.datasets[0].data = incomeData; // Pourcentages d'income
+            horizontalBarChart.data.datasets[1].data = expenseData; // Pourcentages d'expenses
             
             // Stocker les pourcentages dans les datasets pour le plugin
             horizontalBarChart.data.datasets[0].percentages = incomePercentages;
             horizontalBarChart.data.datasets[1].percentages = expensePercentages;
             
-            // Ajuster les limites de l'axe X pour les barres face à face
-            horizontalBarChart.options.scales.x.min = -100;
-            horizontalBarChart.options.scales.x.max = 100;
+            // Pour les expenses, on inverse la direction pour qu'elles partent de la droite
+            // On utilise des valeurs négatives pour qu'elles partent de la droite vers la gauche
+            horizontalBarChart.data.datasets[1].data = expenseData.map(value => -value);
             
             horizontalBarChart.update();
         }

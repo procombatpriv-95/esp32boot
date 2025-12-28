@@ -617,9 +617,7 @@
     border-radius: 10px;
     padding: 10px;
 }
-#horizontalBarChart {
-    margin-left: 10px;
-}
+
 .horizontal-chart-section {
     grid-area: horizontal-chart;
     display: flex;
@@ -643,10 +641,10 @@
 .horizontal-chart-container {
     flex: 1;
     position: relative;
-    height: 180px;
+    height: 210px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
-    padding: 10px 15px !important;
+    padding: 10px;
 }
 
 .chart-legend {
@@ -726,6 +724,9 @@ canvas {
     to { opacity: 1; transform: translateY(0); }
 }
 
+.board-container {
+    animation: fadeIn 0.5s ease-out;
+}
 .board-container {
     animation: fadeIn 0.5s ease-out;
 }

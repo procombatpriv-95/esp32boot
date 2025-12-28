@@ -713,37 +713,68 @@ document.addEventListener('DOMContentLoaded', function() {
         if (horizontalBarCanvas) {
             const horizontalBarCtx = horizontalBarCanvas.getContext('2d');
             
-            const percentagePlugin = {
-                id: 'percentagePlugin',
-                afterDatasetsDraw(chart) {
-                    const { ctx, data, chartArea: { top, bottom, left, right, width, height } } = chart;
-                    
-                    ctx.save();
-                    
-                    data.datasets.forEach((dataset, datasetIndex) => {
-                        const meta = chart.getDatasetMeta(datasetIndex);
-                        
-                        meta.data.forEach((bar, index) => {
-                            const value = dataset.data[index];
-                            if (value !== 0) {
-                                const displayValue = Math.abs(value).toFixed(1) + '%';
-                                
-                                ctx.font = 'bold 10px Arial';
-                                ctx.fillStyle = 'white';
-                                ctx.textAlign = 'center';
-                                ctx.textBaseline = 'middle';
-                                
-                                const x = bar.x;
-                                const y = bar.y;
-                                
-                                ctx.fillText(displayValue, x, y);
-                            }
-                        });
-                    });
-                    
-                    ctx.restore();
+const percentagePlugin = {
+    id: 'percentagePlugin',
+    afterDatasetsDraw(chart) {
+        const { ctx, data, chartArea: { top, bottom, left, right, width, height } } = chart;
+        
+        ctx.save();
+        
+        // Parcourir chaque catégorie (chaque barre horizontale)
+        data.labels.forEach((label, labelIndex) => {
+            // Obtenir la position de la barre complète (income + expense combinés)
+            const meta0 = chart.getDatasetMeta(0); // Dataset pour income
+            const meta1 = chart.getDatasetMeta(1); // Dataset pour expense
+            
+            const bar0 = meta0.data[labelIndex];
+            const bar1 = meta1.data[labelIndex];
+            
+            // Calculer la position centrale de la barre combinée
+            let centerX = chart.chartArea.left + (chart.chartArea.right - chart.chartArea.left) / 2;
+            const centerY = bar0 ? bar0.y : (bar1 ? bar1.y : 0);
+            
+            // Si les deux barres existent, calculer le centre entre elles
+            if (bar0 && bar1) {
+                // Pour les barres d'income (positives à droite)
+                if (bar0.x > bar1.x) {
+                    centerX = bar1.x + (bar0.x - bar1.x) / 2;
+                } 
+                // Pour les barres d'expense (positives à gauche)
+                else {
+                    centerX = bar0.x + (bar1.x - bar0.x) / 2;
                 }
-            };
+            } 
+            // Si seule la barre d'income existe
+            else if (bar0) {
+                centerX = bar0.x / 2; // Centre depuis le début
+            }
+            // Si seule la barre d'expense existe
+            else if (bar1) {
+                centerX = (chart.chartArea.right - bar1.x) / 2 + bar1.x; // Centre vers la fin
+            }
+            
+            // Calculer le pourcentage total pour cette catégorie
+            const incomeValue = data.datasets[0].data[labelIndex] || 0;
+            const expenseValue = data.datasets[1].data[labelIndex] || 0;
+            const totalPercent = Math.abs(incomeValue) + Math.abs(expenseValue);
+            
+            if (totalPercent > 0) {
+                const displayValue = totalPercent.toFixed(1) + '%';
+                
+                ctx.font = 'bold 11px Arial';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                ctx.shadowBlur = 2;
+                
+                ctx.fillText(displayValue, centerX, centerY);
+            }
+        });
+        
+        ctx.restore();
+    }
+};
             
             horizontalBarChart = new Chart(horizontalBarCtx, {
                 type: 'bar',

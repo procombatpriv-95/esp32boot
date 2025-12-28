@@ -713,37 +713,63 @@ document.addEventListener('DOMContentLoaded', function() {
         if (horizontalBarCanvas) {
             const horizontalBarCtx = horizontalBarCanvas.getContext('2d');
             
-            const percentagePlugin = {
-                id: 'percentagePlugin',
-                afterDatasetsDraw(chart) {
-                    const { ctx, data, chartArea: { top, bottom, left, right, width, height } } = chart;
-                    
-                    ctx.save();
-                    
-                    data.datasets.forEach((dataset, datasetIndex) => {
-                        const meta = chart.getDatasetMeta(datasetIndex);
-                        
-                        meta.data.forEach((bar, index) => {
-                            const value = dataset.data[index];
-                            if (value !== 0) {
-                                const displayValue = Math.abs(value).toFixed(1) + '%';
-                                
-                                ctx.font = 'bold 10px Arial';
-                                ctx.fillStyle = 'white';
-                                ctx.textAlign = 'center';
-                                ctx.textBaseline = 'middle';
-                                
-                                const x = bar.x;
-                                const y = bar.y;
-                                
-                                ctx.fillText(displayValue, x, y);
-                            }
-                        });
-                    });
-                    
-                    ctx.restore();
-                }
-            };
+ const percentagePlugin = {
+    id: 'percentagePlugin',
+    afterDatasetsDraw(chart) {
+        const { ctx, data, chartArea: { top, bottom, left, right, width, height }, scales: { x, y } } = chart;
+        
+        ctx.save();
+        
+        // Parcourir chaque catégorie
+        data.labels.forEach((label, index) => {
+            // Obtenir les valeurs des deux datasets pour cette catégorie
+            const incomeValue = data.datasets[0].data[index] || 0;
+            const expenseValue = data.datasets[1].data[index] || 0;
+            
+            // Calculer les totaux pour obtenir les pourcentages
+            const totalIncome = transactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const totalExpenses = transactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const incomeForCategory = transactions
+                .filter(t => t.type === 'income' && t.category === label)
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const expenseForCategory = transactions
+                .filter(t => t.type === 'expense' && t.category === label)
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            // Calculer les pourcentages individuels
+            const incomePercent = totalIncome > 0 ? (incomeForCategory / totalIncome) * 100 : 0;
+            const expensePercent = totalExpenses > 0 ? (expenseForCategory / totalExpenses) * 100 : 0;
+            
+            if (incomePercent > 0 || expensePercent > 0) {
+                // Afficher le pourcentage
+                const displayText = `${incomePercent.toFixed(1)}% / ${expensePercent.toFixed(1)}%`;
+                
+                ctx.font = 'bold 9px Arial';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Obtenir la position Y de cette catégorie (centre de la barre)
+                const categoryY = y.getPixelForValue(index);
+                
+                // Pour le positionnement X, nous prenons le centre du conteneur
+                // Car les barres sont limitées en largeur
+                const centerX = left + (width / 2);
+                
+                ctx.fillText(displayText, centerX, categoryY);
+            }
+        });
+        
+        ctx.restore();
+    }
+};
             
 horizontalBarChart = new Chart(horizontalBarCtx, {
     type: 'bar',
@@ -755,15 +781,19 @@ horizontalBarChart = new Chart(horizontalBarCtx, {
                 label: 'Income',
                 data: [],
                 backgroundColor: '#3498db',
-                borderColor: '#2980b9',
-                borderWidth: 0
+                borderColor: '#3498db',
+                borderWidth: 0,
+                barPercentage: 0.6, // Réduit pour avoir des barres plus fines
+                categoryPercentage: 0.8
             },
             {
                 label: 'Expenses',
                 data: [],
                 backgroundColor: '#e67e22',
-                borderColor: '#d35400',
-                borderWidth: 1
+                borderColor: '#e67e22',
+                borderWidth: 0,
+                barPercentage: 0.6, // Réduit pour avoir des barres plus fines
+                categoryPercentage: 0.8
             }
         ]
     },
@@ -788,6 +818,17 @@ horizontalBarChart = new Chart(horizontalBarCtx, {
                 },
                 grid: {
                     display: false
+                },
+                // Limiter la largeur maximale à 60px de chaque côté
+                afterFit: function(scale) {
+                    // Calculer la largeur maximale basée sur le conteneur
+                    const maxBarWidth = 60; // 60px maximum
+                    const centerPoint = scale.width / 2;
+                    
+                    // Limiter l'extension de chaque côté
+                    scale.left = centerPoint - Math.min(maxBarWidth, centerPoint);
+                    scale.right = centerPoint + Math.min(maxBarWidth, centerPoint);
+                    scale.width = Math.min(scale.width, maxBarWidth * 2);
                 }
             },
             y: {
@@ -796,18 +837,29 @@ horizontalBarChart = new Chart(horizontalBarCtx, {
                     font: {
                         size: 9
                     },
-                    color: 'white'
+                    color: 'white',
+                    padding: 10 // Plus d'espace entre les barres et les labels
                 },
                 grid: {
-                    color: 'rgba(255, 255, 255, 0.1)'
+                    color: 'rgba(255, 255, 255, 0.1)',
+                    drawBorder: false
                 },
-                beginAtZero: true
+                beginAtZero: true,
+                // Ajouter du padding pour que les barres ne touchent pas les bords
+                afterFit: function(scale) {
+                    scale.paddingTop = 15;
+                    scale.paddingBottom = 15;
+                }
             }
         },
-        // AJOUTEZ CES OPTIONS POUR CONTROLER LA HAUTEUR DES BARRES
-        barThickness: 20, // Hauteur fixe de 20px pour chaque barre
-        categoryPercentage: 1.0,
-        barPercentage: 0.8,
+        layout: {
+            padding: {
+                left: 10,
+                right: 10,
+                top: 10,
+                bottom: 10
+            }
+        },
         animation: {
             duration: 1000,
             easing: 'easeOutQuart'

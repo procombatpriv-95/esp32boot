@@ -279,11 +279,11 @@
 }
 
 .transaction-summary-income {
-    color: #3498db; /* Changé à bleu */
+    color: #FFA500; /* Orange pour income */
 }
 
 .transaction-summary-expense {
-    color: #e67e22; /* Changé à orange */
+    color: #3498db; /* Bleu pour expenses */
 }
 
 /* TRANSACTIONS LIST - ADAPTÉ */
@@ -342,11 +342,11 @@
 }
 
 .transaction-income {
-    color: #3498db; /* Changé à bleu */
+    color: #FFA500; /* Orange pour income */
 }
 
 .transaction-expense {
-    color: #e67e22; /* Changé à orange */
+    color: #3498db; /* Bleu pour expenses */
 }
 
 .transaction-actions {
@@ -681,11 +681,11 @@
 }
 
 .legend-income {
-    background: #3498db; /* Changé à bleu */
+    background: #FFA500; /* Orange pour income */
 }
 
 .legend-expense {
-    background: #e67e22; /* Changé à orange */
+    background: #3498db; /* Bleu pour expenses */
 }
 
 .legend-balance {

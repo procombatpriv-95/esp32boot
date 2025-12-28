@@ -776,73 +776,75 @@ const percentagePlugin = {
     }
 };
             
-            horizontalBarChart = new Chart(horizontalBarCtx, {
-                type: 'bar',
-                plugins: [percentagePlugin],
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: 'Income',
-                            data: [],
-                            backgroundColor: '#3498db',
-                            borderColor: '#2980b9',
-                            borderWidth: 1,
-                            barPercentage: 0.7
-                        },
-                        {
-                            label: 'Expenses',
-                            data: [],
-                            backgroundColor: '#e67e22',
-                            borderColor: '#d35400',
-                            borderWidth: 1,
-                            barPercentage: 0.7
-                        }
-                    ]
+horizontalBarChart = new Chart(horizontalBarCtx, {
+    type: 'bar',
+    plugins: [percentagePlugin],
+    data: {
+        labels: [],
+        datasets: [
+            {
+                label: 'Income',
+                data: [],
+                backgroundColor: '#3498db',
+                borderColor: '#2980b9',
+                borderWidth: 1
+            },
+            {
+                label: 'Expenses',
+                data: [],
+                backgroundColor: '#e67e22',
+                borderColor: '#d35400',
+                borderWidth: 1
+            }
+        ]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                enabled: false
+            }
+        },
+        scales: {
+            x: {
+                stacked: true,
+                display: false,
+                ticks: {
+                    display: false
                 },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            enabled: false
-                        }
-                    },
-                    scales: {
-                        x: {
-                            stacked: true,
-                            display: false,
-                            ticks: {
-                                display: false
-                            },
-                            grid: {
-                                display: false
-                            }
-                        },
-                        y: {
-                            stacked: true,
-                            ticks: {
-                                font: {
-                                    size: 9
-                                },
-                                color: 'white'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            beginAtZero: true
-                        }
-                    },
-                    animation: {
-                        duration: 1000,
-                        easing: 'easeOutQuart'
-                    }
+                grid: {
+                    display: false
                 }
-            });
+            },
+            y: {
+                stacked: true,
+                ticks: {
+                    font: {
+                        size: 9
+                    },
+                    color: 'white'
+                },
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                beginAtZero: true
+            }
+        },
+        // AJOUTEZ CES OPTIONS POUR CONTROLER LA HAUTEUR DES BARRES
+        barThickness: 20, // Hauteur fixe de 20px pour chaque barre
+        categoryPercentage: 1.0,
+        barPercentage: 0.8,
+        animation: {
+            duration: 1000,
+            easing: 'easeOutQuart'
+        }
+    }
+});
         }
     }
     

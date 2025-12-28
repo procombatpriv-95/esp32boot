@@ -466,24 +466,35 @@ document.addEventListener('DOMContentLoaded', function() {
         return null;
     }
     
-    // Calculer les données pour le graphique horizontal
-    function calculateCategoryBalanceData() {
-        const categories = {};
-        const totalBalance = calculateTotalBalance();
+    // Calculer les données pour le graphique horizontal AVEC POURCENTAGES
+    function calculateCategoryPercentageData() {
+        const filtered = filterTransactions(transactions, currentFilter);
         
-        // Initialiser les catégories
+        // Calculer les totaux
+        const totalIncome = filtered
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        const totalExpenses = filtered
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+        
+        // Grouper par catégorie
+        const categories = {};
         const allCategories = ['Trading', 'Food', 'Transport', 'Shopping', 'Entertainment', 'Bills', 'Salary', 'Selling', 'Other'];
+        
+        // Initialiser toutes les catégories
         allCategories.forEach(cat => {
             categories[cat] = {
                 income: 0,
                 expense: 0,
-                balance: 0,
-                percentage: 0
+                incomePercent: 0,
+                expensePercent: 0
             };
         });
         
-        // Calculer les totaux par catégorie
-        transactions.forEach(transaction => {
+        // Calculer les montants par catégorie
+        filtered.forEach(transaction => {
             if (transaction.type === 'income') {
                 categories[transaction.category].income += transaction.amount;
             } else {
@@ -491,11 +502,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Calculer le solde et le pourcentage par catégorie
+        // Calculer les pourcentages
         Object.keys(categories).forEach(cat => {
-            categories[cat].balance = categories[cat].income - categories[cat].expense;
-            if (totalBalance !== 0) {
-                categories[cat].percentage = (categories[cat].balance / Math.abs(totalBalance)) * 100;
+            if (totalIncome > 0) {
+                categories[cat].incomePercent = (categories[cat].income / totalIncome) * 100;
+            }
+            if (totalExpenses > 0) {
+                categories[cat].expensePercent = (categories[cat].expense / totalExpenses) * 100;
             }
         });
         
@@ -504,12 +517,16 @@ document.addEventListener('DOMContentLoaded', function() {
             categories[cat].income > 0 || categories[cat].expense > 0
         );
         
-        // Trier par balance (du plus positif au plus négatif)
-        filteredCategories.sort((a, b) => categories[b].balance - categories[a].balance);
+        // Trier par pourcentage de revenu (décroissant)
+        filteredCategories.sort((a, b) => {
+            return categories[b].incomePercent - categories[a].incomePercent;
+        });
         
         return {
             categories: filteredCategories,
-            data: categories
+            data: categories,
+            totalIncome,
+            totalExpenses
         };
     }
     
@@ -557,7 +574,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     labels: [],
                     datasets: [{
                         data: [],
-                        backgroundColor: ['#2ecc71', '#3498db', '#9b59b6', '#1abc9c', '#34495e', '#f1c40f']
+                        backgroundColor: ['#3498db', '#2ecc71', '#9b59b6', '#1abc9c', '#34495e', '#f1c40f']
                     }]
                 },
                 options: {
@@ -752,7 +769,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // NOUVEAU: Horizontal Bar Chart
+        // NOUVEAU: Horizontal Bar Chart AVEC POURCENTAGES
         const horizontalBarCanvas = document.getElementById('horizontalBarChart');
         if (horizontalBarCanvas) {
             const horizontalBarCtx = horizontalBarCanvas.getContext('2d');
@@ -762,17 +779,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     labels: [],
                     datasets: [
                         {
-                            label: 'Income',
+                            label: 'Income %',
                             data: [],
-                            backgroundColor: '#2ecc71',
-                            borderColor: '#27ae60',
+                            backgroundColor: '#3498db', // Bleu pour income
+                            borderColor: '#2980b9',
                             borderWidth: 1
                         },
                         {
-                            label: 'Expenses',
+                            label: 'Expenses %',
                             data: [],
-                            backgroundColor: '#e74c3c',
-                            borderColor: '#c0392b',
+                            backgroundColor: '#e67e22', // Orange pour expenses
+                            borderColor: '#d35400',
                             borderWidth: 1
                         }
                     ]
@@ -792,7 +809,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     if (label) {
                                         label += ': ';
                                     }
-                                    label += '£' + context.parsed.x.toFixed(2);
+                                    label += Math.abs(context.parsed.x).toFixed(1) + '%';
                                     return label;
                                 }
                             }
@@ -801,13 +818,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     scales: {
                         x: {
                             stacked: true,
+                            min: -100,
+                            max: 100,
                             ticks: {
                                 font: {
                                     size: 9
                                 },
                                 color: 'white',
                                 callback: function(value) {
-                                    return '£' + value;
+                                    return Math.abs(value).toFixed(0) + '%';
                                 }
                             },
                             grid: {
@@ -985,32 +1004,22 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyBarChart.update();
         }
         
-        // NOUVEAU: Horizontal Bar Chart - Contribution par catégorie
+        // NOUVEAU: Horizontal Bar Chart - Pourcentages par catégorie
         if (horizontalBarChart) {
-            const categoryData = calculateCategoryBalanceData();
+            const categoryData = calculateCategoryPercentageData();
             const labels = categoryData.categories;
-            const incomeData = [];
-            const expenseData = [];
-            const percentages = [];
+            const incomePercentData = [];
+            const expensePercentData = [];
             
             labels.forEach(category => {
                 const data = categoryData.data[category];
-                incomeData.push(data.income);
-                expenseData.push(-data.expense); // Négatif pour aller à gauche
-                percentages.push(data.percentage.toFixed(1) + '%');
+                incomePercentData.push(data.incomePercent);
+                expensePercentData.push(-data.expensePercent); // Négatif pour aller à gauche
             });
             
             horizontalBarChart.data.labels = labels;
-            horizontalBarChart.data.datasets[0].data = incomeData;
-            horizontalBarChart.data.datasets[1].data = expenseData;
-            
-            // Mettre à jour les tooltips avec les pourcentages
-            horizontalBarChart.options.plugins.tooltip.callbacks.afterLabel = function(context) {
-                const category = labels[context.dataIndex];
-                const percentage = categoryData.data[category].percentage;
-                return `Contribution: ${percentage.toFixed(1)}%`;
-            };
-            
+            horizontalBarChart.data.datasets[0].data = incomePercentData;
+            horizontalBarChart.data.datasets[1].data = expensePercentData;
             horizontalBarChart.update();
         }
     }

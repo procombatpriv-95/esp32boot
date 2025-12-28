@@ -617,7 +617,10 @@
     border-radius: 10px;
     padding: 10px;
 }
-
+#horizontalBarChart {
+    max-width: 80% !important;
+    margin: 0 auto !important;
+}
 .horizontal-chart-section {
     grid-area: horizontal-chart;
     display: flex;
@@ -641,10 +644,10 @@
 .horizontal-chart-container {
     flex: 1;
     position: relative;
-    height: 190px;
+    height: 180px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
-    padding: 10px;
+    padding: 15px !important; /* Plus de padding pour éloigner des bords */
 }
 
 .chart-legend {

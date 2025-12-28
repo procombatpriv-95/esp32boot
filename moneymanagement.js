@@ -756,7 +756,7 @@ horizontalBarChart = new Chart(horizontalBarCtx, {
                 data: [],
                 backgroundColor: '#3498db',
                 borderColor: '#2980b9',
-                borderWidth: 1
+                borderWidth: 0
             },
             {
                 label: 'Expenses',

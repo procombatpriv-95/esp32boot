@@ -36,7 +36,7 @@
 /* BOARD CONTAINER PRINCIPAL - MODIFIÉ */
 .board-container {
     width: 1050px;
-    height: 590px;
+    height: 650px; /* Augmenté de 590px à 650px */
     background: transparent;
     border-radius: 25px;
     overflow: hidden;
@@ -170,7 +170,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 280px;
+    height: 340px; /* Augmenté de 280px à 340px */
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -204,7 +204,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 280px; /* Réduit la hauteur */
+    height: 280px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -411,7 +411,7 @@
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
     overflow-y: auto;
-    max-height: 325px;
+    max-height: 385px; /* Augmenté de 325px à 385px */
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -625,7 +625,7 @@
     padding: 10px;
 }
 
-/* NOUVEAU GRAPHIQUE HORIZONTAL */
+/* GRAPHIQUE HORIZONTAL - HAUTEUR AUGMENTÉE */
 .horizontal-chart-section {
     grid-area: horizontal-chart;
     display: flex;
@@ -634,7 +634,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 280px;
+    height: 340px; /* Augmenté de 280px à 340px */
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -649,7 +649,7 @@
 .horizontal-chart-container {
     flex: 1;
     position: relative;
-    height: 210px;
+    height: 280px; /* Augmenté de 210px à 280px */
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     padding: 10px;

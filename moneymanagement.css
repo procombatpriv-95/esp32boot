@@ -618,8 +618,7 @@
     padding: 10px;
 }
 #horizontalBarChart {
-    max-width: 80% !important;
-    margin: 0 auto !important;
+    margin-left: 10px;
 }
 .horizontal-chart-section {
     grid-area: horizontal-chart;
@@ -647,7 +646,7 @@
     height: 180px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
-    padding: 15px !important; /* Plus de padding pour éloigner des bords */
+    padding: 10px 15px !important;
 }
 
 .chart-legend {

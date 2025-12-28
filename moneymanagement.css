@@ -203,7 +203,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 280px; /* Réduit la hauteur */
+    height: 280px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -279,11 +279,11 @@
 }
 
 .transaction-summary-income {
-    color: #FFA500; /* Orange pour income */
+    color: #2ecc71;
 }
 
 .transaction-summary-expense {
-    color: #3498db; /* Bleu pour expenses */
+    color: #e74c3c;
 }
 
 /* TRANSACTIONS LIST - ADAPTÉ */
@@ -342,11 +342,11 @@
 }
 
 .transaction-income {
-    color: #FFA500; /* Orange pour income */
+    color: #2ecc71;
 }
 
 .transaction-expense {
-    color: #3498db; /* Bleu pour expenses */
+    color: #e74c3c;
 }
 
 .transaction-actions {
@@ -359,7 +359,6 @@
     transform: translateY(-50%);
 }
 
-/* BOUTON POURBELLE */
 .trash-icon-btn {
     background: none;
     border: none;
@@ -441,7 +440,6 @@
     color: white;
 }
 
-/* INPUT GROUPS */
 .input-group {
     margin-bottom: 10px;
 }
@@ -477,7 +475,6 @@
     color: rgba(255, 255, 255, 0.5);
 }
 
-/* FILTER BUTTONS */
 .filter-buttons {
     display: flex;
     gap: 5px;
@@ -507,7 +504,6 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* GOAL INPUT */
 .goal-input-container {
     display: flex;
     gap: 8px;
@@ -545,7 +541,6 @@
     background: #27ae60;
 }
 
-/* BOUTONS D'ACTION */
 .button-group {
     display: flex;
     gap: 8px;
@@ -594,7 +589,6 @@
     background: #c0392b;
 }
 
-/* MONTHLY SECTION */
 .monthly-section {
     grid-area: monthly;
     display: flex;
@@ -624,7 +618,6 @@
     padding: 10px;
 }
 
-/* NOUVEAU GRAPHIQUE HORIZONTAL */
 .horizontal-chart-section {
     grid-area: horizontal-chart;
     display: flex;
@@ -654,7 +647,6 @@
     padding: 10px;
 }
 
-/* CHART LEGEND */
 .chart-legend {
     display: flex;
     justify-content: center;
@@ -681,18 +673,17 @@
 }
 
 .legend-income {
-    background: #FFA500; /* Orange pour income */
+    background: #3498db;
 }
 
 .legend-expense {
-    background: #3498db; /* Bleu pour expenses */
+    background: #e67e22;
 }
 
 .legend-balance {
     background: #9b59b6;
 }
 
-/* SCROLLBAR STYLING */
 .controls-section::-webkit-scrollbar,
 .transactions-list::-webkit-scrollbar {
     width: 4px;
@@ -710,19 +701,16 @@
     border-radius: 10px;
 }
 
-/* CANVAS STYLES */
 canvas {
     display: block !important;
     max-width: 100% !important;
     max-height: 100% !important;
 }
 
-/* FONT AWESOME ICONS */
 .fas {
     font-size: 12px;
 }
 
-/* RESPONSIVE ADJUSTMENTS */
 @media (max-width: 1100px) {
     .board-container {
         width: 95%;
@@ -731,7 +719,6 @@ canvas {
     }
 }
 
-/* ANIMATION */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }

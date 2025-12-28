@@ -463,9 +463,8 @@ document.addEventListener('DOMContentLoaded', function() {
         );
         
         filteredCategories.sort((a, b) => {
-            // Trier par contribution totale (income + expense)
-            const totalA = categories[a].incomePercent + categories[a].expensePercent;
-            const totalB = categories[b].incomePercent + categories[b].expensePercent;
+            const totalA = categories[a].incomePercent - categories[a].expensePercent;
+            const totalB = categories[b].incomePercent - categories[b].expensePercent;
             return totalB - totalA;
         });
         
@@ -717,54 +716,29 @@ document.addEventListener('DOMContentLoaded', function() {
             const percentagePlugin = {
                 id: 'percentagePlugin',
                 afterDatasetsDraw(chart) {
-                    const { ctx, data, chartArea: { top, bottom, left, right, width, height }, scales: { x, y } } = chart;
+                    const { ctx, data, chartArea: { top, bottom, left, right, width, height } } = chart;
                     
                     ctx.save();
                     
-                    // Parcourir chaque catégorie
-                    data.labels.forEach((label, index) => {
-                        // Obtenir les valeurs des deux datasets pour cette catégorie
-                        const incomeValue = data.datasets[0].data[index] || 0;
-                        const expenseValue = data.datasets[1].data[index] || 0;
+                    data.datasets.forEach((dataset, datasetIndex) => {
+                        const meta = chart.getDatasetMeta(datasetIndex);
                         
-                        // Calculer les totaux pour obtenir les pourcentages
-                        const totalIncome = transactions
-                            .filter(t => t.type === 'income')
-                            .reduce((sum, t) => sum + t.amount, 0);
-                            
-                        const totalExpenses = transactions
-                            .filter(t => t.type === 'expense')
-                            .reduce((sum, t) => sum + t.amount, 0);
-                        
-                        const incomeForCategory = transactions
-                            .filter(t => t.type === 'income' && t.category === label)
-                            .reduce((sum, t) => sum + t.amount, 0);
-                            
-                        const expenseForCategory = transactions
-                            .filter(t => t.type === 'expense' && t.category === label)
-                            .reduce((sum, t) => sum + t.amount, 0);
-                        
-                        // Calculer les pourcentages individuels
-                        const incomePercent = totalIncome > 0 ? (incomeForCategory / totalIncome) * 100 : 0;
-                        const expensePercent = totalExpenses > 0 ? (expenseForCategory / totalExpenses) * 100 : 0;
-                        
-                        if (incomePercent > 0 || expensePercent > 0) {
-                            // Afficher les deux pourcentages sans séparateur
-                            const displayText = `${incomePercent.toFixed(1)}%  ${expensePercent.toFixed(1)}%`;
-                            
-                            ctx.font = 'bold 9px Arial';
-                            ctx.fillStyle = 'white';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            
-                            // Obtenir la position Y de cette catégorie (centre de la barre)
-                            const categoryY = y.getPixelForValue(index);
-                            
-                            // Calculer le centre exact avec marge de 10px
-                            const centerX = left + 10 + (width - 20) / 2;
-                            
-                            ctx.fillText(displayText, centerX, categoryY);
-                        }
+                        meta.data.forEach((bar, index) => {
+                            const value = dataset.data[index];
+                            if (value !== 0) {
+                                const displayValue = Math.abs(value).toFixed(1) + '%';
+                                
+                                ctx.font = 'bold 10px Arial';
+                                ctx.fillStyle = 'white';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                
+                                const x = bar.x;
+                                const y = bar.y;
+                                
+                                ctx.fillText(displayValue, x, y);
+                            }
+                        });
                     });
                     
                     ctx.restore();
@@ -781,19 +755,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             label: 'Income',
                             data: [],
                             backgroundColor: '#3498db',
-                            borderColor: '#3498db',
-                            borderWidth: 0,
-                            barPercentage: 0.6,
-                            categoryPercentage: 0.7
+                            borderColor: '#2980b9',
+                            borderWidth: 1,
+                            barPercentage: 0.7
                         },
                         {
                             label: 'Expenses',
                             data: [],
                             backgroundColor: '#e67e22',
-                            borderColor: '#e67e22',
-                            borderWidth: 0,
-                            barPercentage: 0.6,
-                            categoryPercentage: 0.7
+                            borderColor: '#d35400',
+                            borderWidth: 1,
+                            barPercentage: 0.7
                         }
                     ]
                 },
@@ -818,24 +790,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             },
                             grid: {
                                 display: false
-                            },
-                            afterFit: function(scale) {
-                                // Centre du graphique
-                                const chartCenter = scale.left + (scale.width / 2);
-                                const maxBarWidth = 60; // 60px maximum de chaque côté
-                                
-                                // Calculer les nouvelles limites
-                                const newLeft = chartCenter - maxBarWidth;
-                                const newRight = chartCenter + maxBarWidth;
-                                
-                                // Appliquer les limites
-                                scale.left = newLeft;
-                                scale.right = newRight;
-                                scale.width = maxBarWidth * 2;
-                                
-                                // Ajouter un offset de 10px pour la marge
-                                scale.left += 10;
-                                scale.right -= 10;
                             }
                         },
                         y: {
@@ -844,22 +798,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 font: {
                                     size: 9
                                 },
-                                color: 'white',
-                                padding: 12 // Espace entre les labels et les barres
+                                color: 'white'
                             },
                             grid: {
-                                display: false, // ENLEVER LES TRAITS HORIZONTAUX GRIS
-                                drawBorder: false
+                                color: 'rgba(255, 255, 255, 0.1)'
                             },
                             beginAtZero: true
-                        }
-                    },
-                    layout: {
-                        padding: {
-                            left: 15, // Marge à gauche pour les labels
-                            right: 15,
-                            top: 5,
-                            bottom: 5
                         }
                     },
                     animation: {
@@ -1013,24 +957,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             labels.forEach(category => {
                 const data = categoryData.data[category];
-                // Limiter les valeurs à 100% maximum
-                const incomePercent = Math.min(data.incomePercent, 100);
-                const expensePercent = Math.min(data.expensePercent, 100);
-                
-                incomeData.push(incomePercent);
-                expenseData.push(-expensePercent); // Négatif pour aller à gauche
+                incomeData.push(data.incomePercent);
+                expenseData.push(-data.expensePercent);
             });
             
             horizontalBarChart.data.labels = labels;
             horizontalBarChart.data.datasets[0].data = incomeData;
             horizontalBarChart.data.datasets[1].data = expenseData;
-            
-            // Réinitialiser l'échelle X pour forcer le recalcul des limites
-            if (horizontalBarChart.scales.x) {
-                horizontalBarChart.scales.x.afterFit(horizontalBarChart.scales.x);
-            }
-            
-            horizontalBarChart.update('none');
+            horizontalBarChart.update();
         }
     }
     

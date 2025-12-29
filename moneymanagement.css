@@ -1,25 +1,3 @@
-#menu4Content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    transform: translateX(300%);
-    display: flex !important;
-    justify-content: center;
-    align-items: center;
-    overflow: visible !important;
-    transform-style: flat !important;
-    backface-visibility: visible !important;
-}
-
-/* Quand menu 4 est actif */
-.mega.menu-4 #menu4Content {
-    transform: translateX(0%) !important;
-    display: flex !important;
-}
-
-/* Wrapper pour isoler le contenu */
 .money-management-wrapper {
     width: 100%;
     height: 100%;

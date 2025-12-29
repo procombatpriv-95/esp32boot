@@ -1,4 +1,4 @@
-.money-management-wrapper {
+ .money-management-wrapper {
     width: 100%;
     height: 100%;
     display: flex;
@@ -603,7 +603,6 @@
 }
 
 /* NOUVEAU GRAPHIQUE HORIZONTAL */
-/* MODIFIÉ: Horizontal Bar Chart Section */
 .horizontal-chart-section {
     grid-area: horizontal-chart;
     display: flex;
@@ -624,17 +623,6 @@
     margin-bottom: 10px;
 }
 
-.horizontal-chart-header .section-title2 {
-    font-size: 14px;
-    font-weight: 600;
-    color: white;
-    padding-bottom: 6px;
-    border-bottom: 2px solid #39d353;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
 .horizontal-chart-container {
     flex: 1;
     position: relative;
@@ -642,13 +630,6 @@
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     padding: 10px;
-}
-
-/* Style pour les barres centrées */
-.horizontal-chart-container canvas {
-    display: block;
-    max-width: 100%;
-    max-height: 100%;
 }
 
 /* CHART LEGEND */
@@ -736,4 +717,4 @@ canvas {
 
 .board-container {
     animation: fadeIn 0.5s ease-out;
-}
+} 

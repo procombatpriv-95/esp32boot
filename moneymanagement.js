@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let transactions = [];
     let investments = [];
     let monthlyGoals = {};
+    let yearlyGoal = 0;
     let currentFilter = 'month';
     let currentYearView = 'current';
     let currentTransactionFilter = 'all';
@@ -122,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const savedTransactions = localStorage.getItem('moneyManagerTransactions');
             const savedInvestments = localStorage.getItem('moneyManagerInvestments');
             const savedGoals = localStorage.getItem('moneyManagerGoals');
+            const savedYearlyGoal = localStorage.getItem('moneyManagerYearlyGoal');
             
             if (savedTransactions) {
                 transactions = JSON.parse(savedTransactions);
@@ -137,12 +139,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 monthlyGoals = JSON.parse(savedGoals);
                 console.log("Objectifs mensuels chargés:", Object.keys(monthlyGoals).length);
             }
+            
+            if (savedYearlyGoal) {
+                yearlyGoal = parseFloat(savedYearlyGoal);
+                console.log("Objectif annuel chargé:", yearlyGoal);
+            }
         } catch (e) {
             console.error("Erreur de chargement:", e);
             // Initialiser avec des données par défaut si erreur
             transactions = [];
             investments = [];
             monthlyGoals = {};
+            yearlyGoal = 0;
         }
     }
     
@@ -152,7 +160,11 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
             localStorage.setItem('moneyManagerInvestments', JSON.stringify(investments));
             localStorage.setItem('moneyManagerGoals', JSON.stringify(monthlyGoals));
+            localStorage.setItem('moneyManagerYearlyGoal', yearlyGoal.toString());
             console.log("Données sauvegardées");
+            
+            // Déclencher un événement de stockage pour informer le panel résultat
+            window.dispatchEvent(new Event('storage'));
         } catch (e) {
             console.error("Erreur de sauvegarde:", e);
         }
@@ -164,6 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSummary();
         updateRecentTransactionsSummary();
         updateCharts();
+        saveData(); // Sauvegarder pour le panel résultat
     }
     
     // Mettre à jour la vue (transactions ou investissements)
@@ -1057,7 +1070,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         transactions.push(transaction);
-        saveData();
         updateDashboard();
         
         amountInput.value = '';
@@ -1101,7 +1113,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         investments.push(investment);
-        saveData();
         updateDashboard();
         
         investmentNameInput.value = '';
@@ -1112,7 +1123,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Investment added successfully!');
     }
     
-    // Définir l'objectif pour le mois en cours
+    // Définir l'objectif mensuel
     function setGoal() {
         console.log("Bouton Set Goal cliqué");
         
@@ -1129,14 +1140,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const goalKey = `${currentYear}-${currentMonth}`;
         
         monthlyGoals[goalKey] = amount;
-        saveData();
         updateDashboard();
         
         goalAmountInput.value = '';
         console.log(`Goal for ${currentMonth}/${currentYear} set to £${amount.toFixed(2)}`);
     }
     
-    // Définir l'objectif pour tous les mois
+    // Définir l'objectif annuel
     function setAllGoals() {
         console.log("Bouton Set All Goals cliqué");
         
@@ -1147,17 +1157,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
-        
-        monthData.keys.forEach(monthKey => {
-            monthlyGoals[monthKey] = amount;
-        });
-        
-        saveData();
+        yearlyGoal = amount;
         updateDashboard();
         
         goalAllAmountInput.value = '';
-        console.log(`Goal for all months set to £${amount.toFixed(2)}`);
+        console.log(`Yearly goal set to £${amount.toFixed(2)}`);
     }
     
     // Basculer entre les vues Transactions et Investissements
@@ -1208,16 +1212,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Configuration des boutons de filtre
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentFilter = this.dataset.period;
-            updateDashboard();
-        });
-    });
-    
     // Configuration des boutons d'année (Current/Previous)
     document.querySelectorAll('.month-btn[data-year]').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -1246,15 +1240,6 @@ document.addEventListener('DOMContentLoaded', function() {
             initCharts();
             updateDashboard();
         }
-        
-        // Initialiser les filtres
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            if (btn.dataset.period === 'month') {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
         
         console.log("Application Money Management initialisée");
     }

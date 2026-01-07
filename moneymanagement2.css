@@ -18,10 +18,10 @@
     border-radius: 25px;
     overflow: hidden;
     display: grid;
-    grid-template-columns: 1fr 1.8fr 0.8fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: 1.5fr 1.8fr 1.2fr;
+    grid-template-rows: 1fr 1fr;
     grid-template-areas: 
-        "pie-charts monthly monthly"
+        "pie-charts monthly recent-transactions"
         "controls recent-transactions horizontal-chart";
     gap: 5px;
     padding: 15px;
@@ -48,9 +48,9 @@
     grid-area: pie-charts;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: 1fr 1fr;
     gap: 8px;
-    max-height: 180px;
+    max-height: 280px;
 }
 
 .pie-chart-container {
@@ -79,7 +79,7 @@
     min-height: 0;
 }
 
-/* RECENT TRANSACTIONS SECTION - RETOUR À LA TAILLE ORIGINALE */
+/* RECENT TRANSACTIONS SECTION - TAILLE ORIGINALE */
 .recent-transactions-section {
     grid-area: recent-transactions;
     display: flex;
@@ -88,7 +88,8 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 325px; /* Taille originale */
+    height: 100%;
+    min-height: 280px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -169,7 +170,6 @@
     overflow-y: auto;
     margin-top: 10px;
     margin-bottom: 10px;
-    max-height: 200px;
 }
 
 .transaction-item {
@@ -278,7 +278,7 @@
     color: rgba(255, 255, 255, 0.3);
 }
 
-/* CONTROLS SECTION - DÉPLACÉ EN DESSOUS DES PIE CHARTS */
+/* CONTROLS SECTION - EN DESSOUS DES PIE CHARTS */
 .controls-section {
     grid-area: controls;
     display: flex;
@@ -288,9 +288,9 @@
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
     overflow-y: auto;
-    max-height: 325px;
+    max-height: 280px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: -40px; /* Ajustement pour remonter le bloc */
+    margin-top: 8px;
 }
 
 .summary-container {
@@ -443,7 +443,7 @@
     background: #c0392b;
 }
 
-/* MONTHLY SECTION - WIDTH INCREASED */
+/* MONTHLY SECTION */
 .monthly-section {
     grid-area: monthly;
     display: flex;
@@ -455,7 +455,6 @@
     height: 280px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    width: 100%;
 }
 
 .monthly-header {
@@ -474,7 +473,7 @@
     padding: 10px;
 }
 
-/* CATEGORY BALANCE CHART - RETOUR À LA TAILLE ORIGINALE */
+/* CATEGORY BALANCE CHART - TAILLE ORIGINALE */
 .horizontal-chart-section {
     grid-area: horizontal-chart;
     display: flex;
@@ -483,7 +482,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 325px; /* Taille originale */
+    height: 280px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -498,7 +497,7 @@
 .horizontal-chart-container {
     flex: 1;
     position: relative;
-    height: 250px; /* Augmenté pour correspondre à la taille originale */
+    height: 210px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     padding: 10px;

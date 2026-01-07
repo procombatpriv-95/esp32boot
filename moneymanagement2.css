@@ -19,10 +19,10 @@
     overflow: hidden;
     display: grid;
     grid-template-columns: 0.8fr 1.8fr 1fr;
-    grid-template-rows: 280px 250px;
+    grid-template-rows: 260px 270px; /* Modifié pour créer plus d'espace */
     grid-template-areas: 
         "left-col monthly recent-transactions"
-        "left-col . horizontal-chart";
+        "left-col gap horizontal-chart";
     gap: 5px;
     padding: 15px;
     color: white;
@@ -49,6 +49,7 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
+    margin-top: 20px; /* Baissé de 20px vers le bas */
 }
 
 /* PIE CHARTS SECTION - HORIZONTAL COMME AVANT */
@@ -96,6 +97,7 @@
     height: 325px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     flex-grow: 1;
+    margin-top: 20px; /* Baissé de 20px vers le bas */
 }
 
 .summary-container {
@@ -476,7 +478,13 @@
     padding: 10px;
 }
 
-/* CATEGORY BALANCE CHART - HAUTEUR RÉDUITE */
+/* ESPACE GAP POUR LE TROU */
+.gap-area {
+    grid-area: gap;
+    /* Zone vide pour créer l'espace */
+}
+
+/* CATEGORY BALANCE CHART - HAUTEUR RÉDUITE ET POSITION BAISSÉE */
 .horizontal-chart-section {
     grid-area: horizontal-chart;
     display: flex;
@@ -488,6 +496,8 @@
     height: 250px; /* Hauteur réduite */
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 20px; /* Baissé de 20px vers le bas */
+    width: 100%; /* Largeur augmentée */
 }
 
 .horizontal-chart-header {

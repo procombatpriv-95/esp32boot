@@ -608,9 +608,6 @@ document.addEventListener('DOMContentLoaded', function() {
             horizontalBarChart.data.datasets[0].data = incomeData;
             horizontalBarChart.data.datasets[1].data = expenseData;
             
-            horizontalBarChart.options.scales.x.min = -Math.max(...expenseData.map(Math.abs), ...incomeData);
-            horizontalBarChart.options.scales.x.max = Math.max(...expenseData.map(Math.abs), ...incomeData);
-            
             horizontalBarChart.update();
         }
     }

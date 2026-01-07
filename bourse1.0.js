@@ -99,6 +99,194 @@ if ("geolocation" in navigator) {
   window.appTimezone = "Europe/London";
 }
 
+// ============================================
+// FONCTIONS POUR LE PANEL RESULTAT (MENU 4)
+// ============================================
+
+// Stocker les données globales pour le panel résultat
+let resultPanelData = {
+  currentPeriod: 'monthly',
+  monthlyGoal: 0,
+  yearlyGoal: 0,
+  currentIncome: 0,
+  highestTransaction: { amount: 0, description: '' },
+  lowestTransaction: { amount: 0, description: '' }
+};
+
+// Fonction pour récupérer les données du money management
+function getMoneyManagementData() {
+  try {
+    // Récupérer les transactions
+    const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
+    
+    // Récupérer les objectifs
+    const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
+    const yearlyGoal = parseFloat(localStorage.getItem('moneyManagerYearlyGoal') || '0');
+    
+    // Calculer l'objectif mensuel actuel
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const monthKey = `${currentYear}-${currentMonth}`;
+    const monthlyGoal = monthlyGoals[monthKey] || 0;
+    
+    // Filtrer les transactions selon la période
+    let filteredTransactions = [];
+    let currentPeriodIncome = 0;
+    
+    if (resultPanelData.currentPeriod === 'monthly') {
+      // Transactions du mois en cours
+      filteredTransactions = transactions.filter(t => {
+        const tDate = new Date(t.date);
+        return tDate.getFullYear() === currentYear && 
+               tDate.getMonth() + 1 === parseInt(currentMonth);
+      });
+    } else {
+      // Transactions de l'année en cours
+      filteredTransactions = transactions.filter(t => {
+        const tDate = new Date(t.date);
+        return tDate.getFullYear() === currentYear;
+      });
+    }
+    
+    // Calculer le revenu total pour la période
+    currentPeriodIncome = filteredTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    // Trouver la transaction la plus haute (income) et la plus basse (expense)
+    let highestTransaction = { amount: 0, description: '' };
+    let lowestTransaction = { amount: 0, description: '' };
+    
+    if (filteredTransactions.length > 0) {
+      const incomeTransactions = filteredTransactions.filter(t => t.type === 'income');
+      const expenseTransactions = filteredTransactions.filter(t => t.type === 'expense');
+      
+      if (incomeTransactions.length > 0) {
+        highestTransaction = incomeTransactions.reduce((max, t) => 
+          t.amount > max.amount ? t : max
+        );
+      }
+      
+      if (expenseTransactions.length > 0) {
+        lowestTransaction = expenseTransactions.reduce((min, t) => 
+          t.amount < min.amount ? t : min
+        );
+      }
+    }
+    
+    // Mettre à jour les données
+    resultPanelData.monthlyGoal = monthlyGoal;
+    resultPanelData.yearlyGoal = yearlyGoal;
+    resultPanelData.currentIncome = currentPeriodIncome;
+    resultPanelData.highestTransaction = highestTransaction;
+    resultPanelData.lowestTransaction = lowestTransaction;
+    
+    return resultPanelData;
+    
+  } catch (e) {
+    console.error('Erreur lors de la récupération des données:', e);
+    return resultPanelData;
+  }
+}
+
+// === AFFICHER LE PANEL RÉSULTAT (Menu 4) ===
+function showResultPanel() {
+  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+  if (!kinfopaneltousContent) return;
+  
+  kinfopaneltousContent.innerHTML = '';
+  
+  const resultPanel = document.createElement('div');
+  resultPanel.className = 'result-panel';
+  
+  // Récupérer les données du money management
+  const data = getMoneyManagementData();
+  
+  // Déterminer l'objectif actuel selon la période
+  const currentGoal = resultPanelData.currentPeriod === 'monthly' 
+    ? resultPanelData.monthlyGoal 
+    : resultPanelData.yearlyGoal;
+  
+  // Calculer le pourcentage (max 100%)
+  const percentage = currentGoal > 0 
+    ? Math.min((resultPanelData.currentIncome / currentGoal) * 100, 100) 
+    : 0;
+  
+  // Déterminer si le goal est atteint ou dépassé
+  const isGoalReached = percentage >= 100;
+  
+  resultPanel.innerHTML = `
+    <div class="period-selector">
+      <button class="period-btn ${resultPanelData.currentPeriod === 'monthly' ? 'active' : ''}" 
+              data-period="monthly">Monthly</button>
+      <button class="period-btn ${resultPanelData.currentPeriod === 'yearly' ? 'active' : ''}" 
+              data-period="yearly">Yearly</button>
+    </div>
+    
+    <div class="progress-section">
+      <div class="progress-header">
+        <span class="period-label">${resultPanelData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly'}</span>
+        <span class="percentage-label">${percentage.toFixed(1)}%</span>
+      </div>
+      
+      <div class="progress-bar-container">
+        <div class="progress-bar">
+          <div class="progress-filled" style="width: ${percentage}%">
+            ${percentage > 10 ? `£${resultPanelData.currentIncome.toFixed(0)}` : ''}
+          </div>
+          ${!isGoalReached ? `
+            <div class="progress-remaining">
+              ${percentage < 90 ? `£${Math.max(0, currentGoal - resultPanelData.currentIncome).toFixed(0)}` : ''}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+    
+    <div class="indicators-container">
+      <div class="indicator-box indicator-highest">
+        <div class="indicator-label">
+          <i class="fas fa-arrow-up"></i> Highest
+        </div>
+        <div class="indicator-value">
+          £${resultPanelData.highestTransaction.amount.toFixed(2)}
+          ${resultPanelData.highestTransaction.description ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.highestTransaction.description}</div>` : ''}
+        </div>
+      </div>
+      <div class="indicator-box indicator-lowest">
+        <div class="indicator-label">
+          <i class="fas fa-arrow-down"></i> Lowest
+        </div>
+        <div class="indicator-value">
+          £${resultPanelData.lowestTransaction.amount.toFixed(2)}
+          ${resultPanelData.lowestTransaction.description ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.lowestTransaction.description}</div>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  kinfopaneltousContent.appendChild(resultPanel);
+  
+  // Ajouter Font Awesome si nécessaire
+  if (!document.querySelector('link[href*="font-awesome"]')) {
+    const faLink = document.createElement('link');
+    faLink.rel = 'stylesheet';
+    faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
+    document.head.appendChild(faLink);
+  }
+  
+  // Ajouter les événements aux boutons de période
+  const periodBtns = resultPanel.querySelectorAll('.period-btn');
+  periodBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const period = this.getAttribute('data-period');
+      resultPanelData.currentPeriod = period;
+      showResultPanel(); // Recharger le panel avec la nouvelle période
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Configuration des actifs avec symboles TradingView
     const assetTypes = {
@@ -313,29 +501,6 @@ document.addEventListener('DOMContentLoaded', function() {
         kinfopaneltousContent.appendChild(messageDiv);
     }
 
-    // === AFFICHER LE MESSAGE RESULTAT (Menu 3) ===
-    function showResultMessage() {
-        kinfopaneltousContent.innerHTML = '';
-        
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'kinfopaneltous-result';
-        messageDiv.style.cssText = `
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-            text-align: center;
-            padding: 20px;
-        `;
-        messageDiv.textContent = 'resultat';
-        
-        kinfopaneltousContent.appendChild(messageDiv);
-    }
-
     // === CHARGEMENT DES KINFOPANELTOUS POUR LES ACTUALITÉS ===
     function loadKinfopaneltousNews(asset) {
         kinfopaneltousContent.innerHTML = '';
@@ -397,7 +562,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (currentMenuPage === 'menu-1') {
                 showDefaultMessage();
             } else if (currentMenuPage === 'menu-4') {
-                showResultMessage();
+                showResultPanel();
             } else {
                 // Pour les autres pages
                 showDefaultMessage();
@@ -724,4 +889,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Stocker les widgets dans l'objet global pour pouvoir les mettre à jour
     window.tvWidgets = tvWidgets;
     window.selectedTVWidget = selectedTVWidget;
+    
+    // Surveiller les changements dans le localStorage pour mettre à jour le panel résultat
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'moneyManagerTransactions' || 
+            e.key === 'moneyManagerGoals' || 
+            e.key === 'moneyManagerYearlyGoal') {
+            if (window.currentMenuPage === 'menu-4' && !isInSelectedView) {
+                showResultPanel();
+            }
+        }
+    });
+    
+    // Mettre à jour périodiquement le panel résultat si on est dans le menu 4
+    setInterval(() => {
+        if (window.currentMenuPage === 'menu-4' && !isInSelectedView) {
+            showResultPanel();
+        }
+    }, 3000); // Mettre à jour toutes les 3 secondes
 });

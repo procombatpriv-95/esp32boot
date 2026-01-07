@@ -155,6 +155,35 @@ a, button, .clickable {
   color: white;
 }
 
+.period-selector {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.period-btn {
+  padding: 8px 16px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.period-btn.active {
+  background: #3498db;
+  color: white;
+}
+
+.period-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .progress-section {
   width: 100%;
   margin-bottom: 20px;
@@ -178,14 +207,19 @@ a, button, .clickable {
   color: white;
   font-weight: bold;
   font-size: 18px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 10px;
+  border-radius: 15px;
+  min-width: 60px;
+  text-align: center;
 }
 
 /* Barre de progression */
 .progress-bar-container {
   width: 100%;
-  height: 30px;
+  height: 35px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
+  border-radius: 17.5px;
   overflow: hidden;
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -200,44 +234,49 @@ a, button, .clickable {
 .progress-filled {
   background: linear-gradient(90deg, #2ecc71, #27ae60);
   height: 100%;
-  border-radius: 15px 0 0 15px;
+  border-radius: 17.5px 0 0 17.5px;
   transition: width 0.5s ease;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding-right: 10px;
+  padding-right: 15px;
   color: white;
   font-weight: bold;
   font-size: 12px;
-  min-width: 30px;
+  min-width: 50px;
+  position: relative;
+  z-index: 2;
 }
 
 .progress-remaining {
   background: #e74c3c;
   height: 100%;
-  border-radius: 0 15px 15px 0;
+  border-radius: 0 17.5px 17.5px 0;
   flex: 1;
   display: flex;
   align-items: center;
-  padding-left: 10px;
+  padding-left: 15px;
   color: white;
   font-weight: bold;
   font-size: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 /* Indicateurs Highest/Lowest */
 .indicators-container {
   display: flex;
   gap: 15px;
-  margin-top: 15px;
+  margin-top: 20px;
 }
 
 .indicator-box {
   flex: 1;
   background: rgba(30, 31, 35, 0.8);
   border-radius: 10px;
-  padding: 15px;
+  padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 70px;
 }
 
 .indicator-label {
@@ -246,57 +285,45 @@ a, button, .clickable {
   margin-bottom: 8px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+}
+
+.indicator-label i {
+  font-size: 14px;
 }
 
 .indicator-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
+  line-height: 1.3;
+}
+
+.indicator-highest .indicator-label {
+  color: #2ecc71;
+}
+
+.indicator-highest .indicator-label i {
+  color: #2ecc71;
 }
 
 .indicator-highest .indicator-value {
   color: #2ecc71;
 }
 
+.indicator-lowest .indicator-label {
+  color: #e74c3c;
+}
+
+.indicator-lowest .indicator-label i {
+  color: #e74c3c;
+}
+
 .indicator-lowest .indicator-value {
   color: #e74c3c;
 }
 
-/* Boutons de filtre */
-.result-filter-buttons {
-  display: flex;
-  gap: 5px;
-  background: rgba(30, 31, 35, 0.8);
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.result-filter-btn {
-  flex: 1;
-  padding: 8px 5px;
-  font-size: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-weight: 600;
-}
-
-.result-filter-btn.active {
-  background: #3498db;
-  color: white;
-}
-
-.result-filter-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
 /* Message par défaut */
-.kinfopaneltous-default,
-.kinfopaneltous-result {
+.kinfopaneltous-default {
   width: 100%;
   height: 100%;
   display: flex;

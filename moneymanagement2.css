@@ -18,11 +18,11 @@
     border-radius: 25px;
     overflow: hidden;
     display: grid;
-    grid-template-columns: 1fr 2.2fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 0.8fr 1.8fr 1fr;
+    grid-template-rows: 280px 250px;
     grid-template-areas: 
-        "pie-charts monthly recent-transactions"
-        "controls empty-space horizontal-chart";
+        "left-col monthly recent-transactions"
+        "left-col . horizontal-chart";
     gap: 5px;
     padding: 15px;
     color: white;
@@ -43,14 +43,21 @@
     gap: 8px;
 }
 
+/* COLONNE DE GAUCHE */
+.left-column {
+    grid-area: left-col;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
 /* PIE CHARTS SECTION - HORIZONTAL COMME AVANT */
 .pie-charts-section {
-    grid-area: pie-charts;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto;
     gap: 8px;
-    max-height: 280px;
+    height: 90px;
 }
 
 .pie-chart-container {
@@ -79,11 +86,8 @@
     min-height: 0;
 }
 
-/* CONTROLS SECTION - EN DESSOUS DES PIE CHARTS */
+/* CONTROLS SECTION - NEW TRANSACTION */
 .controls-section {
-    grid-area: controls;
-    display: flex;
-    flex-direction: column;
     background: rgba(30, 31, 35, 0.8);
     border-radius: 15px;
     padding: 15px;
@@ -91,6 +95,7 @@
     overflow-y: auto;
     height: 325px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    flex-grow: 1;
 }
 
 .summary-container {
@@ -441,7 +446,7 @@
     background: #c0392b;
 }
 
-/* MONTHLY SECTION - FULL HEIGHT */
+/* MONTHLY SECTION - LARGEUR AUGMENTÉE */
 .monthly-section {
     grid-area: monthly;
     display: flex;
@@ -450,10 +455,9 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 590px;
+    height: 280px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    width: 100%;
 }
 
 .monthly-header {
@@ -466,13 +470,13 @@
 .bar-chart-container {
     flex: 1;
     position: relative;
-    height: 530px;
+    height: 210px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     padding: 10px;
 }
 
-/* CATEGORY BALANCE CHART - REDUCED HEIGHT */
+/* CATEGORY BALANCE CHART - HAUTEUR RÉDUITE */
 .horizontal-chart-section {
     grid-area: horizontal-chart;
     display: flex;
@@ -481,7 +485,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 250px;
+    height: 250px; /* Hauteur réduite */
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -496,7 +500,7 @@
 .horizontal-chart-container {
     flex: 1;
     position: relative;
-    height: 180px;
+    height: 180px; /* Hauteur réduite */
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     padding: 10px;

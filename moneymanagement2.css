@@ -18,11 +18,11 @@
     border-radius: 25px;
     overflow: hidden;
     display: grid;
-    grid-template-columns: 1fr 1.8fr 0.8fr 0.8fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: 0.8fr 2.2fr 1fr;
+    grid-template-rows: 1fr 1fr;
     grid-template-areas: 
-        "pie-charts monthly recent-transactions recent-transactions"
-        "controls controls horizontal-chart horizontal-chart";
+        "pie-charts monthly recent-transactions"
+        "pie-charts horizontal-chart horizontal-chart";
     gap: 5px;
     padding: 15px;
     color: white;
@@ -46,11 +46,9 @@
 /* PIE CHARTS SECTION */
 .pie-charts-section {
     grid-area: pie-charts;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
-    gap: 8px;
-    max-height: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
 .pie-chart-container {
@@ -77,6 +75,45 @@
     height: 70px;
     flex: 1;
     min-height: 0;
+}
+
+/* CONTROLS SECTION - EN DESSOUS DES PIE CHARTS */
+.controls-section {
+    background: rgba(30, 31, 35, 0.8);
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    overflow-y: auto;
+    height: 325px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 5px;
+}
+
+.summary-container {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.summary-box {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 30px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.summary-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.summary-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
 }
 
 /* RECENT TRANSACTIONS SECTION - TAILLE ORIGINALE */
@@ -277,47 +314,6 @@
     color: rgba(255, 255, 255, 0.3);
 }
 
-/* CONTROLS SECTION - EN DESSOUS DES PIE CHARTS */
-.controls-section {
-    grid-area: controls;
-    display: flex;
-    flex-direction: column;
-    background: rgba(30, 31, 35, 0.8);
-    border-radius: 15px;
-    padding: 15px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    overflow-y: auto;
-    height: 280px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.summary-container {
-    margin-top: 10px;
-    margin-bottom: 10px;
-}
-
-.summary-box {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 30px;
-    padding: 8px 12px;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.summary-label {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.summary-value {
-    font-size: 14px;
-    font-weight: 600;
-    color: white;
-}
-
 /* INPUT GROUPS */
 .input-group {
     margin-bottom: 10px;
@@ -441,7 +437,7 @@
     background: #c0392b;
 }
 
-/* MONTHLY SECTION */
+/* MONTHLY SECTION - WIDTH INCREASED */
 .monthly-section {
     grid-area: monthly;
     display: flex;
@@ -453,6 +449,7 @@
     height: 280px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
 }
 
 .monthly-header {

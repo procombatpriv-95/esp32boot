@@ -422,18 +422,20 @@ function updatePanelInfo() {
   
   kinfopaneltousContainer.classList.add('active');
   
-  // PRIORITÉ 1: Si Selected View est ouvert, TOUJOURS afficher les news
+  // NOUVELLE LOGIQUE SELON VOS INSTRUCTIONS:
+  // Les news (Menu 2) doivent s'afficher SEULEMENT en mode Selected View
+  
   if (isInSelectedView && selectedAsset) {
+    // En mode Selected View: afficher les news de l'actif sélectionné
     loadKinfopaneltousNews(selectedAsset);
   } 
-  // PRIORITÉ 2: Sinon, afficher selon la page active
   else {
+    // Sinon, afficher selon la page active
     if (currentMenuPage === 'menu-1') {
       showDefaultMessage();
     } else if (currentMenuPage === 'menu-2') {
-      // Menu 2: News TradingView (par défaut Bitcoin)
-      const defaultAsset = assetTypes.crypto[0]; // Bitcoin par défaut
-      loadKinfopaneltousNews(defaultAsset);
+      // Menu 2: afficher le message par défaut (pas de news sauf en Selected View)
+      showDefaultMessage();
     } else if (currentMenuPage === 'menu-3') {
       showResultMessage();
     } else if (currentMenuPage === 'menu-4') {

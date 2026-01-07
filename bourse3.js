@@ -334,7 +334,37 @@ function removeAllTooltips() {
   }, true);
 }
 
-// === CHARGEMENT DES KINFOPANELTOUS POUR LES ACTUALITÉS ===
+// ============================================
+// ANCIENS PARAMÈTRES MENU-2 (NEWS) RESTAURÉS
+// ============================================
+
+// === AFFICHER LE MESSAGE RESULTAT (Menu 3) ===
+function showResultMessage() {
+  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+  if (!kinfopaneltousContent) return;
+  
+  kinfopaneltousContent.innerHTML = '';
+  
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'kinfopaneltous-result';
+  messageDiv.style.cssText = `
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    padding: 20px;
+  `;
+  messageDiv.textContent = 'resultat';
+  
+  kinfopaneltousContent.appendChild(messageDiv);
+}
+
+// === CHARGEMENT DES KINFOPANELTOUS POUR LES ACTUALITÉS (Menu 2) ===
 function loadKinfopaneltousNews(asset) {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
   if (!kinfopaneltousContent) return;
@@ -379,6 +409,8 @@ function loadKinfopaneltousNews(asset) {
     
     widgetDiv.appendChild(script);
     
+    currentKinfopaneltousWidget = widgetDiv;
+    
     setTimeout(removeAllTooltips, 1500);
   }, 500);
 }
@@ -390,21 +422,24 @@ function updatePanelInfo() {
   
   kinfopaneltousContainer.classList.add('active');
   
-  // Vérifier si nous sommes dans le menu 4
-  const megaBox = document.getElementById('megaBox');
-  if (!megaBox) return;
-  
-  const isMenu4 = megaBox.classList.contains('menu-4');
-  
-  // Si Selected View est ouvert, afficher les news
-  if (window.isInSelectedView && window.selectedAsset) {
-    loadKinfopaneltousNews(window.selectedAsset);
+  // PRIORITÉ 1: Si Selected View est ouvert, TOUJOURS afficher les news
+  if (isInSelectedView && selectedAsset) {
+    loadKinfopaneltousNews(selectedAsset);
   } 
-  // Sinon, afficher selon la page active
+  // PRIORITÉ 2: Sinon, afficher selon la page active
   else {
-    if (isMenu4) {
+    if (currentMenuPage === 'menu-1') {
+      showDefaultMessage();
+    } else if (currentMenuPage === 'menu-2') {
+      // Menu 2: News TradingView (par défaut Bitcoin)
+      const defaultAsset = assetTypes.crypto[0]; // Bitcoin par défaut
+      loadKinfopaneltousNews(defaultAsset);
+    } else if (currentMenuPage === 'menu-3') {
+      showResultMessage();
+    } else if (currentMenuPage === 'menu-4') {
       showResultPanel();
     } else {
+      // Pour les autres pages
       showDefaultMessage();
     }
   }
@@ -415,11 +450,12 @@ function updateCurrentMenuPage() {
   const megaBox = document.getElementById('megaBox');
   if (!megaBox) return;
   
-  if (megaBox.classList.contains('menu-1')) window.currentMenuPage = 'menu-1';
-  else if (megaBox.classList.contains('menu-2')) window.currentMenuPage = 'menu-2';
-  else if (megaBox.classList.contains('menu-3')) window.currentMenuPage = 'menu-3';
-  else if (megaBox.classList.contains('menu-4')) window.currentMenuPage = 'menu-4';
-  else if (megaBox.classList.contains('menu-5')) window.currentMenuPage = 'menu-5';
+  const classes = megaBox.classList;
+  if (classes.contains('menu-1')) currentMenuPage = 'menu-1';
+  else if (classes.contains('menu-2')) currentMenuPage = 'menu-2';
+  else if (classes.contains('menu-3')) currentMenuPage = 'menu-3';
+  else if (classes.contains('menu-4')) currentMenuPage = 'menu-4';
+  else if (classes.contains('menu-5')) currentMenuPage = 'menu-5';
 }
 
 // ============================================
@@ -927,7 +963,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key === 'moneyManagerTransactions' || 
         e.key === 'moneyManagerGoals' || 
         e.key === 'moneyManagerYearlyGoal') {
-      if (window.currentMenuPage === 'menu-4') {
+      if (currentMenuPage === 'menu-4') {
         showResultPanel();
       }
     }
@@ -935,7 +971,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Mettre à jour périodiquement le panel résultat si on est dans le menu 4
   setInterval(() => {
-    if (window.currentMenuPage === 'menu-4' && !isInSelectedView) {
+    if (currentMenuPage === 'menu-4' && !isInSelectedView) {
       showResultPanel();
     }
   }, 3000); // Mettre à jour toutes les 3 secondes

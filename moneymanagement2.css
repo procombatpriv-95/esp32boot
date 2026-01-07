@@ -455,34 +455,13 @@
     color: rgba(255, 255, 255, 0.5);
 }
 
-/* FILTER BUTTONS */
+/* FILTER BUTTONS - SUPPRIMÉ */
 .filter-buttons {
-    display: flex;
-    gap: 5px;
-    margin-top: 8px;
-    margin-bottom: 8px;
+    display: none; /* Supprimé selon les instructions */
 }
 
 .filter-btn {
-    flex: 1;
-    padding: 8px 5px;
-    font-size: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 30px;
-    transition: all 0.3s;
-    font-weight: 600;
-}
-
-.filter-btn.active {
-    background: #3498db;
-    color: white;
-}
-
-.filter-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    display: none; /* Supprimé selon les instructions */
 }
 
 /* GOAL INPUT */

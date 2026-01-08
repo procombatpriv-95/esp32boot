@@ -932,6 +932,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Mettre à jour le graphique Category Perspective personnalisé
         updateCategoryPerspectiveChart();
+        updateCategorySpectrum();
     }
     
     // Mettre à jour le graphique Category Perspective personnalisé
@@ -970,8 +971,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         labels.forEach(category => {
             const data = categoryData.data[category];
-            const incomeWidth = (data.income / maxValue) * 50; // 50% max car nous avons deux côtés
-            const expenseWidth = (data.expense / maxValue) * 50; // 50% max car nous avons deux côtés
+            // Les barres peuvent aller jusqu'à 100% maintenant
+            const incomeWidth = (data.income / maxValue) * 100;
+            const expenseWidth = (data.expense / maxValue) * 100;
             
             html += `
                 <div class="category-perspective-row">
@@ -981,7 +983,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${data.expense > 0 ? `
                             <div class="category-bar expense-bar" 
                                  style="width: ${expenseWidth}%; right: 50%;">
-                                £${data.expense.toFixed(0)}
+                                -£${data.expense.toFixed(0)}
                             </div>
                         ` : ''}
                         ${data.income > 0 ? `
@@ -996,27 +998,57 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         chartWrapper.innerHTML = html;
+    }
+    
+    // Mettre à jour le spectrum (axe) en dessous
+    function updateCategorySpectrum() {
+        const categorySpectrum = document.getElementById('categorySpectrum');
+        if (!categorySpectrum) return;
         
-        // Ajouter un indicateur de zéro au centre
-        const existingIndicator = chartWrapper.querySelector('.zero-indicator');
-        if (!existingIndicator) {
-            const zeroIndicator = document.createElement('div');
-            zeroIndicator.className = 'zero-indicator';
-            zeroIndicator.style.cssText = `
-                position: absolute;
-                left: 50%;
-                top: 10px;
-                font-size: 9px;
-                color: white;
-                background: rgba(0, 0, 0, 0.5);
-                padding: 2px 6px;
-                border-radius: 3px;
-                z-index: 2;
-                transform: translateX(-50%);
-            `;
-            zeroIndicator.textContent = '£0';
-            chartWrapper.appendChild(zeroIndicator);
-        }
+        const categoryData = calculateCategoryPerspectiveData();
+        let maxValue = 0;
+        
+        // Trouver la valeur maximale pour l'échelle
+        categoryData.categories.forEach(category => {
+            const data = categoryData.data[category];
+            maxValue = Math.max(maxValue, data.income, data.expense);
+        });
+        
+        if (maxValue === 0) maxValue = 1;
+        
+        // Créer le spectrum avec 7 points: -max, -2/3 max, -1/3 max, 0, 1/3 max, 2/3 max, max
+        const positions = [-1, -0.666, -0.333, 0, 0.333, 0.666, 1];
+        const labels = [
+            `-£${Math.round(maxValue)}`,
+            `-£${Math.round(maxValue * 2/3)}`,
+            `-£${Math.round(maxValue * 1/3)}`,
+            '£0',
+            `£${Math.round(maxValue * 1/3)}`,
+            `£${Math.round(maxValue * 2/3)}`,
+            `£${Math.round(maxValue)}`
+        ];
+        
+        let html = '<div class="spectrum-scale">';
+        
+        // Ajouter la ligne centrale avec £0
+        html += `
+            <div class="center-tick"></div>
+            <div class="center-label">£0</div>
+        `;
+        
+        // Ajouter les ticks et labels
+        positions.forEach((pos, index) => {
+            if (pos !== 0) { // Éviter de dupliquer le centre
+                const positionPercent = 50 + (pos * 50); // Convertir de -1..1 à 0..100%
+                html += `
+                    <div class="spectrum-tick" style="left: ${positionPercent}%;"></div>
+                    <div class="spectrum-label" style="left: ${positionPercent}%;">${labels[index]}</div>
+                `;
+            }
+        });
+        
+        html += '</div>';
+        categorySpectrum.innerHTML = html;
     }
     
     // Générer une couleur pour les investissements

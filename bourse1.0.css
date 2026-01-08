@@ -296,23 +296,4 @@
             width: 100% !important;
             height: 100% !important;
         }
-.clear-drawings-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(255, 50, 50, 0.8);
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 12px;
-    z-index: 3001;
-    transition: all 0.3s ease;
-}
 
-.clear-drawings-btn:hover {
-    background: rgba(255, 50, 50, 1);
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(255, 50, 50, 0.5);
-}

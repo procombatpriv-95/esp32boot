@@ -479,19 +479,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return null;
     }
     
-    // Calculer les données pour le graphique horizontal
-    function calculateCategoryBalanceData() {
+    // Calculer les données pour le graphique Category Perspective
+    function calculateCategoryPerspectiveData() {
         const categories = {};
-        const totalBalance = calculateTotalBalance();
         
         // Initialiser les catégories
         const allCategories = ['Trading', 'Food', 'Transport', 'Shopping', 'Entertainment', 'Bills', 'Salary', 'Selling', 'Other'];
         allCategories.forEach(cat => {
             categories[cat] = {
                 income: 0,
-                expense: 0,
-                balance: 0,
-                percentage: 0
+                expense: 0
             };
         });
         
@@ -504,21 +501,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Calculer le solde et le pourcentage par catégorie
-        Object.keys(categories).forEach(cat => {
-            categories[cat].balance = categories[cat].income - categories[cat].expense;
-            if (totalBalance !== 0) {
-                categories[cat].percentage = (categories[cat].balance / Math.abs(totalBalance)) * 100;
-            }
-        });
-        
         // Filtrer les catégories qui ont des données
         const filteredCategories = Object.keys(categories).filter(cat => 
             categories[cat].income > 0 || categories[cat].expense > 0
         );
         
-        // Trier par balance (du plus positif au plus négatif)
-        filteredCategories.sort((a, b) => categories[b].balance - categories[a].balance);
+        // Trier par total (income + expense) décroissant
+        filteredCategories.sort((a, b) => {
+            const totalA = categories[a].income + categories[a].expense;
+            const totalB = categories[b].income + categories[b].expense;
+            return totalB - totalA;
+        });
         
         return {
             categories: filteredCategories,
@@ -765,22 +758,22 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Initialiser le graphique horizontal personnalisé
-        initHorizontalChart();
+        // Initialiser le graphique Category Perspective personnalisé
+        initCategoryPerspectiveChart();
     }
     
-    // Initialiser le graphique horizontal personnalisé
-    function initHorizontalChart() {
-        const horizontalBarContainer = document.querySelector('.horizontal-chart-container');
-        if (horizontalBarContainer) {
+    // Initialiser le graphique Category Perspective personnalisé
+    function initCategoryPerspectiveChart() {
+        const categoryPerspectiveContainer = document.querySelector('.category-perspective-container');
+        if (categoryPerspectiveContainer) {
             // Supprimer le contenu existant
-            horizontalBarContainer.innerHTML = '';
+            categoryPerspectiveContainer.innerHTML = '';
             
             // Créer un wrapper pour notre graphique personnalisé
             const chartWrapper = document.createElement('div');
-            chartWrapper.className = 'horizontal-chart-wrapper';
-            chartWrapper.id = 'horizontalBarChartCustom';
-            horizontalBarContainer.appendChild(chartWrapper);
+            chartWrapper.className = 'category-perspective-wrapper';
+            chartWrapper.id = 'categoryPerspectiveChartCustom';
+            categoryPerspectiveContainer.appendChild(chartWrapper);
         }
     }
     
@@ -937,24 +930,24 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyBarChart.update();
         }
         
-        // Mettre à jour le graphique horizontal personnalisé
-        updateHorizontalChart();
+        // Mettre à jour le graphique Category Perspective personnalisé
+        updateCategoryPerspectiveChart();
     }
     
-    // Mettre à jour le graphique horizontal personnalisé
-    function updateHorizontalChart() {
-        const chartWrapper = document.getElementById('horizontalBarChartCustom');
+    // Mettre à jour le graphique Category Perspective personnalisé
+    function updateCategoryPerspectiveChart() {
+        const chartWrapper = document.getElementById('categoryPerspectiveChartCustom');
         if (!chartWrapper) {
-            initHorizontalChart();
+            initCategoryPerspectiveChart();
             return;
         }
         
-        const categoryData = calculateCategoryBalanceData();
+        const categoryData = calculateCategoryPerspectiveData();
         const labels = categoryData.categories;
         
         if (labels.length === 0) {
             chartWrapper.innerHTML = `
-                <div class="no-categories">
+                <div class="no-categories-data">
                     <i class="fas fa-chart-bar"></i>
                     <div>No category data available</div>
                 </div>
@@ -979,29 +972,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = categoryData.data[category];
             const incomeWidth = (data.income / maxValue) * 50; // 50% max car nous avons deux côtés
             const expenseWidth = (data.expense / maxValue) * 50; // 50% max car nous avons deux côtés
-            const balance = data.balance;
-            const percentage = data.percentage;
             
             html += `
-                <div class="category-row">
-                    <div class="category-label" title="${category}">${category}</div>
-                    <div class="category-bar-container">
-                        <div class="zero-line"></div>
-                        ${data.income > 0 ? `
-                            <div class="category-bar income-bar" 
-                                 style="width: ${incomeWidth}%; right: 50%;">
-                                £${data.income.toFixed(0)}
-                            </div>
-                        ` : ''}
+                <div class="category-perspective-row">
+                    <div class="category-name" title="${category}">${category}</div>
+                    <div class="category-bars-container">
+                        <div class="center-white-line"></div>
                         ${data.expense > 0 ? `
                             <div class="category-bar expense-bar" 
-                                 style="width: ${expenseWidth}%; left: 50%;">
+                                 style="width: ${expenseWidth}%; right: 50%;">
                                 £${data.expense.toFixed(0)}
                             </div>
                         ` : ''}
-                    </div>
-                    <div class="category-percentage" title="Balance contribution">
-                        ${balance >= 0 ? '+' : ''}${percentage.toFixed(1)}%
+                        ${data.income > 0 ? `
+                            <div class="category-bar income-bar" 
+                                 style="width: ${incomeWidth}%; left: 50%;">
+                                £${data.income.toFixed(0)}
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -1009,21 +997,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         chartWrapper.innerHTML = html;
         
-        // Ajouter un indicateur de zéro
+        // Ajouter un indicateur de zéro au centre
         const existingIndicator = chartWrapper.querySelector('.zero-indicator');
         if (!existingIndicator) {
             const zeroIndicator = document.createElement('div');
             zeroIndicator.className = 'zero-indicator';
             zeroIndicator.style.cssText = `
                 position: absolute;
-                left: calc(50% - 15px);
-                top: 0;
+                left: 50%;
+                top: 10px;
                 font-size: 9px;
-                color: rgba(255, 255, 255, 0.7);
-                background: rgba(0, 0, 0, 0.3);
-                padding: 2px 5px;
+                color: white;
+                background: rgba(0, 0, 0, 0.5);
+                padding: 2px 6px;
                 border-radius: 3px;
                 z-index: 2;
+                transform: translateX(-50%);
             `;
             zeroIndicator.textContent = '£0';
             chartWrapper.appendChild(zeroIndicator);

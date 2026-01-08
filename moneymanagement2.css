@@ -1,3 +1,19 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
 .money-management-wrapper {
     width: 100%;
     height: 100%;
@@ -5,12 +21,8 @@
     justify-content: center;
     align-items: center;
     background: transparent;
-    transform: none !important;
-    transform-style: flat !important;
-    perspective: none !important;
 }
 
-/* BOARD CONTAINER PRINCIPAL - MODIFIÉ */
 .board-container {
     width: 1050px;
     height: 590px;
@@ -22,16 +34,14 @@
     grid-template-rows: auto 1fr;
     grid-template-areas: 
         "pie-charts monthly recent-transactions recent-transactions"
-        "controls long-term category-perspective category-perspective";
+        "controls long-term category-balance category-balance";
     gap: 5px;
     padding: 15px;
     color: white;
-    transform: none !important;
     position: relative;
     z-index: 1;
 }
 
-/* NOUVEAU STYLE SECTION-TITLE2 */
 .section-title2 {
     font-size: 14px;
     font-weight: 600;
@@ -172,7 +182,7 @@
     width: 100%;
 }
 
-/* RECENT TRANSACTIONS SECTION - RÉDUIT */
+/* RECENT TRANSACTIONS SECTION */
 .recent-transactions-section {
     grid-area: recent-transactions;
     display: flex;
@@ -181,7 +191,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 280px; /* Réduit la hauteur */
+    height: 280px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -208,7 +218,6 @@
     cursor: pointer;
     transition: all 0.3s;
     font-weight: 600;
-    display: inline-block;
 }
 
 .month-btn.active {
@@ -264,7 +273,7 @@
     color: #e74c3c;
 }
 
-/* TRANSACTIONS LIST - ADAPTÉ */
+/* TRANSACTIONS LIST */
 .transactions-list {
     flex: 1;
     overflow-y: auto;
@@ -337,7 +346,6 @@
     transform: translateY(-50%);
 }
 
-/* BOUTON POURBELLE */
 .trash-icon-btn {
     background: none;
     border: none;
@@ -453,15 +461,6 @@
 
 .input-group input::placeholder {
     color: rgba(255, 255, 255, 0.5);
-}
-
-/* FILTER BUTTONS - SUPPRIMÉ */
-.filter-buttons {
-    display: none; /* Supprimé selon les instructions */
-}
-
-.filter-btn {
-    display: none; /* Supprimé selon les instructions */
 }
 
 /* GOAL INPUT */
@@ -581,9 +580,9 @@
     padding: 10px;
 }
 
-/* CATEGORY PERSPECTIVE SECTION - NOUVEAU NOM */
-.category-perspective-section {
-    grid-area: category-perspective;
+/* CATEGORY BALANCE SECTION - EXACTEMENT COMME L'IMAGE */
+.category-balance-section {
+    grid-area: category-balance;
     display: flex;
     flex-direction: column;
     background: rgba(30, 31, 35, 0.8);
@@ -595,224 +594,178 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.category-perspective-header {
+.category-balance-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
 }
 
-.category-perspective-container {
+.category-balance-container {
     flex: 1;
     position: relative;
-    height: 180px; /* Réduit pour laisser de la place pour le spectrum */
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
-    padding: 10px;
-    overflow: hidden;
-}
-
-/* STYLES SPÉCIFIQUES POUR LE GRAPHIQUE CATEGORY PERSPECTIVE */
-.category-perspective-wrapper {
-    width: 100%;
-    height: 100%;
-    position: relative;
+    padding: 5px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 5px 0;
 }
 
-.category-perspective-row {
+/* SPECTRUM EN HAUT - EXACTEMENT COMME L'IMAGE */
+.spectrum-container {
+    height: 30px;
     display: flex;
-    align-items: center;
-    height: 50px;
-    min-height: 50px;
-    max-height: 50px;
-}
-
-.category-name {
-    width: 90px;
-    font-size: 11px;
-    color: white;
-    text-align: left;
-    padding-left: 5px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin-right: 10px; /* Réduit l'espace */
-}
-
-.category-bars-container {
-    flex: 1;
-    height: 100%;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.center-white-line {
-    position: absolute;
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background-color: white;
-    z-index: 1;
-    transform: translateX(-50%);
-}
-
-.category-bar {
-    position: absolute;
-    height: 40px;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    font-size: 10px;
-    font-weight: 600;
-    color: white;
-    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
-}
-
-.expense-bar {
-    background-color: #e74c3c;
-    right: 50%;
-    justify-content: flex-end;
-    padding-right: 8px;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-.income-bar {
-    background-color: #2ecc71;
-    left: 50%;
-    justify-content: flex-start;
-    padding-left: 8px;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-}
-
-.bar-value {
-    font-size: 10px;
-    font-weight: 600;
-    color: white;
-}
-
-.no-categories-data {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 11px;
-    text-align: center;
-    padding: 10px;
-}
-
-.no-categories-data i {
-    font-size: 24px;
-    margin-bottom: 8px;
-    color: rgba(255, 255, 255, 0.3);
-}
-
-/* SPECTRUM (AXE) EN DESSOUS */
-.category-spectrum {
-    height: 25px;
-    margin-top: 5px;
-    position: relative;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 0 10px;
-}
-
-.spectrum-scale {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    position: relative;
     align-items: center;
-}
-
-.spectrum-tick {
-    position: absolute;
-    top: 0;
-    height: 10px;
-    width: 1px;
-    background-color: rgba(255, 255, 255, 0.5);
-    transform: translateX(-50%);
+    padding: 0 50px 0 100px;
+    position: relative;
+    margin-bottom: 5px;
 }
 
 .spectrum-label {
     position: absolute;
-    top: 12px;
-    font-size: 9px;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
     color: rgba(255, 255, 255, 0.7);
-    transform: translateX(-50%);
     white-space: nowrap;
 }
 
-.center-tick {
-    position: absolute;
-    left: 50%;
-    top: 0;
-    height: 15px;
-    width: 2px;
-    background-color: white;
-    transform: translateX(-50%);
+.spectrum-scale {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
 }
 
-.center-label {
+.spectrum-tick {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    position: relative;
+}
+
+.spectrum-tick::after {
+    content: '';
     position: absolute;
+    top: -15px;
     left: 50%;
-    top: 17px;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* GRAPHIQUE DOUBLE BARRES */
+.double-bar-graph {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px;
+}
+
+.category-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    height: 24px;
+}
+
+.category-label {
+    width: 90px;
+    font-size: 11px;
+    color: white;
+    text-align: right;
+    padding-right: 10px;
+}
+
+.bars-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    position: relative;
+}
+
+.bar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 100%;
+    width: 100%;
+}
+
+.bar {
+    height: 16px;
+    border-radius: 2px;
+    position: relative;
+    min-width: 2px;
+}
+
+.bar-income {
+    background-color: #3498db; /* Bleu pour income */
+}
+
+.bar-expense {
+    background-color: #FFA500; /* Orange pour expense */
+}
+
+.bar-value {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
     font-size: 9px;
     color: white;
-    font-weight: 600;
-    transform: translateX(-50%);
+    font-weight: bold;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.7);
 }
 
-/* CHART LEGEND */
+/* LIGNES DE GUIDE VERTICALES */
+.grid-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.grid-line {
+    width: 1px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* LÉGENDE */
 .chart-legend {
     display: flex;
     justify-content: center;
-    gap: 8px;
-    margin-top: 5px;
-    font-size: 9px;
-    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 8px;
+    font-size: 10px;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
 }
 
 .legend-color {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
-.legend-goal {
-    background: #3498db;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
 }
 
 .legend-income {
-    background: #2ecc71;
+    background: #3498db; /* Bleu */
 }
 
 .legend-expense {
-    background: #e74c3c;
-}
-
-.legend-balance {
-    background: #9b59b6;
+    background: #FFA500; /* Orange */
 }
 
 /* SCROLLBAR STYLING */
@@ -833,38 +786,24 @@
     border-radius: 10px;
 }
 
-/* CANVAS STYLES */
 canvas {
     display: block !important;
     max-width: 100% !important;
     max-height: 100% !important;
 }
 
-/* FONT AWESOME ICONS */
 .fas {
     font-size: 12px;
 }
 
-/* RESPONSIVE ADJUSTMENTS */
 @media (max-width: 1100px) {
     .board-container {
         width: 95%;
         height: 95%;
         padding: 10px;
     }
-    
-    .category-name {
-        width: 70px;
-        font-size: 10px;
-    }
-    
-    .category-bar {
-        height: 35px;
-        font-size: 9px;
-    }
 }
 
-/* ANIMATION */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }

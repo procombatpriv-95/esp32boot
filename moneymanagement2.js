@@ -1251,4 +1251,4 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('resize', function() {
         setTimeout(updateCharts, 100);
     });
-});
+});;

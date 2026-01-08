@@ -112,6 +112,56 @@ let resultPanelData = {
 };
 
 // ============================================
+// FONCTIONS POUR SAUVEGARDER LES DESSINS/OUTILS TRADINGVIEW
+// ============================================
+
+// Clé pour le localStorage
+const DRAWINGS_STORAGE_KEY = 'tradingview_drawings';
+
+// Sauvegarder les dessins pour un graphique spécifique
+function saveChartDrawings(assetId, drawingData) {
+    try {
+        // Charger toutes les sauvegardes existantes
+        const allDrawings = JSON.parse(localStorage.getItem(DRAWINGS_STORAGE_KEY)) || {};
+        
+        // Sauvegarder les dessins pour cet asset
+        allDrawings[assetId] = {
+            data: drawingData,
+            timestamp: Date.now(),
+            symbol: window.selectedAsset ? window.selectedAsset.tradingViewSymbol : assetId
+        };
+        
+        // Sauvegarder dans localStorage
+        localStorage.setItem(DRAWINGS_STORAGE_KEY, JSON.stringify(allDrawings));
+        console.log(`Drawings saved for ${assetId}`);
+    } catch (e) {
+        console.error('Error saving drawings:', e);
+    }
+}
+
+// Récupérer les dessins pour un graphique spécifique
+function loadChartDrawings(assetId) {
+    try {
+        const allDrawings = JSON.parse(localStorage.getItem(DRAWINGS_STORAGE_KEY)) || {};
+        return allDrawings[assetId] ? allDrawings[assetId].data : null;
+    } catch (e) {
+        console.error('Error loading drawings:', e);
+        return null;
+    }
+}
+
+// Supprimer les dessins pour un graphique spécifique
+function clearChartDrawings(assetId) {
+    try {
+        const allDrawings = JSON.parse(localStorage.getItem(DRAWINGS_STORAGE_KEY)) || {};
+        delete allDrawings[assetId];
+        localStorage.setItem(DRAWINGS_STORAGE_KEY, JSON.stringify(allDrawings));
+    } catch (e) {
+        console.error('Error clearing drawings:', e);
+    }
+}
+
+// ============================================
 // FONCTIONS POUR LE PANEL RESULTAT (MENU 4)
 // ============================================
 
@@ -640,55 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
         else if (classes.contains('menu-5')) currentMenuPage = 'menu-5';
     }
 
-    // === INITIALISATION ===
-    function init() {
-        const saved = localStorage.getItem('chartStates');
-        if (saved) {
-            try {
-                chartStates = JSON.parse(saved);
-            } catch (e) {
-                console.error('Erreur lors du chargement des états:', e);
-                chartStates = {};
-            }
-        }
-        
-        menuSections.forEach(section => {
-            section.addEventListener('click', function() {
-                const type = this.getAttribute('data-type');
-                
-                menuSections.forEach(s => s.classList.remove('active'));
-                this.classList.add('active');
-                
-                currentAssetType = type;
-                currentAssets = assetTypes[type];
-                
-                updateCarousel();
-            });
-        });
-        
-        updateCarousel();
-        
-        // Détecter la page initiale
-        updateCurrentMenuPage();
-        updatePanelInfo();
-        
-        setTimeout(removeAllTooltips, 1000);
-        
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.addedNodes.length) {
-                    removeAllTooltips();
-                }
-            });
-        });
-        
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    }
-
-    // === CRÉATION DES WIDGETS TRADINGVIEW ===
+    // === CRÉATION DES WIDGETS TRADINGVIEW AVEC SAUVEGARDE DES DESSINS ===
     function createTradingViewWidget(containerId, symbol, assetId, isCarousel = false) {
         if (!window.TradingView) {
             console.error('Bibliothèque TradingView non chargée');
@@ -701,6 +703,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Conteneur non trouvé:', containerId);
             return null;
         }
+
+        // Charger les dessins sauvegardés
+        const savedDrawings = loadChartDrawings(assetId);
 
         const widgetConfig = {
             width: isCarousel ? '400' : '1000',
@@ -720,8 +725,55 @@ document.addEventListener('DOMContentLoaded', function() {
                 { text: "15min", resolution: "15", description: "15 Minutes", title: "15min" },
                 { text: "2h", resolution: "120", description: "2 Hours", title: "2h" },
                 { text: "1D", resolution: "1D", description: "1 Day", title: "1D" }
-            ]
+            ],
+            // Activer la sauvegarde des dessins
+            drawings_access: { type: 'all', tools: [
+                { name: 'Regression Trend' },
+                { name: 'Trend Line' },
+                { name: 'Trend Angle' },
+                { name: 'Horizontal Line' },
+                { name: 'Vertical Line' },
+                { name: 'Ray' },
+                { name: 'Arrow' },
+                { name: 'Extended Line' },
+                { name: 'Parallel Channel' },
+                { name: 'Rectangle' },
+                { name: 'Ellipse' },
+                { name: 'Triangle' },
+                { name: 'Polygon' },
+                { name: 'Brush' },
+                { name: 'Highlighter' },
+                { name: 'Text' },
+                { name: 'Note' },
+                { name: 'Label' },
+                { name: 'Pitchfork' },
+                { name: 'Fibonacci Retracement' },
+                { name: 'Fibonacci Extension' },
+                { name: 'Fibonacci Time Zones' },
+                { name: 'Fibonacci Fan' },
+                { name: 'Gann Square' },
+                { name: 'Gann Fan' },
+                { name: 'Cycles' },
+                { name: 'Cross Line' },
+                { name: 'Freeform Drawing' }
+            ]},
+            disabled_features: isCarousel ? [
+                "header_widget", "left_toolbar", "timeframes_toolbar",
+                "edit_buttons_in_legend", "legend_context_menu", "control_bar",
+                "border_around_the_chart", "countdown", "header_compare",
+                "header_screenshot", "header_undo_redo", "header_saveload",
+                "header_settings", "header_chart_type", "header_indicators",
+                "volume_force_overlay", "study_templates", "symbol_info"
+            ] : [],
+            enabled_features: isCarousel ? [
+                "hide_volume", "move_logo_to_main_pane"
+            ] : []
         };
+
+        // Charger les dessins sauvegardés si disponibles
+        if (savedDrawings && !isCarousel) {
+            widgetConfig.saved_data = savedDrawings;
+        }
 
         if (isCarousel) {
             widgetConfig.toolbar_bg = "#111216";
@@ -732,17 +784,6 @@ document.addEventListener('DOMContentLoaded', function() {
             widgetConfig.hotlist = false;
             widgetConfig.calendar = false;
             widgetConfig.show_popup_button = false;
-            widgetConfig.disabled_features = [
-                "header_widget", "left_toolbar", "timeframes_toolbar",
-                "edit_buttons_in_legend", "legend_context_menu", "control_bar",
-                "border_around_the_chart", "countdown", "header_compare",
-                "header_screenshot", "header_undo_redo", "header_saveload",
-                "header_settings", "header_chart_type", "header_indicators",
-                "volume_force_overlay", "study_templates", "symbol_info"
-            ];
-            widgetConfig.enabled_features = [
-                "hide_volume", "move_logo_to_main_pane"
-            ];
         } else {
             widgetConfig.toolbar_bg = "#f1f3f6";
             widgetConfig.hide_side_toolbar = false;
@@ -777,26 +818,50 @@ document.addEventListener('DOMContentLoaded', function() {
             const widget = new TradingView.widget(widgetConfig);
             
             if (!isCarousel) {
+                // Pour la vue sélectionnée, sauvegarder les dessins régulièrement
+                let saveInterval;
+                
                 widget.onChartReady(() => {
                     const chart = widget.chart();
-                    setInterval(() => {
-                        if (selectedAsset && selectedTVWidget) {
-                            try {
-                                chart.getSavedStudies((studies) => {
-                                    const state = {
-                                        studies: studies,
-                                        timestamp: Date.now(),
-                                        symbol: selectedAsset.tradingViewSymbol
-                                    };
-                                    chartStates[`chart_${selectedAsset.id}`] = state;
-                                    localStorage.setItem('chartStates', JSON.stringify(chartStates));
-                                });
-                            } catch (e) {
-                                console.error('Erreur sauvegarde:', e);
-                            }
-                        }
+                    
+                    // Sauvegarder initialement
+                    setTimeout(() => {
+                        widget.save((drawingData) => {
+                            saveChartDrawings(assetId, drawingData);
+                        });
+                    }, 2000);
+                    
+                    // Sauvegarder toutes les 30 secondes
+                    saveInterval = setInterval(() => {
+                        widget.save((drawingData) => {
+                            saveChartDrawings(assetId, drawingData);
+                        });
                     }, 30000);
+                    
+                    // Écouter les événements de dessin
+                    chart.onDrawing(() => {
+                        widget.save((drawingData) => {
+                            saveChartDrawings(assetId, drawingData);
+                        });
+                    });
+                    
+                    // Écouter les modifications de dessins
+                    chart.onEditDrawing(() => {
+                        widget.save((drawingData) => {
+                            saveChartDrawings(assetId, drawingData);
+                        });
+                    });
+                    
+                    // Écouter la suppression de dessins
+                    chart.onRemoveDrawing(() => {
+                        widget.save((drawingData) => {
+                            saveChartDrawings(assetId, drawingData);
+                        });
+                    });
                 });
+                
+                // Stocker l'intervalle pour le nettoyer plus tard
+                widget.saveInterval = saveInterval;
             }
             
             return widget;
@@ -858,6 +923,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // === SÉLECTION D'ACTIF ===
     function selectAsset(assetId) {
+        // Sauvegarder les dessins de l'asset actuel s'il existe
+        if (selectedAsset && selectedTVWidget) {
+            selectedTVWidget.save((drawingData) => {
+                saveChartDrawings(selectedAsset.id, drawingData);
+            });
+            
+            // Nettoyer l'intervalle de sauvegarde
+            if (selectedTVWidget.saveInterval) {
+                clearInterval(selectedTVWidget.saveInterval);
+            }
+        }
+        
         selectedAsset = currentAssets.find(c => c.id === assetId);
         if (!selectedAsset) return;
 
@@ -882,10 +959,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         setTimeout(() => {
-            if (selectedTVWidget) {
-                window.removeEventListener('beforeunload', () => {});
-            }
-            
             selectedTVWidget = createTradingViewWidget(
                 'tradingview_selected',
                 selectedAsset.tradingViewSymbol,
@@ -902,6 +975,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // === RETOUR AU CAROUSEL (MANUEL SEULEMENT) ===
     backBtn.addEventListener('click', function() {
+        // Sauvegarder les dessins de l'asset actuel
+        if (selectedAsset && selectedTVWidget) {
+            selectedTVWidget.save((drawingData) => {
+                saveChartDrawings(selectedAsset.id, drawingData);
+            });
+            
+            // Nettoyer l'intervalle de sauvegarde
+            if (selectedTVWidget.saveInterval) {
+                clearInterval(selectedTVWidget.saveInterval);
+            }
+        }
+        
         // Désactiver le mode Selected View
         isInSelectedView = false;
         
@@ -938,6 +1023,112 @@ document.addEventListener('DOMContentLoaded', function() {
         attributeFilter: ['class']
     });
 
+    // === INITIALISATION ===
+    function init() {
+        const saved = localStorage.getItem('chartStates');
+        if (saved) {
+            try {
+                chartStates = JSON.parse(saved);
+            } catch (e) {
+                console.error('Erreur lors du chargement des états:', e);
+                chartStates = {};
+            }
+        }
+        
+        // Initialiser les données de dessins si elles n'existent pas
+        if (!localStorage.getItem(DRAWINGS_STORAGE_KEY)) {
+            localStorage.setItem(DRAWINGS_STORAGE_KEY, JSON.stringify({}));
+        }
+        
+        menuSections.forEach(section => {
+            section.addEventListener('click', function() {
+                const type = this.getAttribute('data-type');
+                
+                menuSections.forEach(s => s.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentAssetType = type;
+                currentAssets = assetTypes[type];
+                
+                updateCarousel();
+            });
+        });
+        
+        updateCarousel();
+        
+        // Détecter la page initiale
+        updateCurrentMenuPage();
+        updatePanelInfo();
+        
+        setTimeout(removeAllTooltips, 1000);
+        
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    removeAllTooltips();
+                }
+            });
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        // Ajouter le bouton de nettoyage des dessins
+        addClearDrawingsButton();
+    }
+
+    // === BOUTON POUR EFFACER LES DESSINS ===
+    function addClearDrawingsButton() {
+        const clearBtn = document.createElement('button');
+        clearBtn.className = 'clear-drawings-btn';
+        clearBtn.innerHTML = '🗑️ Clear Drawings';
+        clearBtn.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 50, 50, 0.8);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 3001;
+            display: none;
+            transition: all 0.3s ease;
+        `;
+        
+        clearBtn.addEventListener('click', function() {
+            if (selectedAsset && confirm(`Clear all drawings for ${selectedAsset.name}?`)) {
+                clearChartDrawings(selectedAsset.id);
+                // Recharger le widget
+                const tvContainer = document.getElementById('tradingview_selected');
+                if (tvContainer) {
+                    tvContainer.innerHTML = '';
+                    setTimeout(() => {
+                        selectedTVWidget = createTradingViewWidget(
+                            'tradingview_selected',
+                            selectedAsset.tradingViewSymbol,
+                            selectedAsset.id,
+                            false
+                        );
+                    }, 500);
+                }
+            }
+        });
+        
+        // Afficher le bouton seulement en vue sélectionnée
+        const observer = new MutationObserver(function() {
+            clearBtn.style.display = isInSelectedView ? 'block' : 'none';
+        });
+        
+        observer.observe(document.body, { attributes: true, subtree: true });
+        
+        document.body.appendChild(clearBtn);
+    }
+
     // DÉMARRER L'APPLICATION
     init();
 
@@ -951,7 +1142,11 @@ document.addEventListener('DOMContentLoaded', function() {
     window.selectedTVWidget = selectedTVWidget;
     window.isInSelectedView = isInSelectedView;
     window.currentMenuPage = currentMenuPage;
+    window.selectedAsset = selectedAsset;
     window.forceUpdateResultPanel = forceUpdateResultPanel;
+    window.saveChartDrawings = saveChartDrawings;
+    window.loadChartDrawings = loadChartDrawings;
+    window.clearChartDrawings = clearChartDrawings;
     
     // ============================================
     // SURVEILLANCE DES CHANGEMENTS EN TEMPS RÉEL

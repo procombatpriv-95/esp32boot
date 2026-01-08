@@ -1,4 +1,4 @@
-
+document.addEventListener('DOMContentLoaded', function() {
     // Vérifier si nous sommes dans menu4Content
     const menu4Content = document.getElementById('menu4Content');
     if (!menu4Content) return;

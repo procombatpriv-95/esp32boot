@@ -1,4 +1,8 @@
-document.addEventListener('DOMContentLoaded', function() {
+
+    // Vérifier si nous sommes dans menu4Content
+    const menu4Content = document.getElementById('menu4Content');
+    if (!menu4Content) return;
+    
     // Variables globales
     let transactions = [];
     let investments = [];
@@ -23,15 +27,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const investmentGoalInput = document.getElementById('investmentGoal');
     const transacBtn = document.getElementById('transacBtn');
     const investViewBtn = document.getElementById('investViewBtn');
-    const currentYearBtn = document.getElementById('currentYearBtn');
-    const previousYearBtn = document.getElementById('previousYearBtn');
     const recentTransactionsTitle = document.getElementById('recentTransactionsTitle');
     const transactionsSummary = document.getElementById('transactionsSummary');
     const investmentsSummary = document.getElementById('investmentsSummary');
-    const doubleBarGraph = document.getElementById('doubleBarGraph');
     
     // Variables pour les graphiques
-    let expensePieChart, incomePieChart, lineChart, monthlyBarChart;
+    let expensePieChart, incomePieChart, lineChart, monthlyBarChart, horizontalBarChart;
     
     // Initialiser la date à aujourd'hui
     const today = new Date();
@@ -45,58 +46,31 @@ document.addEventListener('DOMContentLoaded', function() {
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     }
     
-    // Charger les données depuis localStorage
-    function loadData() {
-        try {
-            const savedTransactions = localStorage.getItem('moneyManagerTransactions');
-            const savedInvestments = localStorage.getItem('moneyManagerInvestments');
-            const savedGoals = localStorage.getItem('moneyManagerGoals');
-            const savedYearlyGoal = localStorage.getItem('moneyManagerYearlyGoal');
+    // Générer les données pour les 12 derniers mois
+    function getLast12Months(yearOffset = 0) {
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear() - yearOffset;
+        const months = getMonthNames();
+        
+        let startMonth = yearOffset === 1 ? 11 : currentDate.getMonth();
+        let startYear = currentYear;
+        
+        const monthLabels = [];
+        const monthKeys = [];
+        
+        for (let i = 0; i < 12; i++) {
+            let monthIndex = (startMonth - i + 12) % 12;
+            let year = startYear;
             
-            if (savedTransactions) {
-                transactions = JSON.parse(savedTransactions);
+            if (startMonth - i < 0) {
+                year = startYear - 1;
             }
             
-            if (savedInvestments) {
-                investments = JSON.parse(savedInvestments);
-            }
-            
-            if (savedGoals) {
-                monthlyGoals = JSON.parse(savedGoals);
-            }
-            
-            if (savedYearlyGoal) {
-                yearlyGoal = parseFloat(savedYearlyGoal);
-            }
-        } catch (e) {
-            console.error("Erreur de chargement:", e);
-            transactions = [];
-            investments = [];
-            monthlyGoals = {};
-            yearlyGoal = 0;
+            monthLabels.unshift(months[monthIndex] + ' ' + year);
+            monthKeys.unshift(`${year}-${String(monthIndex + 1).padStart(2, '0')}`);
         }
-    }
-    
-    // Sauvegarder les données dans localStorage
-    function saveData() {
-        try {
-            localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
-            localStorage.setItem('moneyManagerInvestments', JSON.stringify(investments));
-            localStorage.setItem('moneyManagerGoals', JSON.stringify(monthlyGoals));
-            localStorage.setItem('moneyManagerYearlyGoal', yearlyGoal.toString());
-        } catch (e) {
-            console.error("Erreur de sauvegarde:", e);
-        }
-    }
-    
-    // Mettre à jour tout le dashboard
-    function updateDashboard() {
-        updateView();
-        updateSummary();
-        updateRecentTransactionsSummary();
-        updateCharts();
-        updateDoubleBarGraph(); // Mettre à jour le double bar graph
-        saveData();
+        
+        return { labels: monthLabels, keys: monthKeys };
     }
     
     // Formater la date pour l'affichage
@@ -132,6 +106,77 @@ document.addEventListener('DOMContentLoaded', function() {
         if (investments.length === 0) return 0;
         const totalReturn = investments.reduce((sum, i) => sum + i.annualReturn, 0);
         return totalReturn / investments.length;
+    }
+    
+    // Calculer le temps écoulé depuis le début de l'investissement (en années)
+    function calculateYearsSinceStart(startDate) {
+        const start = new Date(startDate);
+        const now = new Date();
+        const diffInMs = now - start;
+        const years = diffInMs / (1000 * 60 * 60 * 24 * 365.25);
+        return Math.max(0, Math.min(years, 20)); // Limiter à 0-20 ans
+    }
+    
+    // Charger les données depuis localStorage
+    function loadData() {
+        try {
+            const savedTransactions = localStorage.getItem('moneyManagerTransactions');
+            const savedInvestments = localStorage.getItem('moneyManagerInvestments');
+            const savedGoals = localStorage.getItem('moneyManagerGoals');
+            const savedYearlyGoal = localStorage.getItem('moneyManagerYearlyGoal');
+            
+            if (savedTransactions) {
+                transactions = JSON.parse(savedTransactions);
+                console.log("Transactions chargées:", transactions.length);
+            }
+            
+            if (savedInvestments) {
+                investments = JSON.parse(savedInvestments);
+                console.log("Investissements chargés:", investments.length);
+            }
+            
+            if (savedGoals) {
+                monthlyGoals = JSON.parse(savedGoals);
+                console.log("Objectifs mensuels chargés:", Object.keys(monthlyGoals).length);
+            }
+            
+            if (savedYearlyGoal) {
+                yearlyGoal = parseFloat(savedYearlyGoal);
+                console.log("Objectif annuel chargé:", yearlyGoal);
+            }
+        } catch (e) {
+            console.error("Erreur de chargement:", e);
+            // Initialiser avec des données par défaut si erreur
+            transactions = [];
+            investments = [];
+            monthlyGoals = {};
+            yearlyGoal = 0;
+        }
+    }
+    
+    // Sauvegarder les données dans localStorage
+    function saveData() {
+        try {
+            localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
+            localStorage.setItem('moneyManagerInvestments', JSON.stringify(investments));
+            localStorage.setItem('moneyManagerGoals', JSON.stringify(monthlyGoals));
+            localStorage.setItem('moneyManagerYearlyGoal', yearlyGoal.toString());
+            console.log("Données sauvegardées");
+            
+            // Déclencher un événement de stockage pour informer le panel résultat
+            window.dispatchEvent(new Event('storage'));
+        } catch (e) {
+            console.error("Erreur de sauvegarde:", e);
+        }
+    }
+    
+    // Mettre à jour tout le dashboard
+    function updateDashboard() {
+        updateView();
+        updateSummary();
+        updateRecentTransactionsSummary();
+        updateCharts();
+        saveData(); // Sauvegarder pour le panel résultat
     }
     
     // Mettre à jour la vue (transactions ou investissements)
@@ -189,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             let html = '';
-            filtered.slice(0, 8).forEach(transaction => {
+            filtered.slice(0, 8).forEach(transaction => { // Réduit à 8 transactions
                 const sign = transaction.type === 'income' ? '+' : '-';
                 const amountClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
                 
@@ -204,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${sign}£${transaction.amount.toFixed(2)}
                         </div>
                         <div class="transaction-actions">
-                            <button class="trash-icon-btn" onclick="deleteTransaction(${transaction.id})">
+                            <button class="trash-icon-btn" onclick="window.deleteTransaction(${transaction.id})">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -275,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             £${investment.initialAmount.toLocaleString()}
                         </div>
                         <div class="transaction-actions">
-                            <button class="trash-icon-btn" onclick="deleteInvestment(${investment.id})">
+                            <button class="trash-icon-btn" onclick="window.deleteInvestment(${investment.id})">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -332,6 +377,7 @@ document.addEventListener('DOMContentLoaded', function() {
             transactions = transactions.filter(t => t.id !== id);
             saveData();
             updateDashboard();
+            console.log('Transaction deleted');
         }
     }
     
@@ -341,12 +387,14 @@ document.addEventListener('DOMContentLoaded', function() {
             investments = investments.filter(i => i.id !== id);
             saveData();
             updateDashboard();
+            console.log('Investment deleted');
         }
     }
     
     // Effacer toutes les transactions
     function clearAllTransactions() {
         if (transactions.length === 0) {
+            console.log('No transactions to delete');
             return;
         }
         
@@ -354,6 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
             transactions = [];
             saveData();
             updateDashboard();
+            console.log('All transactions deleted');
         }
     }
     
@@ -406,100 +455,75 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Calculer les données pour le double bar graph
-    function calculateCategoryData() {
-        const categories = ['Trading', 'Food', 'Transport', 'Shopping', 'Entertainment', 'Bills', 'Salary', 'Selling', 'Other'];
-        const result = [];
+    // Calculer la croissance d'un investissement sur 20 ans
+    function calculateInvestmentGrowth(investment, years = 20) {
+        const growth = [];
         
-        // Filtrer les transactions par année
-        const currentYear = new Date().getFullYear();
-        const yearToFilter = currentYearView === 'previous' ? currentYear - 1 : currentYear;
+        for (let i = 0; i <= years; i++) {
+            const value = investment.initialAmount * Math.pow(1 + investment.annualReturn / 100, i);
+            growth.push(value);
+        }
         
-        const yearTransactions = transactions.filter(t => {
-            const tDate = new Date(t.date);
-            return tDate.getFullYear() === yearToFilter;
+        return growth;
+    }
+    
+    // Trouver l'année où l'objectif d'un investissement est atteint
+    function findGoalYear(investment, growth) {
+        if (!investment.goal) return null;
+        
+        for (let i = 0; i < growth.length; i++) {
+            if (growth[i] >= investment.goal) {
+                return i;
+            }
+        }
+        return null;
+    }
+    
+    // Calculer les données pour le graphique horizontal
+    function calculateCategoryBalanceData() {
+        const categories = {};
+        const totalBalance = calculateTotalBalance();
+        
+        // Initialiser les catégories
+        const allCategories = ['Trading', 'Food', 'Transport', 'Shopping', 'Entertainment', 'Bills', 'Salary', 'Selling', 'Other'];
+        allCategories.forEach(cat => {
+            categories[cat] = {
+                income: 0,
+                expense: 0,
+                balance: 0,
+                percentage: 0
+            };
         });
         
-        categories.forEach(category => {
-            const income = yearTransactions
-                .filter(t => t.type === 'income' && t.category === category)
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const expense = yearTransactions
-                .filter(t => t.type === 'expense' && t.category === category)
-                .reduce((sum, t) => sum + t.amount, 0);
-            
-            if (income > 0 || expense > 0) {
-                result.push({
-                    category: category,
-                    income: income,
-                    expense: expense
-                });
+        // Calculer les totaux par catégorie
+        transactions.forEach(transaction => {
+            if (transaction.type === 'income') {
+                categories[transaction.category].income += transaction.amount;
+            } else {
+                categories[transaction.category].expense += transaction.amount;
             }
         });
         
-        // Trier par income décroissant
-        result.sort((a, b) => b.income - a.income);
+        // Calculer le solde et le pourcentage par catégorie
+        Object.keys(categories).forEach(cat => {
+            categories[cat].balance = categories[cat].income - categories[cat].expense;
+            if (totalBalance !== 0) {
+                categories[cat].percentage = (categories[cat].balance / Math.abs(totalBalance)) * 100;
+            }
+        });
         
-        return result;
-    }
-    
-    // Mettre à jour le double bar graph
-    function updateDoubleBarGraph() {
-        if (!doubleBarGraph) return;
+        // Filtrer les catégories qui ont des données
+        const filteredCategories = Object.keys(categories).filter(cat => 
+            categories[cat].income > 0 || categories[cat].expense > 0
+        );
         
-        const categoryData = calculateCategoryData();
+        // Trier par balance (du plus positif au plus négatif)
+        filteredCategories.sort((a, b) => categories[b].balance - categories[a].balance);
         
-        // Si pas de données
-        if (categoryData.length === 0) {
-            doubleBarGraph.innerHTML = `
-                <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: rgba(255, 255, 255, 0.5); font-size: 12px;">
-                    No category data available for ${currentYearView === 'previous' ? 'previous' : 'current'} year
-                </div>
-            `;
-            return;
-        }
-        
-        // Calculer la valeur maximale pour l'échelle (toujours 18000 comme sur l'image)
-        const maxValue = 18000;
-        
-        // Générer le HTML pour les lignes de guide
-        const gridLinesHTML = `
-            <div class="grid-lines">
-                <div class="grid-line" style="left: 0%;"></div>
-                <div class="grid-line" style="left: 16.66%;"></div>
-                <div class="grid-line" style="left: 33.33%;"></div>
-                <div class="grid-line" style="left: 50%;"></div>
-                <div class="grid-line" style="left: 66.66%;"></div>
-                <div class="grid-line" style="left: 83.33%;"></div>
-                <div class="grid-line" style="left: 100%;"></div>
-            </div>
-        `;
-        
-        // Générer les lignes de catégories
-        const categoryRowsHTML = categoryData.map(item => {
-            const incomePercent = (item.income / maxValue) * 100;
-            const expensePercent = (item.expense / maxValue) * 100;
-            
-            return `
-                <div class="category-row">
-                    <div class="category-label">${item.category}</div>
-                    <div class="bars-container">
-                        ${gridLinesHTML}
-                        <div class="bar-group">
-                            <div class="bar bar-income" style="width: ${incomePercent}%;">
-                                <span class="bar-value">${item.income > 0 ? '£' + (item.income/1000).toFixed(0) + 'k' : ''}</span>
-                            </div>
-                            <div class="bar bar-expense" style="width: ${expensePercent}%;">
-                                <span class="bar-value">${item.expense > 0 ? '£' + (item.expense/1000).toFixed(0) + 'k' : ''}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        doubleBarGraph.innerHTML = categoryRowsHTML;
+        return {
+            categories: filteredCategories,
+            data: categories
+        };
     }
     
     // Initialiser les graphiques
@@ -634,14 +658,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Monthly Bar Chart
+        // Monthly Bar Chart avec filled line chart intégré
         const monthlyBarCanvas = document.getElementById('monthlyBarChart');
         if (monthlyBarCanvas) {
             const monthlyBarCtx = monthlyBarCanvas.getContext('2d');
             monthlyBarChart = new Chart(monthlyBarCtx, {
                 type: 'bar',
                 data: {
-                    labels: getMonthNames(),
+                    labels: getLast12Months().labels,
                     datasets: [
                         {
                             label: 'Goal',
@@ -740,10 +764,91 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+        
+        // NOUVEAU: Horizontal Bar Chart
+        const horizontalBarCanvas = document.getElementById('horizontalBarChart');
+        if (horizontalBarCanvas) {
+            const horizontalBarCtx = horizontalBarCanvas.getContext('2d');
+            horizontalBarChart = new Chart(horizontalBarCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: [],
+                            backgroundColor: '#2ecc71',
+                            borderColor: '#27ae60',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Expenses',
+                            data: [],
+                            backgroundColor: '#e74c3c',
+                            borderColor: '#c0392b',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += '£' + context.parsed.x.toFixed(2);
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                font: {
+                                    size: 9
+                                },
+                                color: 'white',
+                                callback: function(value) {
+                                    return '£' + value;
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            ticks: {
+                                font: {
+                                    size: 9
+                                },
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
     
     // Mettre à jour les graphiques
     function updateCharts() {
+        console.log("Mise à jour des graphiques");
+        
         const filtered = filterTransactions(transactions, currentFilter);
         
         // Pie Chart des Dépenses
@@ -794,18 +899,50 @@ document.addEventListener('DOMContentLoaded', function() {
             investments.forEach((investment, index) => {
                 const growth = calculateInvestmentGrowth(investment, years);
                 
-                // Créer un tableau de couleurs
-                const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
-                const color = colors[index % colors.length];
+                // Créer un tableau de couleurs pour les points
+                const pointBackgroundColors = [];
+                const pointBorderColors = [];
+                const pointRadii = [];
                 
+                // Trouver l'année du goal
+                const goalYear = findGoalYear(investment, growth);
+                
+                // Calculer le temps écoulé depuis le début
+                const yearsSinceStart = calculateYearsSinceStart(investment.startDate);
+                
+                // Configurer les points
+                for (let i = 0; i < growth.length; i++) {
+                    if (goalYear !== null && i === goalYear && growth[i] >= investment.goal) {
+                        // Point rouge pour le goal
+                        pointBackgroundColors.push('#e74c3c');
+                        pointBorderColors.push('#e74c3c');
+                        pointRadii.push(3);
+                    } else if (Math.abs(i - yearsSinceStart) < 0.5) {
+                        // Point noir pour la position actuelle
+                        pointBackgroundColors.push('#000000');
+                        pointBorderColors.push('#000000');
+                        pointRadii.push(3);
+                    } else {
+                        // Point normal
+                        pointBackgroundColors.push(investment.color || getColor(index));
+                        pointBorderColors.push(investment.color || getColor(index));
+                        pointRadii.push(3);
+                    }
+                }
+                
+                // Ajouter le dataset principal pour l'investissement avec les points colorés
                 datasets.push({
                     label: `${investment.name} (${investment.annualReturn}%)`,
                     data: growth,
-                    borderColor: color,
-                    backgroundColor: color,
+                    borderColor: investment.color || getColor(index),
+                    backgroundColor: investment.color || getColor(index),
                     borderWidth: 2,
                     fill: false,
-                    tension: 0.1
+                    tension: 0.1,
+                    pointRadius: pointRadii,
+                    pointBackgroundColor: pointBackgroundColors,
+                    pointBorderColor: pointBorderColors,
+                    pointHoverRadius: 5
                 });
             });
             
@@ -813,19 +950,20 @@ document.addEventListener('DOMContentLoaded', function() {
             lineChart.update();
         }
         
-        // Monthly Bar Chart
+        // Monthly Bar Chart - 12 mois - AVEC FILLED LINE CHART
         if (monthlyBarChart) {
-            const months = getMonthNames();
+            const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
+            monthlyBarChart.data.labels = monthData.labels;
+            
             const goalData = [];
             const incomeData = [];
             const expenseData = [];
             const balanceTrendData = [];
             
-            const currentYear = currentYearView === 'previous' ? today.getFullYear() - 1 : today.getFullYear();
-            
-            for (let i = 0; i < 12; i++) {
-                const monthStart = new Date(currentYear, i, 1);
-                const monthEnd = new Date(currentYear, i + 1, 0);
+            monthData.keys.forEach(monthKey => {
+                const [year, month] = monthKey.split('-');
+                const monthStart = new Date(year, month - 1, 1);
+                const monthEnd = new Date(year, month, 0);
                 
                 const monthTransactions = transactions.filter(t => {
                     const tDate = new Date(t.date);
@@ -847,10 +985,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const monthBalance = monthIncome - monthExpense;
                 balanceTrendData.push(monthBalance);
                 
-                const goalKey = `${currentYear}-${String(i + 1).padStart(2, '0')}`;
+                const goalKey = `${year}-${month}`;
                 const goalForMonth = monthlyGoals[goalKey] || 0;
                 goalData.push(goalForMonth);
-            }
+            });
             
             // Mettre à jour tous les datasets
             monthlyBarChart.data.datasets[0].data = goalData;
@@ -859,22 +997,47 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyBarChart.data.datasets[3].data = balanceTrendData;
             monthlyBarChart.update();
         }
+        
+        // NOUVEAU: Horizontal Bar Chart - Contribution par catégorie
+        if (horizontalBarChart) {
+            const categoryData = calculateCategoryBalanceData();
+            const labels = categoryData.categories;
+            const incomeData = [];
+            const expenseData = [];
+            const percentages = [];
+            
+            labels.forEach(category => {
+                const data = categoryData.data[category];
+                incomeData.push(data.income);
+                expenseData.push(-data.expense); // Négatif pour aller à gauche
+                percentages.push(data.percentage.toFixed(1) + '%');
+            });
+            
+            horizontalBarChart.data.labels = labels;
+            horizontalBarChart.data.datasets[0].data = incomeData;
+            horizontalBarChart.data.datasets[1].data = expenseData;
+            
+            // Mettre à jour les tooltips avec les pourcentages
+            horizontalBarChart.options.plugins.tooltip.callbacks.afterLabel = function(context) {
+                const category = labels[context.dataIndex];
+                const percentage = categoryData.data[category].percentage;
+                return `Contribution: ${percentage.toFixed(1)}%`;
+            };
+            
+            horizontalBarChart.update();
+        }
     }
     
-    // Calculer la croissance d'un investissement
-    function calculateInvestmentGrowth(investment, years = 20) {
-        const growth = [];
-        
-        for (let i = 0; i <= years; i++) {
-            const value = investment.initialAmount * Math.pow(1 + investment.annualReturn / 100, i);
-            growth.push(value);
-        }
-        
-        return growth;
+    // Générer une couleur pour les investissements
+    function getColor(index) {
+        const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
+        return colors[index % colors.length];
     }
     
     // Ajouter une transaction
     function addTransaction() {
+        console.log("Bouton Add Transaction cliqué");
+        
         const amount = parseFloat(amountInput.value);
         const description = descriptionInput.value.trim();
         const date = dateInput.value;
@@ -911,10 +1074,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         amountInput.value = '';
         descriptionInput.value = '';
+        
+        console.log('Transaction added successfully!');
     }
     
     // Ajouter un investissement
     function addInvestment() {
+        console.log("Bouton Add Investment cliqué");
+        
         const name = investmentNameInput.value.trim();
         const initialAmount = parseFloat(initialInvestmentInput.value);
         const annualReturn = parseFloat(annualReturnInput.value);
@@ -941,6 +1108,7 @@ document.addEventListener('DOMContentLoaded', function() {
             initialAmount: initialAmount,
             annualReturn: annualReturn,
             startDate: new Date().toISOString().split('T')[0],
+            color: getColor(investments.length),
             goal: goal > 0 ? goal : null
         };
         
@@ -951,10 +1119,14 @@ document.addEventListener('DOMContentLoaded', function() {
         initialInvestmentInput.value = '';
         annualReturnInput.value = '';
         investmentGoalInput.value = '';
+        
+        console.log('Investment added successfully!');
     }
     
     // Définir l'objectif mensuel
     function setGoal() {
+        console.log("Bouton Set Goal cliqué");
+        
         const amount = parseFloat(goalAmountInput.value);
         
         if (!amount || amount <= 0) {
@@ -971,10 +1143,13 @@ document.addEventListener('DOMContentLoaded', function() {
         updateDashboard();
         
         goalAmountInput.value = '';
+        console.log(`Goal for ${currentMonth}/${currentYear} set to £${amount.toFixed(2)}`);
     }
     
     // Définir l'objectif annuel
     function setAllGoals() {
+        console.log("Bouton Set All Goals cliqué");
+        
         const amount = parseFloat(goalAllAmountInput.value);
         
         if (!amount || amount <= 0) {
@@ -986,25 +1161,13 @@ document.addEventListener('DOMContentLoaded', function() {
         updateDashboard();
         
         goalAllAmountInput.value = '';
+        console.log(`Yearly goal set to £${amount.toFixed(2)}`);
     }
     
     // Basculer entre les vues Transactions et Investissements
     function toggleView(view) {
         currentView = view;
         updateView();
-    }
-    
-    // Changer l'année du graphique de catégories
-    function toggleCategoryYear(year) {
-        currentYearView = year;
-        if (year === 'current') {
-            currentYearBtn.classList.add('active');
-            previousYearBtn.classList.remove('active');
-        } else {
-            currentYearBtn.classList.remove('active');
-            previousYearBtn.classList.add('active');
-        }
-        updateDashboard();
     }
     
     // **CONFIGURATION DES ÉVÉNEMENTS**
@@ -1050,19 +1213,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Configuration des boutons d'année (Current/Previous)
-    if (currentYearBtn) {
-        currentYearBtn.addEventListener('click', function() {
-            toggleCategoryYear('current');
-        });
-    }
-    
-    if (previousYearBtn) {
-        previousYearBtn.addEventListener('click', function() {
-            toggleCategoryYear('previous');
-        });
-    }
-    
-    // Configuration des boutons d'année pour le monthly chart
     document.querySelectorAll('.month-btn[data-year]').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.month-btn[data-year]').forEach(b => b.classList.remove('active'));
@@ -1090,8 +1240,15 @@ document.addEventListener('DOMContentLoaded', function() {
             initCharts();
             updateDashboard();
         }
+        
+        console.log("Application Money Management initialisée");
     }
     
-    // Démarrer l'application
+    // Démarrer l'application quand la page est chargée
     initApp();
+    
+    // Réinitialiser les dimensions si besoin
+    window.addEventListener('resize', function() {
+        setTimeout(updateCharts, 100);
+    });
 });

@@ -1,20 +1,14 @@
         document.addEventListener('DOMContentLoaded', function() {
-            // Vérifier si nous sommes dans menu4Content
             const menu4Content = document.getElementById('menu4Content');
             if (!menu4Content) return;
             
-            // Variables globales
             let transactions = [];
             let investments = [];
             let monthlyGoals = {};
             let yearlyGoal = 0;
-            let currentFilter = 'month';
+            let currentFilter = 'all'; // Par défaut, afficher toutes les transactions
             let currentYearView = 'current';
-            let currentTransactionFilter = 'all';
-            let currentView = 'transactions';
-            let currentYearCompare = 'current'; // Pour le double bar graph
             
-            // Récupérer les éléments DOM
             const amountInput = document.getElementById('amount');
             const descriptionInput = document.getElementById('description');
             const dateInput = document.getElementById('date');
@@ -22,32 +16,25 @@
             const goalAllAmountInput = document.getElementById('goalAllAmount');
             const transactionTypeSelect = document.getElementById('transactionType');
             const categorySelect = document.getElementById('category');
-            const investmentNameInput = document.getElementById('investmentName');
-            const initialInvestmentInput = document.getElementById('initialInvestment');
-            const annualReturnInput = document.getElementById('annualReturn');
-            const investmentGoalInput = document.getElementById('investmentGoal');
-            const transacBtn = document.getElementById('transacBtn');
-            const investViewBtn = document.getElementById('investViewBtn');
+            const allBtn = document.getElementById('allBtn');
+            const monthlyBtn = document.getElementById('monthlyBtn');
             const recentTransactionsTitle = document.getElementById('recentTransactionsTitle');
             const transactionsSummary = document.getElementById('transactionsSummary');
-            const investmentsSummary = document.getElementById('investmentsSummary');
+            const leftLegendText = document.getElementById('leftLegendText');
+            const rightLegendText = document.getElementById('rightLegendText');
             
-            // Variables pour les graphiques
-            let expensePieChart, incomePieChart, lineChart, monthlyBarChart, doubleBarChart;
+            let expensePieChart, incomePieChart, monthlyBarChart;
             
-            // Initialiser la date à aujourd'hui
             const today = new Date();
             const yyyy = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
             const dd = String(today.getDate()).padStart(2, '0');
             if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
             
-            // Générer les noms des 12 mois
             function getMonthNames() {
                 return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             }
             
-            // Générer les données pour les 12 derniers mois
             function getLast12Months(yearOffset = 0) {
                 const currentDate = new Date();
                 const currentYear = currentDate.getFullYear() - yearOffset;
@@ -74,7 +61,6 @@
                 return { labels: monthLabels, keys: monthKeys };
             }
             
-            // Formater la date pour l'affichage
             function formatDate(dateString) {
                 const date = new Date(dateString);
                 return date.toLocaleDateString('en-US', { 
@@ -84,7 +70,6 @@
                 });
             }
             
-            // Calculer le solde total
             function calculateTotalBalance() {
                 const totalIncome = transactions
                     .filter(t => t.type === 'income')
@@ -97,19 +82,11 @@
                 return totalIncome - totalExpenses;
             }
             
-            // Calculer le total investi
-            function calculateTotalInvested() {
-                return investments.reduce((sum, i) => sum + i.initialAmount, 0);
+            function getColor(index) {
+                const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
+                return colors[index % colors.length];
             }
             
-            // Calculer le rendement moyen
-            function calculateAverageReturn() {
-                if (investments.length === 0) return 0;
-                const totalReturn = investments.reduce((sum, i) => sum + i.annualReturn, 0);
-                return totalReturn / investments.length;
-            }
-            
-            // Charger les données depuis localStorage
             function loadData() {
                 try {
                     const savedTransactions = localStorage.getItem('moneyManagerTransactions');
@@ -119,26 +96,21 @@
                     
                     if (savedTransactions) {
                         transactions = JSON.parse(savedTransactions);
-                        console.log("Transactions chargées:", transactions.length);
                     }
                     
                     if (savedInvestments) {
                         investments = JSON.parse(savedInvestments);
-                        console.log("Investissements chargés:", investments.length);
                     }
                     
                     if (savedGoals) {
                         monthlyGoals = JSON.parse(savedGoals);
-                        console.log("Objectifs mensuels chargés:", Object.keys(monthlyGoals).length);
                     }
                     
                     if (savedYearlyGoal) {
                         yearlyGoal = parseFloat(savedYearlyGoal);
-                        console.log("Objectif annuel chargé:", yearlyGoal);
                     }
                 } catch (e) {
                     console.error("Erreur de chargement:", e);
-                    // Initialiser avec des données par défaut si erreur
                     transactions = [];
                     investments = [];
                     monthlyGoals = {};
@@ -146,209 +118,344 @@
                 }
             }
             
-            // Sauvegarder les données dans localStorage
             function saveData() {
                 try {
                     localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
                     localStorage.setItem('moneyManagerInvestments', JSON.stringify(investments));
                     localStorage.setItem('moneyManagerGoals', JSON.stringify(monthlyGoals));
                     localStorage.setItem('moneyManagerYearlyGoal', yearlyGoal.toString());
-                    console.log("Données sauvegardées");
                     
-                    // Déclencher un événement de stockage pour informer le panel résultat
                     window.dispatchEvent(new Event('storage'));
                 } catch (e) {
                     console.error("Erreur de sauvegarde:", e);
                 }
             }
             
-            // Mettre à jour tout le dashboard
             function updateDashboard() {
                 updateView();
                 updateSummary();
                 updateRecentTransactionsSummary();
                 updateCharts();
+                updateHorizontalBarGraph();
                 saveData();
             }
             
-            // Mettre à jour la vue (transactions ou investissements)
+ function calculateCategoryData() {
+    const categories = [
+        'General', 'Trading', 'Food', 'Order', 
+        'Shopping', 'Investment', 'Salary', 'Bills', 'Other'
+    ];
+    
+    const currentYear = new Date().getFullYear();
+    const previousYear = currentYear - 1;
+    
+    let selectedYear = currentYear;
+    if (currentYearView === 'previous') {
+        selectedYear = previousYear;
+    }
+    
+    const categoryExpenses = {};
+    const categoryIncome = {};
+    
+    categories.forEach(cat => {
+        categoryExpenses[cat] = 0;
+        categoryIncome[cat] = 0;
+    });
+    
+    transactions.forEach(transaction => {
+        const transDate = new Date(transaction.date);
+        const transYear = transDate.getFullYear();
+        
+        if (transYear === selectedYear) {
+            if (transaction.type === 'expense') {
+                categoryExpenses[transaction.category] += transaction.amount;
+            } else if (transaction.type === 'income') {
+                categoryIncome[transaction.category] += transaction.amount;
+            }
+        }
+    });
+    
+    const validCategories = [];
+    const expensesData = [];
+    const incomeData = [];
+    
+    categories.forEach(cat => {
+        if (categoryExpenses[cat] > 0 || categoryIncome[cat] > 0) {
+            validCategories.push(cat);
+            expensesData.push(categoryExpenses[cat]);
+            incomeData.push(categoryIncome[cat]);
+        }
+    });
+    
+    if (validCategories.length === 0) {
+        return {
+            categories: [],
+            expenses: [],
+            income: []
+        };
+    }
+    
+    return {
+        categories: validCategories,
+        expenses: expensesData,
+        income: incomeData
+    };
+}
+            function updateHorizontalBarGraph() {
+                const yAxis = document.getElementById('yAxis');
+                const barsContainer = document.getElementById('barsContainer');
+                const xAxisSpectrum = document.getElementById('xAxisSpectrum');
+                
+                if (!yAxis || !barsContainer || !xAxisSpectrum) return;
+                
+                const categoryData = calculateCategoryData();
+                const categories = categoryData.categories;
+                const expensesData = categoryData.expenses;
+                const incomeData = categoryData.income;
+                
+                if (leftLegendText && rightLegendText) {
+                    const yearText = currentYearView === 'current' ? 'Current Year' : 'Previous Year';
+                    leftLegendText.textContent = `${yearText} Expenses`;
+                    rightLegendText.textContent = `${yearText} Income`;
+                }
+                
+                yAxis.innerHTML = '';
+                barsContainer.innerHTML = '';
+                xAxisSpectrum.innerHTML = '';
+                
+                if (categories.length === 0) {
+                    const noDataMessage = document.createElement('div');
+                    noDataMessage.className = 'no-data';
+                    noDataMessage.innerHTML = `
+                        <i class="fas fa-chart-bar"></i>
+                        <div>No data available for selected year</div>
+                    `;
+                    barsContainer.appendChild(noDataMessage);
+                    
+                    // Juste un zéro sur le spectrum
+                    const zeroLabel = document.createElement('div');
+                    zeroLabel.className = 'spectrum-label';
+                    zeroLabel.textContent = '0';
+                    zeroLabel.style.left = '50%';
+                    xAxisSpectrum.appendChild(zeroLabel);
+                    
+                    return;
+                }
+                
+                const maxExpense = Math.max(...expensesData);
+                const maxIncome = Math.max(...incomeData);
+                const maxValue = Math.max(maxExpense, maxIncome);
+                
+                let maxDisplayValue;
+                if (maxValue === 0) {
+                    maxDisplayValue = 1000;
+                } else {
+                    if (maxValue < 500) {
+                        maxDisplayValue = Math.ceil(maxValue / 100) * 100;
+                    } else if (maxValue < 2000) {
+                        maxDisplayValue = Math.ceil(maxValue / 500) * 500;
+                    } else {
+                        maxDisplayValue = Math.ceil(maxValue / 1000) * 1000;
+                    }
+                }
+                
+                maxDisplayValue = Math.max(maxDisplayValue, 1000);
+                
+                const numIntervals = 4;
+                const intervalValue = maxDisplayValue / numIntervals;
+                const pixelsPerValue = 50 / maxDisplayValue;
+                
+                categories.forEach((category, index) => {
+                    const categoryLabel = document.createElement('div');
+                    categoryLabel.className = 'category-label';
+                    categoryLabel.textContent = category;
+                    categoryLabel.style.height = `${100 / categories.length}%`;
+                    categoryLabel.style.display = 'flex';
+                    categoryLabel.style.alignItems = 'center';
+                    categoryLabel.style.justifyContent = 'flex-end';
+                    yAxis.appendChild(categoryLabel);
+                    
+                    const barGroup = document.createElement('div');
+                    barGroup.className = 'bar-group';
+                    
+                    const topPercentage = (index * 100) / categories.length;
+                    barGroup.style.top = `${topPercentage}%`;
+                    barGroup.style.height = `${100 / categories.length}%`;
+                    barGroup.style.display = 'flex';
+                    barGroup.style.alignItems = 'center';
+                    
+                    const expenseValue = expensesData[index];
+                    const incomeValue = incomeData[index];
+                    
+                    const expenseWidth = Math.min(expenseValue * pixelsPerValue, 50);
+                    const incomeWidth = Math.min(incomeValue * pixelsPerValue, 50);
+                    
+                    if (expenseValue > 0) {
+                        const leftBar = document.createElement('div');
+                        leftBar.className = 'bar left-bar';
+                        leftBar.style.width = '0%';
+                        leftBar.style.right = '50%';
+                        leftBar.style.height = '70%';
+                        
+                        if (expenseValue >= 1000) {
+                            leftBar.textContent = `£${(expenseValue / 1000).toFixed(1)}k`;
+                        } else {
+                            leftBar.textContent = `£${expenseValue.toFixed(0)}`;
+                        }
+                        barGroup.appendChild(leftBar);
+                        
+                        setTimeout(() => {
+                            leftBar.style.width = `${expenseWidth}%`;
+                        }, 50 + (index * 100));
+                    }
+                    
+                    if (incomeValue > 0) {
+                        const rightBar = document.createElement('div');
+                        rightBar.className = 'bar right-bar';
+                        rightBar.style.width = '0%';
+                        rightBar.style.left = '50%';
+                        rightBar.style.height = '70%';
+                        
+                        if (incomeValue >= 1000) {
+                            rightBar.textContent = `£${(incomeValue / 1000).toFixed(1)}k`;
+                        } else {
+                            rightBar.textContent = `£${incomeValue.toFixed(0)}`;
+                        }
+                        barGroup.appendChild(rightBar);
+                        
+                        setTimeout(() => {
+                            rightBar.style.width = `${incomeWidth}%`;
+                        }, 50 + (index * 100));
+                    }
+                    
+                    barsContainer.appendChild(barGroup);
+                });
+                
+                // Créer les traits et labels pour chaque intervalle
+                for (let i = 1; i <= numIntervals; i++) {
+                    const value = i * intervalValue;
+                    
+                    // Trait gauche
+                    const leftTick = document.createElement('div');
+                    leftTick.className = 'spectrum-tick';
+                    const leftPosition = 50 - (value * pixelsPerValue);
+                    leftTick.style.left = `${leftPosition}%`;
+                    xAxisSpectrum.appendChild(leftTick);
+                    
+                    // Label gauche
+                    const leftLabel = document.createElement('div');
+                    leftLabel.className = 'spectrum-label';
+                    if (value >= 1000) {
+                        leftLabel.textContent = `-£${(value / 1000).toFixed(1)}k`;
+                    } else {
+                        leftLabel.textContent = `-£${Math.round(value)}`;
+                    }
+                    leftLabel.style.left = `${leftPosition}%`;
+                    xAxisSpectrum.appendChild(leftLabel);
+                    
+                    // Trait droit
+                    const rightTick = document.createElement('div');
+                    rightTick.className = 'spectrum-tick';
+                    const rightPosition = 50 + (value * pixelsPerValue);
+                    rightTick.style.left = `${rightPosition}%`;
+                    xAxisSpectrum.appendChild(rightTick);
+                    
+                    // Label droit
+                    const rightLabel = document.createElement('div');
+                    rightLabel.className = 'spectrum-label';
+                    if (value >= 1000) {
+                        rightLabel.textContent = `£${(value / 1000).toFixed(1)}k`;
+                    } else {
+                        rightLabel.textContent = `£${Math.round(value)}`;
+                    }
+                    rightLabel.style.left = `${rightPosition}%`;
+                    xAxisSpectrum.appendChild(rightLabel);
+                }
+                
+                // Trait zéro sur le spectrum (plus long)
+                const zeroTick = document.createElement('div');
+                zeroTick.className = 'spectrum-tick zero-tick';
+                zeroTick.style.left = '50%';
+                xAxisSpectrum.appendChild(zeroTick);
+                
+                // UN SEUL label zéro sur le spectrum
+                const zeroLabel = document.createElement('div');
+                zeroLabel.className = 'spectrum-label';
+                zeroLabel.textContent = '0';
+                zeroLabel.style.left = '50%';
+                zeroLabel.style.transform = 'translateX(-50%)';
+                xAxisSpectrum.appendChild(zeroLabel);
+            }
+            
             function updateView() {
                 const list = document.getElementById('transactionsList');
                 if (!list) return;
                 
-                if (currentView === 'transactions') {
-                    // Afficher les transactions
-                    if (recentTransactionsTitle) {
-                        recentTransactionsTitle.innerHTML = '<i class="fas fa-history"></i> Recent Transactions';
-                    }
-                    
-                    if (transacBtn) {
-                        transacBtn.classList.add('active');
-                    }
-                    
-                    if (investViewBtn) {
-                        investViewBtn.classList.remove('active');
-                    }
-                    
-                    if (transactionsSummary) {
-                        transactionsSummary.style.display = 'flex';
-                    }
-                    
-                    if (investmentsSummary) {
-                        investmentsSummary.style.display = 'none';
-                    }
-                    
-                    let filtered;
-                    
-                    if (currentTransactionFilter === 'month') {
-                        const now = new Date();
-                        const currentMonth = now.getMonth();
-                        const currentYear = now.getFullYear();
-                        filtered = transactions.filter(t => {
-                            const tDate = new Date(t.date);
-                            return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-                        });
-                    } else {
-                        filtered = transactions;
-                    }
-                    
-                    // Trier par date (du plus récent au plus ancien)
-                    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-                    
-                    if (filtered.length === 0) {
-                        list.innerHTML = `
-                            <div class="no-data">
-                                <i class="fas fa-exchange-alt"></i>
-                                <div>No transactions yet</div>
-                            </div>
-                        `;
-                        return;
-                    }
-                    
-                    let html = '';
-                    filtered.slice(0, 8).forEach(transaction => {
-                        const sign = transaction.type === 'income' ? '+' : '-';
-                        const amountClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
-                        
-                        html += `
-                            <div class="transaction-item" data-id="${transaction.id}">
-                                <div class="transaction-info">
-                                    <div class="transaction-category">${transaction.category}</div>
-                                    <div class="transaction-description">${transaction.description}</div>
-                                    <div class="transaction-date">${formatDate(transaction.date)}</div>
-                                </div>
-                                <div class="transaction-amount ${amountClass}">
-                                    ${sign}£${transaction.amount.toFixed(2)}
-                                </div>
-                                <div class="transaction-actions">
-                                    <button class="trash-icon-btn" onclick="deleteTransaction(${transaction.id})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
+                let filtered;
+                
+                if (currentFilter === 'month') {
+                    const now = new Date();
+                    const currentMonth = now.getMonth();
+                    const currentYear = now.getFullYear();
+                    filtered = transactions.filter(t => {
+                        const tDate = new Date(t.date);
+                        return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
                     });
-                    
-                    list.innerHTML = html;
                 } else {
-                    // Afficher les investissements
-                    if (recentTransactionsTitle) {
-                        recentTransactionsTitle.innerHTML = '<i class="fas fa-line-chart"></i> Investments';
-                    }
-                    
-                    if (transacBtn) {
-                        transacBtn.classList.remove('active');
-                    }
-                    
-                    if (investViewBtn) {
-                        investViewBtn.classList.add('active');
-                    }
-                    
-                    if (transactionsSummary) {
-                        transactionsSummary.style.display = 'none';
-                    }
-                    
-                    if (investmentsSummary) {
-                        investmentsSummary.style.display = 'flex';
-                    }
-                    
-                    // Mettre à jour le résumé des investissements
-                    const totalInvested = calculateTotalInvested();
-                    const avgReturn = calculateAverageReturn();
-                    
-                    if (document.getElementById('totalInvested')) {
-                        document.getElementById('totalInvested').textContent = '£' + totalInvested.toLocaleString();
-                    }
-                    
-                    if (document.getElementById('avgReturn')) {
-                        document.getElementById('avgReturn').textContent = avgReturn.toFixed(1) + '%';
-                    }
-                    
-                    if (document.getElementById('totalInvestments')) {
-                        document.getElementById('totalInvestments').textContent = investments.length;
-                    }
-                    
-                    if (investments.length === 0) {
-                        list.innerHTML = `
-                            <div class="no-data">
-                                <i class="fas fa-briefcase"></i>
-                                <div>No investments yet</div>
-                            </div>
-                        `;
-                        return;
-                    }
-                    
-                    let html = '';
-                    investments.forEach(investment => {
-                        const goalText = investment.goal ? ` | Goal: £${investment.goal.toLocaleString()}` : '';
-                        html += `
-                            <div class="transaction-item" data-id="${investment.id}">
-                                <div class="transaction-info">
-                                    <div class="transaction-category">${investment.name}</div>
-                                    <div class="transaction-description">Return: ${investment.annualReturn}%${goalText}</div>
-                                    <div class="transaction-date">Started: ${formatDate(investment.startDate)}</div>
-                                </div>
-                                <div class="transaction-amount transaction-income">
-                                    £${investment.initialAmount.toLocaleString()}
-                                </div>
-                                <div class="transaction-actions">
-                                    <button class="trash-icon-btn" onclick="deleteInvestment(${investment.id})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    list.innerHTML = html;
+                    filtered = transactions;
                 }
+                
+                filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                if (filtered.length === 0) {
+                    list.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-exchange-alt"></i>
+                            <div>No transactions yet</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                filtered.slice(0, 8).forEach(transaction => {
+                    const sign = transaction.type === 'income' ? '+' : '-';
+                    const amountClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
+                    
+                    html += `
+                        <div class="transaction-item" data-id="${transaction.id}">
+                            <div class="transaction-info">
+                                <div class="transaction-category">${transaction.category}</div>
+                                <div class="transaction-description">${transaction.description}</div>
+                                <div class="transaction-date">${formatDate(transaction.date)}</div>
+                            </div>
+                            <div class="transaction-amount ${amountClass}">
+                                ${sign}£${transaction.amount.toFixed(2)}
+                            </div>
+                            <div class="transaction-actions">
+                                <button class="trash-icon-btn" onclick="deleteTransaction(${transaction.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                list.innerHTML = html;
             }
             
-            // Supprimer une transaction
             window.deleteTransaction = function(id) {
                 if (confirm('Are you sure you want to delete this transaction?')) {
                     transactions = transactions.filter(t => t.id !== id);
                     saveData();
                     updateDashboard();
-                    console.log('Transaction deleted');
                 }
             }
             
-            // Supprimer un investissement
-            window.deleteInvestment = function(id) {
-                if (confirm('Are you sure you want to delete this investment?')) {
-                    investments = investments.filter(i => i.id !== id);
-                    saveData();
-                    updateDashboard();
-                    console.log('Investment deleted');
-                }
-            }
-            
-            // Mettre à jour les résumés des transactions récentes
             function updateRecentTransactionsSummary() {
                 let filtered;
                 
-                if (currentTransactionFilter === 'month') {
+                if (currentFilter === 'month') {
                     const now = new Date();
                     const currentMonth = now.getMonth();
                     const currentYear = now.getFullYear();
@@ -383,10 +490,8 @@
                 }
             }
             
-            // Effacer toutes les transactions
             function clearAllTransactions() {
                 if (transactions.length === 0) {
-                    console.log('No transactions to delete');
                     return;
                 }
                 
@@ -394,22 +499,10 @@
                     transactions = [];
                     saveData();
                     updateDashboard();
-                    console.log('All transactions deleted');
                 }
             }
             
-            // Mettre à jour les résumés
             function updateSummary() {
-                const filtered = filterTransactions(transactions, currentFilter);
-                
-                const filteredIncome = filtered
-                    .filter(t => t.type === 'income')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                    
-                const filteredExpenses = filtered
-                    .filter(t => t.type === 'expense')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                    
                 const balance = calculateTotalBalance();
 
                 if (document.getElementById('currentBalanceControl')) {
@@ -417,88 +510,17 @@
                 }
                 
                 if (document.getElementById('totalTransactions')) {
-                    document.getElementById('totalTransactions').textContent = filtered.length;
+                    document.getElementById('totalTransactions').textContent = transactions.length;
                 }
             }
             
-            // Filtrer les transactions
-            function filterTransactions(transactions, period) {
-                const now = new Date();
-                
-                switch(period) {
-                    case 'today':
-                        const today = new Date().toISOString().split('T')[0];
-                        return transactions.filter(t => t.date === today);
-                    case 'week':
-                        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                        return transactions.filter(t => new Date(t.date) >= oneWeekAgo);
-                    case 'month':
-                        const currentMonth = now.getMonth();
-                        const currentYear = now.getFullYear();
-                        return transactions.filter(t => {
-                            const tDate = new Date(t.date);
-                            return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-                        });
-                    case 'year':
-                        const currentYearOnly = now.getFullYear();
-                        return transactions.filter(t => new Date(t.date).getFullYear() === currentYearOnly);
-                    default:
-                        return transactions;
-                }
-            }
-            
-            // Calculer les données pour le double bar graph par catégorie
-            function calculateCategoryData(yearOffset = 0) {
-                const currentYear = new Date().getFullYear() - yearOffset;
-                const categories = ['Trading', 'Food', 'Transport', 'Shopping', 'Entertainment', 'Bills', 'Salary', 'Selling', 'Other'];
-                
-                const categoryData = {};
-                categories.forEach(cat => {
-                    categoryData[cat] = 0;
-                });
-                
-                // Filtrer les transactions pour l'année spécifiée
-                const yearTransactions = transactions.filter(t => {
-                    const tDate = new Date(t.date);
-                    return tDate.getFullYear() === currentYear && t.type === 'income';
-                });
-                
-                // Calculer les totaux par catégorie
-                yearTransactions.forEach(transaction => {
-                    if (categoryData.hasOwnProperty(transaction.category)) {
-                        categoryData[transaction.category] += transaction.amount;
-                    } else {
-                        categoryData[transaction.category] = transaction.amount;
-                    }
-                });
-                
-                // Convertir en tableau pour le graphique
-                const labels = [];
-                const data = [];
-                
-                // Trier par montant décroissant
-                const sortedCategories = Object.keys(categoryData).sort((a, b) => categoryData[b] - categoryData[a]);
-                
-                sortedCategories.forEach(cat => {
-                    if (categoryData[cat] > 0) {
-                        labels.push(cat);
-                        data.push(categoryData[cat]);
-                    }
-                });
-                
-                return { labels, data };
-            }
-            
-            // Initialiser les graphiques
             function initCharts() {
-                // Vérifier si Chart.js est chargé
                 if (typeof Chart === 'undefined') {
                     console.error('Chart.js n\'est pas chargé');
                     setTimeout(initCharts, 100);
                     return;
                 }
                 
-                // Expense Pie Chart
                 const expensePieCanvas = document.getElementById('expensePieChart');
                 if (expensePieCanvas) {
                     const expensePieCtx = expensePieCanvas.getContext('2d');
@@ -523,7 +545,6 @@
                     });
                 }
                 
-                // Income Pie Chart
                 const incomePieCanvas = document.getElementById('incomePieChart');
                 if (incomePieCanvas) {
                     const incomePieCtx = incomePieCanvas.getContext('2d');
@@ -548,80 +569,6 @@
                     });
                 }
                 
-                // Line Chart pour les investissements (20 ans)
-                const lineCanvas = document.getElementById('lineChart');
-                if (lineCanvas) {
-                    const lineCtx = lineCanvas.getContext('2d');
-                    lineChart = new Chart(lineCtx, {
-                        type: 'line',
-                        data: {
-                            labels: [],
-                            datasets: []
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: {
-                                    title: {
-                                        display: true,
-                                        text: 'Years',
-                                        font: {
-                                            size: 10
-                                        },
-                                        color: 'white'
-                                    },
-                                    ticks: {
-                                        font: {
-                                            size: 9
-                                        },
-                                        color: 'white'
-                                    },
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
-                                    }
-                                },
-                                y: {
-                                    title: {
-                                        display: true,
-                                        text: 'Value (£)',
-                                        font: {
-                                            size: 10
-                                        },
-                                        color: 'white'
-                                    },
-                                    ticks: {
-                                        font: {
-                                            size: 9
-                                        },
-                                        color: 'white',
-                                        callback: function(value) {
-                                            return '£' + (value/1000).toFixed(0) + 'K';
-                                        }
-                                    },
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
-                                    }
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    labels: {
-                                        font: {
-                                            size: 9
-                                        },
-                                        color: 'white',
-                                        boxWidth: 10,
-                                        padding: 5
-                                    },
-                                    position: 'top'
-                                }
-                            }
-                        }
-                    });
-                }
-                
-                // Monthly Bar Chart
                 const monthlyBarCanvas = document.getElementById('monthlyBarChart');
                 if (monthlyBarCanvas) {
                     const monthlyBarCtx = monthlyBarCanvas.getContext('2d');
@@ -727,105 +674,11 @@
                         }
                     });
                 }
-                
-                // DOUBLE BAR CHART - Category Balance & Contribution
-                const doubleBarCanvas = document.getElementById('doubleBarChart');
-                if (doubleBarCanvas) {
-                    const doubleBarCtx = doubleBarCanvas.getContext('2d');
-                    doubleBarChart = new Chart(doubleBarCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: [],
-                            datasets: [
-                                {
-                                    label: 'Current Year',
-                                    data: [],
-                                    backgroundColor: 'rgba(52, 152, 219, 0.8)',
-                                    borderColor: '#3498db',
-                                    borderWidth: 1,
-                                    barPercentage: 0.6,
-                                    categoryPercentage: 0.8
-                                },
-                                {
-                                    label: 'Previous Year',
-                                    data: [],
-                                    backgroundColor: 'rgba(155, 89, 182, 0.8)',
-                                    borderColor: '#9b59b6',
-                                    borderWidth: 1,
-                                    barPercentage: 0.6,
-                                    categoryPercentage: 0.8
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            scales: {
-                                x: {
-                                    ticks: {
-                                        font: {
-                                            size: 9
-                                        },
-                                        color: 'white'
-                                    },
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
-                                    }
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: {
-                                        font: {
-                                            size: 9
-                                        },
-                                        color: 'white',
-                                        callback: function(value) {
-                                            return '£' + value;
-                                        }
-                                    },
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
-                                    }
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: false
-                                },
-                                tooltip: {
-                                    mode: 'index',
-                                    intersect: false,
-                                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                                    titleColor: 'white',
-                                    bodyColor: 'white',
-                                    borderColor: '#3498db',
-                                    borderWidth: 1,
-                                    callbacks: {
-                                        label: function(context) {
-                                            let label = context.dataset.label || '';
-                                            if (label) {
-                                                label += ': ';
-                                            }
-                                            label += '£' + context.parsed.y.toFixed(2);
-                                            return label;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
             }
             
-            // Mettre à jour les graphiques
             function updateCharts() {
-                console.log("Mise à jour des graphiques");
-                
-                const filtered = filterTransactions(transactions, currentFilter);
-                
-                // Pie Chart des Dépenses
                 if (expensePieChart) {
-                    const expenses = filtered.filter(t => t.type === 'expense');
+                    const expenses = transactions.filter(t => t.type === 'expense');
                     const expenseCategories = {};
                     expenses.forEach(expense => {
                         if (!expenseCategories[expense.category]) {
@@ -839,9 +692,8 @@
                     expensePieChart.update();
                 }
                 
-                // Pie Chart des Revenus
                 if (incomePieChart) {
-                    const incomes = filtered.filter(t => t.type === 'income');
+                    const incomes = transactions.filter(t => t.type === 'income');
                     const incomeCategories = {};
                     incomes.forEach(income => {
                         if (!incomeCategories[income.category]) {
@@ -855,43 +707,6 @@
                     incomePieChart.update();
                 }
                 
-                // Line Chart des investissements (20 ans)
-                if (lineChart) {
-                    const years = 20;
-                    const yearLabels = [];
-                    for (let i = 0; i <= years; i++) {
-                        yearLabels.push(`Y${i}`);
-                    }
-                    
-                    lineChart.data.labels = yearLabels;
-                    
-                    // Créer les datasets pour chaque investissement
-                    const datasets = [];
-                    
-                    investments.forEach((investment, index) => {
-                        // Calculer la croissance
-                        const growth = [];
-                        for (let i = 0; i <= years; i++) {
-                            const value = investment.initialAmount * Math.pow(1 + investment.annualReturn / 100, i);
-                            growth.push(value);
-                        }
-                        
-                        datasets.push({
-                            label: `${investment.name} (${investment.annualReturn}%)`,
-                            data: growth,
-                            borderColor: investment.color || getColor(index),
-                            backgroundColor: investment.color || getColor(index),
-                            borderWidth: 2,
-                            fill: false,
-                            tension: 0.1
-                        });
-                    });
-                    
-                    lineChart.data.datasets = datasets;
-                    lineChart.update();
-                }
-                
-                // Monthly Bar Chart
                 if (monthlyBarChart) {
                     const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
                     monthlyBarChart.data.labels = monthData.labels;
@@ -922,7 +737,6 @@
                         incomeData.push(monthIncome);
                         expenseData.push(monthExpense);
                         
-                        // Calculer le balance (income - expense) pour le trend
                         const monthBalance = monthIncome - monthExpense;
                         balanceTrendData.push(monthBalance);
                         
@@ -931,69 +745,15 @@
                         goalData.push(goalForMonth);
                     });
                     
-                    // Mettre à jour tous les datasets
                     monthlyBarChart.data.datasets[0].data = goalData;
                     monthlyBarChart.data.datasets[1].data = incomeData;
                     monthlyBarChart.data.datasets[2].data = expenseData;
                     monthlyBarChart.data.datasets[3].data = balanceTrendData;
                     monthlyBarChart.update();
                 }
-                
-                // DOUBLE BAR CHART - Category Balance
-                if (doubleBarChart) {
-                    // Calculer les données pour l'année en cours et l'année précédente
-                    const currentYearData = calculateCategoryData(0); // Année en cours
-                    const previousYearData = calculateCategoryData(1); // Année précédente
-                    
-                    // Limiter à 6 catégories pour une meilleure lisibilité
-                    const maxCategories = 6;
-                    const limitedLabels = currentYearData.labels.slice(0, maxCategories);
-                    
-                    // Ajuster les données en fonction des labels limités
-                    const limitedCurrentData = [];
-                    const limitedPreviousData = [];
-                    
-                    limitedLabels.forEach((label, index) => {
-                        limitedCurrentData.push(currentYearData.data[index]);
-                        
-                        // Trouver l'index correspondant dans les données de l'année précédente
-                        const prevIndex = previousYearData.labels.indexOf(label);
-                        if (prevIndex !== -1) {
-                            limitedPreviousData.push(previousYearData.data[prevIndex]);
-                        } else {
-                            limitedPreviousData.push(0);
-                        }
-                    });
-                    
-                    doubleBarChart.data.labels = limitedLabels;
-                    
-                    if (currentYearCompare === 'current') {
-                        doubleBarChart.data.datasets[0].label = 'Current Year Income';
-                        doubleBarChart.data.datasets[0].data = limitedCurrentData;
-                        doubleBarChart.data.datasets[1].label = 'Previous Year Income';
-                        doubleBarChart.data.datasets[1].data = limitedPreviousData;
-                    } else {
-                        // Inverser pour montrer l'année précédente en premier
-                        doubleBarChart.data.datasets[0].label = 'Previous Year Income';
-                        doubleBarChart.data.datasets[0].data = limitedPreviousData;
-                        doubleBarChart.data.datasets[1].label = 'Current Year Income';
-                        doubleBarChart.data.datasets[1].data = limitedCurrentData;
-                    }
-                    
-                    doubleBarChart.update();
-                }
             }
             
-            // Générer une couleur pour les investissements
-            function getColor(index) {
-                const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
-                return colors[index % colors.length];
-            }
-            
-            // Ajouter une transaction
             function addTransaction() {
-                console.log("Bouton Add Transaction cliqué");
-                
                 const amount = parseFloat(amountInput.value);
                 const description = descriptionInput.value.trim();
                 const date = dateInput.value;
@@ -1030,59 +790,9 @@
                 
                 amountInput.value = '';
                 descriptionInput.value = '';
-                
-                console.log('Transaction added successfully!');
             }
             
-            // Ajouter un investissement
-            function addInvestment() {
-                console.log("Bouton Add Investment cliqué");
-                
-                const name = investmentNameInput.value.trim();
-                const initialAmount = parseFloat(initialInvestmentInput.value);
-                const annualReturn = parseFloat(annualReturnInput.value);
-                const goal = parseFloat(investmentGoalInput.value);
-                
-                if (!name) {
-                    alert('Please enter a market name');
-                    return;
-                }
-                
-                if (!initialAmount || initialAmount <= 0) {
-                    alert('Please enter a valid initial investment');
-                    return;
-                }
-                
-                if (!annualReturn || annualReturn <= 0) {
-                    alert('Please enter a valid annual return');
-                    return;
-                }
-                
-                const investment = {
-                    id: Date.now(),
-                    name: name,
-                    initialAmount: initialAmount,
-                    annualReturn: annualReturn,
-                    startDate: new Date().toISOString().split('T')[0],
-                    color: getColor(investments.length),
-                    goal: goal > 0 ? goal : null
-                };
-                
-                investments.push(investment);
-                updateDashboard();
-                
-                investmentNameInput.value = '';
-                initialInvestmentInput.value = '';
-                annualReturnInput.value = '';
-                investmentGoalInput.value = '';
-                
-                console.log('Investment added successfully!');
-            }
-            
-            // Définir l'objectif mensuel
             function setGoal() {
-                console.log("Bouton Set Goal cliqué");
-                
                 const amount = parseFloat(goalAmountInput.value);
                 
                 if (!amount || amount <= 0) {
@@ -1099,13 +809,9 @@
                 updateDashboard();
                 
                 goalAmountInput.value = '';
-                console.log(`Goal for ${currentMonth}/${currentYear} set to £${amount.toFixed(2)}`);
             }
             
-            // Définir l'objectif annuel
             function setAllGoals() {
-                console.log("Bouton Set All Goals cliqué");
-                
                 const amount = parseFloat(goalAllAmountInput.value);
                 
                 if (!amount || amount <= 0) {
@@ -1117,83 +823,60 @@
                 updateDashboard();
                 
                 goalAllAmountInput.value = '';
-                console.log(`Yearly goal set to £${amount.toFixed(2)}`);
             }
             
-            // Basculer entre les vues Transactions et Investissements
-            function toggleView(view) {
-                currentView = view;
-                updateView();
-            }
-            
-            // **CONFIGURATION DES ÉVÉNEMENTS**
-            
-            // Configuration directe des événements
             const addTransactionBtn = document.getElementById('addTransactionBtn');
-            const addInvestmentBtn = document.getElementById('addInvestmentBtn');
             const setGoalBtn = document.getElementById('setGoalBtn');
             const setAllGoalBtn = document.getElementById('setAllGoalBtn');
             const clearAllBtn = document.getElementById('clearAllBtn');
             
-            if (addTransactionBtn) {
-                addTransactionBtn.addEventListener('click', addTransaction);
-            }
+            if (addTransactionBtn) addTransactionBtn.addEventListener('click', addTransaction);
+            if (setGoalBtn) setGoalBtn.addEventListener('click', setGoal);
+            if (setAllGoalBtn) setAllGoalBtn.addEventListener('click', setAllGoals);
+            if (clearAllBtn) clearAllBtn.addEventListener('click', clearAllTransactions);
             
-            if (addInvestmentBtn) {
-                addInvestmentBtn.addEventListener('click', addInvestment);
-            }
-            
-            if (setGoalBtn) {
-                setGoalBtn.addEventListener('click', setGoal);
-            }
-            
-            if (setAllGoalBtn) {
-                setAllGoalBtn.addEventListener('click', setAllGoals);
-            }
-            
-            if (clearAllBtn) {
-                clearAllBtn.addEventListener('click', clearAllTransactions);
-            }
-            
-            // Configuration des boutons de vue
-            if (transacBtn) {
-                transacBtn.addEventListener('click', function() {
-                    toggleView('transactions');
+            if (allBtn) {
+                allBtn.addEventListener('click', function() {
+                    allBtn.classList.add('active');
+                    monthlyBtn.classList.remove('active');
+                    currentFilter = 'all';
+                    updateView();
+                    updateRecentTransactionsSummary();
                 });
             }
             
-            if (investViewBtn) {
-                investViewBtn.addEventListener('click', function() {
-                    toggleView('investments');
+            if (monthlyBtn) {
+                monthlyBtn.addEventListener('click', function() {
+                    monthlyBtn.classList.add('active');
+                    allBtn.classList.remove('active');
+                    currentFilter = 'month';
+                    updateView();
+                    updateRecentTransactionsSummary();
                 });
             }
             
-            // Configuration des boutons d'année (Current/Previous)
-            document.querySelectorAll('.month-btn[data-year]').forEach(btn => {
+            document.querySelectorAll('.category-balance-section .month-btn[data-year]').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    document.querySelectorAll('.month-btn[data-year]').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.category-balance-section .month-btn[data-year]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     currentYearView = this.dataset.year;
-                    updateDashboard();
+                    updateHorizontalBarGraph();
                 });
             });
             
-            // Configuration des boutons de comparaison d'année pour le double bar graph
-            document.querySelectorAll('.month-btn[data-year-compare]').forEach(btn => {
+            document.querySelectorAll('.monthly-section .month-btn[data-year]').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    document.querySelectorAll('.month-btn[data-year-compare]').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.monthly-section .month-btn[data-year]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
-                    currentYearCompare = this.dataset.yearCompare;
-                    updateDashboard();
+                    currentYearView = this.dataset.year;
+                    updateCharts();
                 });
             });
             
-            // **INITIALISATION DE L'APPLICATION**
             function initApp() {
                 console.log("Initialisation de l'application Money Management");
                 loadData();
                 
-                // Charger Chart.js si nécessaire
                 if (typeof Chart === 'undefined') {
                     const script = document.createElement('script');
                     script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
@@ -1210,11 +893,10 @@
                 console.log("Application Money Management initialisée");
             }
             
-            // Démarrer l'application quand la page est chargée
             initApp();
             
-            // Réinitialiser les dimensions si besoin
             window.addEventListener('resize', function() {
                 setTimeout(updateCharts, 100);
+                setTimeout(updateHorizontalBarGraph, 100);
             });
         });

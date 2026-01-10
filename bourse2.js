@@ -149,26 +149,14 @@ function getMoneyManagementData(period = null) {
       return tDate.getFullYear() === currentYear;
     });
     
-    // Calculer les revenus et dépenses pour chaque période
+    // Calculer les revenus
     const monthlyIncome = monthlyTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    const monthlyExpenses = monthlyTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const monthlyBalance = monthlyIncome - monthlyExpenses;
-    
     const yearlyIncome = yearlyTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
-    
-    const yearlyExpenses = yearlyTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const yearlyBalance = yearlyIncome - yearlyExpenses;
     
     // Trouver les transactions les plus hautes et basses pour CHAQUE période
     let monthlyHighest = { amount: 0, category: '' };
@@ -179,7 +167,7 @@ function getMoneyManagementData(period = null) {
     // Pour le mois
     if (monthlyTransactions.length > 0) {
       const monthlyIncomes = monthlyTransactions.filter(t => t.type === 'income');
-      const monthlyExpensesList = monthlyTransactions.filter(t => t.type === 'expense');
+      const monthlyExpenses = monthlyTransactions.filter(t => t.type === 'expense');
       
       if (monthlyIncomes.length > 0) {
         monthlyHighest = monthlyIncomes.reduce((max, t) => 
@@ -187,8 +175,8 @@ function getMoneyManagementData(period = null) {
         );
       }
       
-      if (monthlyExpensesList.length > 0) {
-        monthlyLowest = monthlyExpensesList.reduce((min, t) => 
+      if (monthlyExpenses.length > 0) {
+        monthlyLowest = monthlyExpenses.reduce((min, t) => 
           t.amount < min.amount ? t : min
         );
       }
@@ -197,7 +185,7 @@ function getMoneyManagementData(period = null) {
     // Pour l'année
     if (yearlyTransactions.length > 0) {
       const yearlyIncomes = yearlyTransactions.filter(t => t.type === 'income');
-      const yearlyExpensesList = yearlyTransactions.filter(t => t.type === 'expense');
+      const yearlyExpenses = yearlyTransactions.filter(t => t.type === 'expense');
       
       if (yearlyIncomes.length > 0) {
         yearlyHighest = yearlyIncomes.reduce((max, t) => 
@@ -205,8 +193,8 @@ function getMoneyManagementData(period = null) {
         );
       }
       
-      if (yearlyExpensesList.length > 0) {
-        yearlyLowest = yearlyExpensesList.reduce((min, t) => 
+      if (yearlyExpenses.length > 0) {
+        yearlyLowest = yearlyExpenses.reduce((min, t) => 
           t.amount < min.amount ? t : min
         );
       }
@@ -216,11 +204,7 @@ function getMoneyManagementData(period = null) {
     resultPanelData.monthlyGoal = monthlyGoal;
     resultPanelData.yearlyGoal = yearlyGoal;
     resultPanelData.monthlyIncome = monthlyIncome;
-    resultPanelData.monthlyExpenses = monthlyExpenses;
-    resultPanelData.monthlyBalance = monthlyBalance;
     resultPanelData.yearlyIncome = yearlyIncome;
-    resultPanelData.yearlyExpenses = yearlyExpenses;
-    resultPanelData.yearlyBalance = yearlyBalance;
     resultPanelData.highestTransaction = currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest;
     resultPanelData.lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
     
@@ -228,11 +212,7 @@ function getMoneyManagementData(period = null) {
       monthlyGoal,
       yearlyGoal,
       monthlyIncome,
-      monthlyExpenses,
-      monthlyBalance,
       yearlyIncome,
-      yearlyExpenses,
-      yearlyBalance,
       highestTransaction: currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest,
       lowestTransaction: currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest,
       currentPeriod
@@ -257,35 +237,25 @@ function showResultPanel() {
   // Récupérer les données à jour
   const data = getMoneyManagementData();
   
-  // Déterminer l'objectif et la balance actuels selon la période
+  // Déterminer l'objectif et le revenu actuels selon la période
   const currentGoal = resultPanelData.currentPeriod === 'monthly' 
     ? resultPanelData.monthlyGoal 
     : resultPanelData.yearlyGoal;
   
-  const currentBalance = resultPanelData.currentPeriod === 'monthly'
-    ? resultPanelData.monthlyBalance
-    : resultPanelData.yearlyBalance;
+  const currentIncome = resultPanelData.currentPeriod === 'monthly'
+    ? resultPanelData.monthlyIncome
+    : resultPanelData.yearlyIncome;
   
-  // Calculer le pourcentage (balance par rapport à l'objectif)
-  let percentage = 0;
-  if (currentGoal > 0) {
-    // Si la balance est négative, afficher 0%
-    if (currentBalance <= 0) {
-      percentage = 0;
-    } else {
-      // Limiter à 100% maximum
-      percentage = Math.min((currentBalance / currentGoal) * 100, 100);
-    }
-  }
+  // Calculer le pourcentage (max 100%)
+  const percentage = currentGoal > 0 
+    ? Math.min((currentIncome / currentGoal) * 100, 100) 
+    : 0;
   
   // Déterminer si le goal est atteint ou dépassé
   const isGoalReached = percentage >= 100;
   
-  // Pour l'affichage du montant sur la barre
-  const showAmountOnBar = Math.abs(currentBalance) > 0 && percentage > 5;
-  
-  // Déterminer la couleur de la barre en fonction du solde
-  const barColor = currentBalance >= 0 ? '#2ecc71' : '#e74c3c';
+  // Pour l'affichage du montant sur la barre verte
+  const showAmountOnBar = percentage > 10; // Afficher si > 10% pour les deux périodes
   
   resultPanel.innerHTML = `
     <div class="period-selector">
@@ -297,35 +267,28 @@ function showResultPanel() {
     
     <div class="progress-section">
       <div class="progress-header">
-        <span class="period-label">${resultPanelData.currentPeriod === 'monthly' ? 'Monthly Balance' : 'Yearly Balance'}</span>
-        <span class="percentage-label" style="color: ${currentBalance >= 0 ? '#2ecc71' : '#e74c3c'}">
-          ${currentBalance >= 0 ? '+' : ''}£${currentBalance.toFixed(0)}
-        </span>
+        <span class="period-label">${resultPanelData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly'}</span>
+        <span class="percentage-label">${percentage.toFixed(1)}%</span>
       </div>
       
       <div class="progress-bar-container">
         <div class="progress-bar">
-          <div class="progress-filled" style="width: ${percentage}%; background: ${barColor}">
-            ${showAmountOnBar ? `${currentBalance >= 0 ? '+' : ''}£${currentBalance.toFixed(0)}` : ''}
+          <div class="progress-filled" style="width: ${percentage}%">
+            ${showAmountOnBar ? `£${currentIncome.toFixed(0)}` : ''}
           </div>
           ${!isGoalReached ? `
-            <div class="progress-remaining" style="background: ${currentBalance >= 0 ? 'rgba(46, 204, 113, 0.3)' : 'rgba(231, 76, 60, 0.3)'}">
-              ${percentage < 90 ? `£${Math.max(0, currentGoal - currentBalance).toFixed(0)}` : ''}
+            <div class="progress-remaining">
+              ${percentage < 90 ? `£${Math.max(0, currentGoal - currentIncome).toFixed(0)}` : ''}
             </div>
           ` : ''}
         </div>
-      </div>
-      
-      <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: rgba(255,255,255,0.7)">
-        <div>Goal: £${currentGoal.toFixed(0)}</div>
-        <div>${percentage.toFixed(1)}% of goal</div>
       </div>
     </div>
     
     <div class="indicators-container">
       <div class="indicator-box indicator-highest">
         <div class="indicator-label">
-          <i class="fas fa-arrow-up"></i> Highest Income
+          <i class="fas fa-arrow-up"></i> Highest
         </div>
         <div class="indicator-value">
           £${resultPanelData.highestTransaction.amount.toFixed(2)}
@@ -334,23 +297,11 @@ function showResultPanel() {
       </div>
       <div class="indicator-box indicator-lowest">
         <div class="indicator-label">
-          <i class="fas fa-arrow-down"></i> Lowest Expense
+          <i class="fas fa-arrow-down"></i> Lowest
         </div>
         <div class="indicator-value">
           £${resultPanelData.lowestTransaction.amount.toFixed(2)}
           ${resultPanelData.lowestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.lowestTransaction.category}</div>` : ''}
-        </div>
-      </div>
-    </div>
-    
-    <!-- Ajout d'un petit résumé des revenus/dépenses -->
-    <div style="background: rgba(30, 31, 35, 0.8); border-radius: 10px; padding: 10px; margin-top: 15px; border: 1px solid rgba(255, 255, 255, 0.1);">
-      <div style="display: flex; justify-content: space-between; font-size: 12px;">
-        <div style="color: #2ecc71">
-          <i class="fas fa-arrow-up"></i> Income: £${resultPanelData.currentPeriod === 'monthly' ? resultPanelData.monthlyIncome.toFixed(2) : resultPanelData.yearlyIncome.toFixed(2)}
-        </div>
-        <div style="color: #e74c3c">
-          <i class="fas fa-arrow-down"></i> Expenses: £${resultPanelData.currentPeriod === 'monthly' ? resultPanelData.monthlyExpenses.toFixed(2) : resultPanelData.yearlyExpenses.toFixed(2)}
         </div>
       </div>
     </div>
@@ -379,6 +330,7 @@ function showResultPanel() {
     });
   });
 }
+
 // ============================================
 // SYSTÈME DE SURVEILLANCE EN TEMPS RÉEL
 // ============================================

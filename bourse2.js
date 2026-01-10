@@ -116,6 +116,7 @@ let resultPanelData = {
 // ============================================
 
 // Fonction pour récupérer et calculer les données du money management
+// Fonction pour récupérer et calculer les données du money management
 function getMoneyManagementData(period = null) {
   try {
     // Utiliser la période passée en paramètre ou celle stockée
@@ -149,20 +150,14 @@ function getMoneyManagementData(period = null) {
       return tDate.getFullYear() === currentYear;
     });
     
-    // Calculer la BALANCE (revenus - dépenses)
-    const monthlyBalance = monthlyTransactions
-      .reduce((sum, t) => {
-        if (t.type === 'income') return sum + t.amount;
-        if (t.type === 'expense') return sum - t.amount;
-        return sum;
-      }, 0);
+    // Calculer la BALANCE (revenus - dépenses) au lieu des revenus seulement
+    const monthlyBalance = monthlyTransactions.reduce((sum, t) => {
+      return t.type === 'income' ? sum + t.amount : sum - t.amount;
+    }, 0);
     
-    const yearlyBalance = yearlyTransactions
-      .reduce((sum, t) => {
-        if (t.type === 'income') return sum + t.amount;
-        if (t.type === 'expense') return sum - t.amount;
-        return sum;
-      }, 0);
+    const yearlyBalance = yearlyTransactions.reduce((sum, t) => {
+      return t.type === 'income' ? sum + t.amount : sum - t.amount;
+    }, 0);
     
     // Trouver les transactions les plus hautes et basses pour CHAQUE période
     let monthlyHighest = { amount: 0, category: '' };
@@ -185,6 +180,8 @@ function getMoneyManagementData(period = null) {
         monthlyLowest = monthlyExpenses.reduce((min, t) => 
           t.amount < min.amount ? t : min
         );
+        // Pour les dépenses, on garde le montant négatif pour l'affichage
+        monthlyLowest.amount = -monthlyLowest.amount;
       }
     }
     
@@ -203,22 +200,24 @@ function getMoneyManagementData(period = null) {
         yearlyLowest = yearlyExpenses.reduce((min, t) => 
           t.amount < min.amount ? t : min
         );
+        // Pour les dépenses, on garde le montant négatif pour l'affichage
+        yearlyLowest.amount = -yearlyLowest.amount;
       }
     }
     
     // Mettre à jour les données
     resultPanelData.monthlyGoal = monthlyGoal;
     resultPanelData.yearlyGoal = yearlyGoal;
-    resultPanelData.monthlyBalance = monthlyBalance;
-    resultPanelData.yearlyBalance = yearlyBalance;
+    resultPanelData.monthlyIncome = monthlyBalance; // Maintenant c'est la balance
+    resultPanelData.yearlyIncome = yearlyBalance; // Maintenant c'est la balance
     resultPanelData.highestTransaction = currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest;
     resultPanelData.lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
     
     return {
       monthlyGoal,
       yearlyGoal,
-      monthlyBalance,
-      yearlyBalance,
+      monthlyBalance, // Renommé pour clarifier
+      yearlyBalance,  // Renommé pour clarifier
       highestTransaction: currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest,
       lowestTransaction: currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest,
       currentPeriod
@@ -239,6 +238,7 @@ function forceUpdateResultPanel() {
 }
 
 // Afficher le panel résultat
+// Afficher le panel résultat
 function showResultPanel() {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
   if (!kinfopaneltousContent) return;
@@ -257,20 +257,21 @@ function showResultPanel() {
     : resultPanelData.yearlyGoal;
   
   const currentBalance = resultPanelData.currentPeriod === 'monthly'
-    ? resultPanelData.monthlyBalance
-    : resultPanelData.yearlyBalance;
+    ? resultPanelData.monthlyIncome  // Maintenant c'est la balance
+    : resultPanelData.yearlyIncome;  // Maintenant c'est la balance
   
-  // Calculer le pourcentage (max 100%) - seulement si goal > 0
-  let percentage = 0;
-  if (currentGoal > 0) {
-    percentage = Math.min(Math.max((currentBalance / currentGoal) * 100, 0), 100);
-  }
+  // Calculer le pourcentage BASÉ SUR LA BALANCE POSITIVE SEULEMENT
+  // Si la balance est négative, on montre 0%
+  const positiveBalance = Math.max(currentBalance, 0);
+  const percentage = currentGoal > 0 
+    ? Math.min((positiveBalance / currentGoal) * 100, 100) 
+    : 0;
   
   // Déterminer si le goal est atteint ou dépassé
   const isGoalReached = percentage >= 100;
   
   // Pour l'affichage du montant sur la barre verte
-  const showAmountOnBar = percentage > 10;
+  const showAmountOnBar = percentage > 10 && currentBalance >= 0;
   
   resultPanel.innerHTML = `
     <div class="period-selector">
@@ -282,20 +283,18 @@ function showResultPanel() {
     
     <div class="progress-section">
       <div class="progress-header">
-        <span class="period-label">${resultPanelData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly'}</span>
-        <span class="percentage-label">${percentage.toFixed(1)}%</span>
+        <span class="period-label">${resultPanelData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly'} Balance</span>
+        <span class="percentage-label">${currentBalance >= 0 ? percentage.toFixed(1) + '%' : '0%'}</span>
       </div>
       
       <div class="progress-bar-container">
         <div class="progress-bar">
-          ${currentBalance > 0 ? `
-            <div class="progress-filled" style="width: ${percentage}%">
-              ${showAmountOnBar ? `£${currentBalance.toFixed(0)}` : ''}
-            </div>
-          ` : ''}
-          ${!isGoalReached && currentBalance > 0 ? `
+          <div class="progress-filled" style="width: ${percentage}%">
+            ${showAmountOnBar ? `£${currentBalance.toFixed(0)}` : ''}
+          </div>
+          ${!isGoalReached && currentBalance >= 0 ? `
             <div class="progress-remaining">
-              ${percentage < 90 ? `£${Math.max(0, currentGoal - currentBalance).toFixed(0)}` : ''}
+              ${percentage < 90 ? `£${Math.max(0, currentGoal - positiveBalance).toFixed(0)}` : ''}
             </div>
           ` : ''}
         </div>
@@ -305,22 +304,30 @@ function showResultPanel() {
     <div class="indicators-container">
       <div class="indicator-box indicator-highest">
         <div class="indicator-label">
-          <i class="fas fa-arrow-up"></i> Highest
+          <i class="fas fa-arrow-up"></i> Highest Income
         </div>
         <div class="indicator-value">
-          ${resultPanelData.highestTransaction.amount > 0 ? `£${resultPanelData.highestTransaction.amount.toFixed(2)}` : '£0.00'}
+          ${resultPanelData.highestTransaction.amount > 0 ? 
+            `£${resultPanelData.highestTransaction.amount.toFixed(2)}` : 
+            'No income'}
           ${resultPanelData.highestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.highestTransaction.category}</div>` : ''}
         </div>
       </div>
       <div class="indicator-box indicator-lowest">
         <div class="indicator-label">
-          <i class="fas fa-arrow-down"></i> Lowest
+          <i class="fas fa-arrow-down"></i> Lowest Expense
         </div>
         <div class="indicator-value">
-          ${resultPanelData.lowestTransaction.amount > 0 ? `£${resultPanelData.lowestTransaction.amount.toFixed(2)}` : '£0.00'}
+          ${resultPanelData.lowestTransaction.amount > 0 ? 
+            `£${resultPanelData.lowestTransaction.amount.toFixed(2)}` : 
+            'No expense'}
           ${resultPanelData.lowestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.lowestTransaction.category}</div>` : ''}
         </div>
       </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 10px; color: ${currentBalance >= 0 ? '#2ecc71' : '#e74c3c'}; font-weight: bold; font-size: 16px;">
+      Current Balance: £${currentBalance.toFixed(2)}
     </div>
   `;
   
@@ -640,15 +647,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // === DÉTECTION DE LA PAGE ACTIVE ===
-    function updateCurrentMenuPage() {
-        const classes = megaBox.classList;
-        if (classes.contains('menu-1')) currentMenuPage = 'menu-1';
-        else if (classes.contains('menu-2')) currentMenuPage = 'menu-2';
-        else if (classes.contains('menu-3')) currentMenuPage = 'menu-3';
-        else if (classes.contains('menu-4')) currentMenuPage = 'menu-4';
-        else if (classes.contains('menu-5')) currentMenuPage = 'menu-5';
-    }
-
+function updateCurrentMenuPage() {
+  const classes = megaBox.classList;
+  if (classes.contains('menu-1')) {
+    currentMenuPage = 'menu-1';
+  } else if (classes.contains('menu-2')) {
+    currentMenuPage = 'menu-2';
+  } else if (classes.contains('menu-3')) {
+    currentMenuPage = 'menu-3';
+  } else if (classes.contains('menu-4')) {
+    currentMenuPage = 'menu-4';
+    // Mettre à jour automatiquement quand on arrive sur la page 4
+    setTimeout(() => {
+      getMoneyManagementData();
+      showResultPanel();
+    }, 500);
+  } else if (classes.contains('menu-5')) {
+    currentMenuPage = 'menu-5';
+  }
+}
     // === INITIALISATION ===
     function init() {
         const saved = localStorage.getItem('chartStates');

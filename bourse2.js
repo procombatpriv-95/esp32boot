@@ -108,6 +108,255 @@ let resultPanelData = {
 };
 
 // ============================================
+// CARROUSEL TRADINGVIEW - DIFFÉRENTS MARCHÉS
+// ============================================
+
+// Configuration des marchés à afficher dans le carrousel
+const tradingViewMarkets = [
+  {
+    name: "CAC 40",
+    symbol: "CAC40",
+    tradingViewSymbol: "FR40",
+    description: "Indice français",
+    color: "#4169E1"
+  },
+  {
+    name: "S&P 500",
+    symbol: "SPX",
+    tradingViewSymbol: "SPX",
+    description: "Indice américain",
+    color: "#32CD32"
+  },
+  {
+    name: "DAX",
+    symbol: "DAX",
+    tradingViewSymbol: "DE40",
+    description: "Indice allemand",
+    color: "#FFD700"
+  },
+  {
+    name: "NASDAQ",
+    symbol: "NASDAQ",
+    tradingViewSymbol: "NAS100",
+    description: "Indice technologique",
+    color: "#00BFFF"
+  },
+  {
+    name: "FTSE 100",
+    symbol: "FTSE",
+    tradingViewSymbol: "UK100",
+    description: "Indice britannique",
+    color: "#FF4500"
+  },
+  {
+    name: "NIKKEI 225",
+    symbol: "NIKKEI",
+    tradingViewSymbol: "JP225",
+    description: "Indice japonais",
+    color: "#FF69B4"
+  }
+];
+
+// Index courant du carrousel
+let currentMarketIndex = 0;
+let carouselInterval = null;
+
+// Fonction pour charger un widget TradingView pour un marché spécifique
+function loadTradingViewWidget(market) {
+  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+  if (!kinfopaneltousContent) return;
+  
+  kinfopaneltousContent.innerHTML = '';
+  
+  // Créer le conteneur du widget
+  const widgetContainer = document.createElement('div');
+  widgetContainer.className = 'tradingview-widget-container carousel-widget';
+  widgetContainer.style.cssText = `
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  `;
+  
+  // En-tête du marché
+  const marketHeader = document.createElement('div');
+  marketHeader.className = 'market-header';
+  marketHeader.style.cssText = `
+    padding: 15px;
+    background: linear-gradient(135deg, ${market.color}40, ${market.color}20);
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 10px;
+  `;
+  
+  marketHeader.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h3 style="margin: 0; color: white; font-size: 18px;">${market.name}</h3>
+        <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.8); font-size: 12px;">${market.description}</p>
+      </div>
+      <div style="font-size: 24px; color: white; opacity: 0.8;">📊</div>
+    </div>
+  `;
+  
+  widgetContainer.appendChild(marketHeader);
+  
+  // Conteneur du graphique
+  const chartContainer = document.createElement('div');
+  chartContainer.id = `tradingview_${market.symbol.toLowerCase()}`;
+  chartContainer.style.cssText = `
+    flex: 1;
+    min-height: 250px;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+  `;
+  
+  widgetContainer.appendChild(chartContainer);
+  
+  // Contrôles du carrousel
+  const carouselControls = document.createElement('div');
+  carouselControls.className = 'carousel-controls';
+  carouselControls.style.cssText = `
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(30, 30, 40, 0.8);
+    border-radius: 8px;
+    margin-top: 10px;
+  `;
+  
+  // Boutons de navigation
+  const prevBtn = document.createElement('button');
+  prevBtn.innerHTML = '◀';
+  prevBtn.style.cssText = `
+    background: ${market.color};
+    border: none;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: opacity 0.3s;
+  `;
+  prevBtn.onmouseover = () => prevBtn.style.opacity = '0.8';
+  prevBtn.onmouseout = () => prevBtn.style.opacity = '1';
+  prevBtn.onclick = () => showPreviousMarket();
+  
+  const nextBtn = document.createElement('button');
+  nextBtn.innerHTML = '▶';
+  nextBtn.style.cssText = `
+    background: ${market.color};
+    border: none;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: opacity 0.3s;
+  `;
+  nextBtn.onmouseover = () => nextBtn.style.opacity = '0.8';
+  nextBtn.onmouseout = () => nextBtn.style.opacity = '1';
+  nextBtn.onclick = () => showNextMarket();
+  
+  // Indicateur de position
+  const positionIndicator = document.createElement('div');
+  positionIndicator.className = 'position-indicator';
+  positionIndicator.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  `;
+  
+  tradingViewMarkets.forEach((_, index) => {
+    const dot = document.createElement('span');
+    dot.style.cssText = `
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: ${index === currentMarketIndex ? market.color : 'rgba(255,255,255,0.3)'};
+      cursor: pointer;
+      transition: background 0.3s;
+    `;
+    dot.onclick = () => {
+      currentMarketIndex = index;
+      loadTradingViewWidget(tradingViewMarkets[currentMarketIndex]);
+      updatePositionIndicator();
+    };
+    positionIndicator.appendChild(dot);
+  });
+  
+  carouselControls.appendChild(prevBtn);
+  carouselControls.appendChild(positionIndicator);
+  carouselControls.appendChild(nextBtn);
+  
+  widgetContainer.appendChild(carouselControls);
+  kinfopaneltousContent.appendChild(widgetContainer);
+  
+  // Charger le widget TradingView
+  setTimeout(() => {
+    new TradingView.widget({
+      "container_id": `tradingview_${market.symbol.toLowerCase()}`,
+      "width": "100%",
+      "height": "250",
+      "symbol": market.tradingViewSymbol,
+      "interval": "D",
+      "timezone": window.appTimezone || "Europe/London",
+      "theme": "dark",
+      "style": "1",
+      "locale": "fr",
+      "toolbar_bg": "#f1f3f6",
+      "enable_publishing": false,
+      "hide_volume": true,
+      "save_image": false,
+      "details": false,
+      "studies": [],
+      "show_popup_button": false,
+      "popup_width": "1000",
+      "popup_height": "650"
+    });
+  }, 100);
+  
+  // Mettre à jour l'indicateur de position
+  function updatePositionIndicator() {
+    const dots = positionIndicator.querySelectorAll('span');
+    dots.forEach((dot, index) => {
+      dot.style.background = index === currentMarketIndex ? market.color : 'rgba(255,255,255,0.3)';
+    });
+  }
+  
+  updatePositionIndicator();
+}
+
+// Fonction pour afficher le marché suivant
+function showNextMarket() {
+  currentMarketIndex = (currentMarketIndex + 1) % tradingViewMarkets.length;
+  loadTradingViewWidget(tradingViewMarkets[currentMarketIndex]);
+}
+
+// Fonction pour afficher le marché précédent
+function showPreviousMarket() {
+  currentMarketIndex = (currentMarketIndex - 1 + tradingViewMarkets.length) % tradingViewMarkets.length;
+  loadTradingViewWidget(tradingViewMarkets[currentMarketIndex]);
+}
+
+// Démarrer le carrousel automatique
+function startCarousel() {
+  if (carouselInterval) clearInterval(carouselInterval);
+  
+  carouselInterval = setInterval(() => {
+    showNextMarket();
+  }, 10000); // Change toutes les 10 secondes
+}
+
+// Arrêter le carrousel
+function stopCarousel() {
+  if (carouselInterval) {
+    clearInterval(carouselInterval);
+    carouselInterval = null;
+  }
+}
+
+// ============================================
 // FONCTIONS POUR LE PANEL RESULTAT (MENU 4)
 // ============================================
 
@@ -346,6 +595,84 @@ function showResultPanel() {
 }
 
 // ============================================
+// CHARGEMENT DES ACTUALITÉS TRADINGVIEW
+// ============================================
+
+function loadKinfopaneltousNews(asset) {
+  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+  if (!kinfopaneltousContent) return;
+  
+  kinfopaneltousContent.innerHTML = '';
+  
+  const loaderDiv = document.createElement('div');
+  loaderDiv.className = 'kinfopaneltous-loader';
+  loaderDiv.textContent = 'Loading...';
+  kinfopaneltousContent.appendChild(loaderDiv);
+  
+  const widgetDiv = document.createElement('div');
+  widgetDiv.className = 'tradingview-kinfopaneltous-news';
+  widgetDiv.id = 'tradingview_kinfopaneltous_news';
+  
+  setTimeout(() => {
+    kinfopaneltousContent.removeChild(loaderDiv);
+    kinfopaneltousContent.appendChild(widgetDiv);
+    
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
+    script.async = true;
+    
+    script.textContent = JSON.stringify({
+      "feedMode": "symbol",
+      "symbol": asset.tradingViewSymbol,
+      "isTransparent": true,
+      "displayMode": "compact",
+      "width": "250",
+      "height": "400",
+      "colorTheme": "dark",
+      "locale": "fr",
+      "utm_source": "tradingview.com",
+      "utm_medium": "widget",
+      "utm_campaign": "timeline",
+      "noReferrer": true,
+      "showSymbolLogo": false,
+      "fontSize": "small",
+      "textColor": "#ffffff"
+    });
+    
+    widgetDiv.appendChild(script);
+    
+    setTimeout(removeAllTooltips, 1500);
+  }, 500);
+}
+
+// ============================================
+// SUPPRESSION DES TOOLTIPS
+// ============================================
+
+function removeAllTooltips() {
+  const elements = document.querySelectorAll('[title]');
+  elements.forEach(el => {
+    if (el.title && el.title !== '') {
+      el.setAttribute('data-original-title', el.title);
+      el.removeAttribute('title');
+    }
+  });
+  
+  const ariaElements = document.querySelectorAll('[aria-label]');
+  ariaElements.forEach(el => {
+    el.setAttribute('data-original-aria-label', el.getAttribute('aria-label'));
+    el.removeAttribute('aria-label');
+  });
+  
+  document.addEventListener('mouseover', function(e) {
+    if (e.target.hasAttribute('title') || e.target.hasAttribute('aria-label')) {
+      e.stopPropagation();
+    }
+  }, true);
+}
+
+// ============================================
 // GESTION DES ÉVÉNEMENTS EN TEMPS RÉEL
 // ============================================
 
@@ -436,108 +763,9 @@ function setupMoneyManagementObserver() {
 }
 
 // ============================================
-// FONCTIONS DU PANEL PRINCIPAL
+// GESTION DU PANEL INFO EN FONCTION DE L'ÉTAT
 // ============================================
 
-// === AFFICHER LE MESSAGE PAR DÉFAUT (Menu 1) ===
-function showDefaultMessage() {
-  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-  if (!kinfopaneltousContent) return;
-  
-  kinfopaneltousContent.innerHTML = '';
-  
-  const messageDiv = document.createElement('div');
-  messageDiv.className = 'kinfopaneltous-default';
-  messageDiv.style.cssText = `
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
-    text-align: center;
-    padding: 20px;
-  `;
-  messageDiv.textContent = 'Bonjour Mohamed';
-  
-  kinfopaneltousContent.appendChild(messageDiv);
-}
-
-// === SUPPRESSION DES TOOLTIPS ===
-function removeAllTooltips() {
-  const elements = document.querySelectorAll('[title]');
-  elements.forEach(el => {
-    if (el.title && el.title !== '') {
-      el.setAttribute('data-original-title', el.title);
-      el.removeAttribute('title');
-    }
-  });
-  
-  const ariaElements = document.querySelectorAll('[aria-label]');
-  ariaElements.forEach(el => {
-    el.setAttribute('data-original-aria-label', el.getAttribute('aria-label'));
-    el.removeAttribute('aria-label');
-  });
-  
-  document.addEventListener('mouseover', function(e) {
-    if (e.target.hasAttribute('title') || e.target.hasAttribute('aria-label')) {
-      e.stopPropagation();
-    }
-  }, true);
-}
-
-// === CHARGEMENT DES KINFOPANELTOUS POUR LES ACTUALITÉS ===
-function loadKinfopaneltousNews(asset) {
-  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-  if (!kinfopaneltousContent) return;
-  
-  kinfopaneltousContent.innerHTML = '';
-  
-  const loaderDiv = document.createElement('div');
-  loaderDiv.className = 'kinfopaneltous-loader';
-  loaderDiv.textContent = 'Loading...';
-  kinfopaneltousContent.appendChild(loaderDiv);
-  
-  const widgetDiv = document.createElement('div');
-  widgetDiv.className = 'tradingview-kinfopaneltous-news';
-  widgetDiv.id = 'tradingview_kinfopaneltous_news';
-  
-  setTimeout(() => {
-    kinfopaneltousContent.removeChild(loaderDiv);
-    kinfopaneltousContent.appendChild(widgetDiv);
-    
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
-    script.async = true;
-    
-    script.textContent = JSON.stringify({
-      "feedMode": "symbol",
-      "symbol": asset.tradingViewSymbol,
-      "isTransparent": true,
-      "displayMode": "compact",
-      "width": "250",
-      "height": "400",
-      "colorTheme": "dark",
-      "locale": "fr",
-      "utm_source": "tradingview.com",
-      "utm_medium": "widget",
-      "utm_campaign": "timeline",
-      "noReferrer": true,
-      "showSymbolLogo": false,
-      "fontSize": "small",
-      "textColor": "#ffffff"
-    });
-    
-    widgetDiv.appendChild(script);
-    
-    setTimeout(removeAllTooltips, 1500);
-  }, 500);
-}
-
-// === GESTION DU PANEL INFO EN FONCTION DE L'ÉTAT ===
 function updatePanelInfo() {
   const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
   if (!kinfopaneltousContainer) return;
@@ -553,6 +781,7 @@ function updatePanelInfo() {
   // Si Selected View est ouvert, afficher les news
   if (window.isInSelectedView && window.selectedAsset) {
     loadKinfopaneltousNews(window.selectedAsset);
+    stopCarousel();
   } 
   // Sinon, afficher selon la page active
   else {
@@ -560,13 +789,21 @@ function updatePanelInfo() {
       // Toujours charger les données à jour pour le menu 4
       getMoneyManagementData();
       showResultPanel();
+      stopCarousel();
     } else {
-      showDefaultMessage();
+      // Pour les autres menus, afficher le carrousel TradingView
+      if (tradingViewMarkets.length > 0) {
+        loadTradingViewWidget(tradingViewMarkets[currentMarketIndex]);
+        startCarousel();
+      }
     }
   }
 }
 
-// === DÉTECTION DE LA PAGE ACTIVE ===
+// ============================================
+// DÉTECTION DE LA PAGE ACTIVE
+// ============================================
+
 function updateCurrentMenuPage() {
   const megaBox = document.getElementById('megaBox');
   if (!megaBox) return;
@@ -590,6 +827,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialiser les boutons monthly/yearly par défaut
   resultPanelData.currentPeriod = 'monthly';
+  
+  // Initialiser l'index du marché
+  currentMarketIndex = 0;
   
   // Détecter la page initiale
   updateCurrentMenuPage();
@@ -630,9 +870,31 @@ document.addEventListener('DOMContentLoaded', function() {
       attributeFilter: ['class']
     });
   }
+  
+  // Gérer la visibilité de la page pour arrêter/démarrer le carrousel
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      stopCarousel();
+    } else {
+      const megaBox = document.getElementById('megaBox');
+      const isMenu4 = megaBox && megaBox.classList.contains('menu-4');
+      
+      if (!window.isInSelectedView && !isMenu4 && tradingViewMarkets.length > 0) {
+        startCarousel();
+      }
+    }
+  });
 });
 
-// Exposer les fonctions globalement
+// ============================================
+// EXPOSITION DES FONCTIONS GLOBALES
+// ============================================
+
 window.showResultPanel = showResultPanel;
 window.forceUpdateResultPanel = forceUpdateResultPanel;
 window.getMoneyManagementData = getMoneyManagementData;
+window.loadTradingViewWidget = loadTradingViewWidget;
+window.showNextMarket = showNextMarket;
+window.showPreviousMarket = showPreviousMarket;
+window.startCarousel = startCarousel;
+window.stopCarousel = stopCarousel;

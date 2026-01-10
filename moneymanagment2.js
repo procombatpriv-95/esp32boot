@@ -753,58 +753,49 @@
                 }
             }
             
-// Dans la fonction addTransaction() du money-management, ajoutez cette ligne à la fin :
-
-function addTransaction() {
-    console.log("Bouton Add Transaction cliqué");
-    
-    const amount = parseFloat(amountInput.value);
-    const description = descriptionInput.value.trim();
-    const date = dateInput.value;
-    const type = transactionTypeSelect.value;
-    const category = categorySelect.value;
-    
-    if (!amount || amount <= 0) {
-        alert('Please enter a valid amount');
-        return;
+            function addTransaction() {
+                const amount = parseFloat(amountInput.value);
+                const description = descriptionInput.value.trim();
+                const date = dateInput.value;
+                const type = transactionTypeSelect.value;
+                const category = categorySelect.value;
+                
+                if (!amount || amount <= 0) {
+                    alert('Please enter a valid amount');
+                    return;
+                }
+                
+                if (!description) {
+                    alert('Please enter a description');
+                    return;
+                }
+                
+                if (!date) {
+                    alert('Please select a date');
+                    return;
+                }
+                
+                const transaction = {
+                    id: Date.now(),
+                    amount: amount,
+                    category: category,
+                    description: description,
+                    date: date,
+                    type: type,
+                    timestamp: new Date().getTime()
+                };
+                
+                transactions.push(transaction);
+                updateDashboard();
+                
+    if (window.triggerResultPanelUpdate) {
+        setTimeout(() => window.triggerResultPanelUpdate(), 100);
     }
-    
-    if (!description) {
-        alert('Please enter a description');
-        return;
-    }
-    
-    if (!date) {
-        alert('Please select a date');
-        return;
-    }
-    
-    const transaction = {
-        id: Date.now(),
-        amount: amount,
-        category: category,
-        description: description,
-        date: date,
-        type: type,
-        timestamp: new Date().getTime()
-    };
-    
-    transactions.push(transaction);
-    saveData();
-    updateDashboard();
     
     amountInput.value = '';
     descriptionInput.value = '';
-    
-    console.log('Transaction added successfully!');
-    
-    // AJOUTEZ CETTE LIGNE POUR DÉCLENCHER LA MISE À JOUR DU PANEL RÉSULTAT
-    if (window.forceUpdateResultPanel) {
-        setTimeout(() => {
-            window.forceUpdateResultPanel();
-        }, 500);
-    }
 }
+            }
             
             function setGoal() {
                 const amount = parseFloat(goalAmountInput.value);

@@ -224,14 +224,6 @@ function getMoneyManagementData(period = null) {
   }
 }
 
-// Fonction pour forcer la mise à jour du panel résultat
-function forceUpdateResultPanel() {
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    getMoneyManagementData();
-    showResultPanel();
-  }
-}
-
 // Afficher le panel résultat
 function showResultPanel() {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
@@ -332,14 +324,193 @@ function showResultPanel() {
       const period = this.getAttribute('data-period');
       resultPanelData.currentPeriod = period;
       
-      // Recharger les données avec la nouvelle période
+      // Mettre à jour immédiatement avec la nouvelle période
       getMoneyManagementData(period);
-      
-      // Mettre à jour immédiatement
       showResultPanel();
     });
   });
 }
+
+// ============================================
+// SYSTÈME DE SURVEILLANCE EN TEMPS RÉEL
+// ============================================
+
+// Stocker le dernier état connu des données
+let lastTransactionCount = 0;
+let lastTransactionHash = '';
+let lastGoalHash = '';
+let autoUpdateInterval = null;
+
+// Fonction pour calculer un hash simple des transactions
+function calculateTransactionHash() {
+  try {
+    const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
+    // Créer un hash simple basé sur le nombre et le montant total
+    let hash = transactions.length.toString();
+    let totalAmount = 0;
+    transactions.forEach(t => {
+      totalAmount += t.amount;
+      hash += t.id + t.amount + t.type;
+    });
+    return hash + totalAmount.toString();
+  } catch (e) {
+    return '';
+  }
+}
+
+// Fonction pour calculer un hash simple des objectifs
+function calculateGoalHash() {
+  try {
+    const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
+    const yearlyGoal = localStorage.getItem('moneyManagerYearlyGoal') || '0';
+    return JSON.stringify(monthlyGoals) + yearlyGoal;
+  } catch (e) {
+    return '';
+  }
+}
+
+// Fonction pour vérifier les changements et mettre à jour
+function checkForUpdates() {
+  // Vérifier si nous sommes dans le menu 4 et pas en mode selected view
+  if (window.currentMenuPage !== 'menu-4' || window.isInSelectedView) {
+    return;
+  }
+  
+  // Calculer les hashs actuels
+  const currentTransactionHash = calculateTransactionHash();
+  const currentGoalHash = calculateGoalHash();
+  
+  // Vérifier si quelque chose a changé
+  if (currentTransactionHash !== lastTransactionHash || currentGoalHash !== lastGoalHash) {
+    console.log('Changement détecté, mise à jour du panel...');
+    
+    // Mettre à jour les hashs
+    lastTransactionHash = currentTransactionHash;
+    lastGoalHash = currentGoalHash;
+    
+    // Mettre à jour les données
+    getMoneyManagementData();
+    
+    // Mettre à jour l'affichage
+    showResultPanel();
+    
+    // Forcer un reflow pour s'assurer que l'affichage est actualisé
+    const panel = document.querySelector('.kinfopaneltous-container');
+    if (panel) {
+      panel.style.display = 'none';
+      panel.offsetHeight; // Force reflow
+      panel.style.display = 'flex';
+    }
+  }
+}
+
+// Démarrer la surveillance automatique
+function startAutoUpdate() {
+  // Initialiser les hashs
+  lastTransactionHash = calculateTransactionHash();
+  lastGoalHash = calculateGoalHash();
+  
+  // Vérifier toutes les 500ms (très réactif)
+  if (autoUpdateInterval) {
+    clearInterval(autoUpdateInterval);
+  }
+  
+  autoUpdateInterval = setInterval(checkForUpdates, 500);
+  
+  console.log('Surveillance automatique démarrée');
+}
+
+// Arrêter la surveillance
+function stopAutoUpdate() {
+  if (autoUpdateInterval) {
+    clearInterval(autoUpdateInterval);
+    autoUpdateInterval = null;
+  }
+}
+
+// ============================================
+// SURCHARGE DU LOCALSTORAGE POUR DÉTECTION IMMÉDIATE
+// ============================================
+
+// Surcharger localStorage.setItem pour détecter les changements immédiatement
+const originalSetItem = localStorage.setItem;
+localStorage.setItem = function(key, value) {
+  // Appeler la méthode originale
+  originalSetItem.apply(this, arguments);
+  
+  // Vérifier si c'est une clé du money management
+  if (key && key.includes('moneyManager')) {
+    console.log(`Changement détecté dans localStorage: ${key}`);
+    
+    // Mettre à jour immédiatement si dans le menu 4
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      setTimeout(() => {
+        getMoneyManagementData();
+        showResultPanel();
+      }, 100);
+    }
+  }
+};
+
+// Surcharger localStorage.removeItem
+const originalRemoveItem = localStorage.removeItem;
+localStorage.removeItem = function(key) {
+  originalRemoveItem.apply(this, arguments);
+  
+  if (key && key.includes('moneyManager')) {
+    console.log(`Suppression détectée dans localStorage: ${key}`);
+    
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      setTimeout(() => {
+        getMoneyManagementData();
+        showResultPanel();
+      }, 100);
+    }
+  }
+};
+
+// Surcharger localStorage.clear
+const originalClear = localStorage.clear;
+localStorage.clear = function() {
+  originalClear.apply(this, arguments);
+  
+  console.log('localStorage effacé');
+  
+  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+    setTimeout(() => {
+      getMoneyManagementData();
+      showResultPanel();
+    }, 100);
+  }
+};
+
+// ============================================
+// ÉVÉNEMENTS GLOBAUX POUR LA MISE À JOUR
+// ============================================
+
+// Écouter les événements storage (pour les changements depuis d'autres onglets)
+window.addEventListener('storage', function(e) {
+  if (e.key && e.key.includes('moneyManager')) {
+    console.log(`Événement storage détecté: ${e.key}`);
+    
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      setTimeout(() => {
+        getMoneyManagementData();
+        showResultPanel();
+      }, 100);
+    }
+  }
+});
+
+// Créer un événement personnalisé pour les mises à jour
+window.addEventListener('transactionUpdated', function() {
+  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+    setTimeout(() => {
+      getMoneyManagementData();
+      showResultPanel();
+    }, 100);
+  }
+});
 
 // ============================================
 // CONFIGURATION DES ACTIFS ET TRADINGVIEW
@@ -757,18 +928,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (savedState && savedState.symbol === symbol) {
                 widgetConfig.studies_overrides = savedState.studies;
             } else {
-                widgetConfig.studies = ["RSI@tv-basicstudies", "VWAP@tv-basicstudies"];
+                widgetConfig.studies = ["RSI@tv-basicstudies", "EMA@tv-basicstudies"];
                 widgetConfig.studies_overrides = {
                     "volume.volume.color.0": "rgba(0, 0, 0, 0)",
                     "volume.volume.color.1": "rgba(0, 0, 0, 0)",
                     "RSI.rsi.linewidth": 2,
                     "RSI.rsi.period": 14,
                     "RSI.rsi.plottype": "line",
-                    "VWAP.vwap.color": "#FF6B00",
-                    "VWAP.vwap.linewidth": 2,
-                    "VWAP.vwap.period": 50,
-                    "VWAP.vwap.plottype": "line",
-                    "VWAP.vwap.transparency": 0
+                    "EMA.ema.color": "#FF6B00",
+                    "EMA.ema.linewidth": 2,
+                    "EMA.ema.period": 50,
+                    "EMA.ema.plottype": "line",
+                    "EMA.ema.transparency": 0
                 };
             }
         }
@@ -951,50 +1122,45 @@ document.addEventListener('DOMContentLoaded', function() {
     window.selectedTVWidget = selectedTVWidget;
     window.isInSelectedView = isInSelectedView;
     window.currentMenuPage = currentMenuPage;
-    window.forceUpdateResultPanel = forceUpdateResultPanel;
+    window.getMoneyManagementData = getMoneyManagementData;
+    window.showResultPanel = showResultPanel;
     
     // ============================================
-    // SURVEILLANCE DES CHANGEMENTS EN TEMPS RÉEL
+    // DÉMARRER LA SURVEILLANCE AUTOMATIQUE
     // ============================================
     
-    // Surveiller les changements dans le localStorage
-    window.addEventListener('storage', function(e) {
-        if (e.key === 'moneyManagerTransactions' || 
-            e.key === 'moneyManagerGoals' || 
-            e.key === 'moneyManagerYearlyGoal') {
-            forceUpdateResultPanel();
-        }
-    });
-    
-    // Créer un observer pour surveiller les changements dans le DOM du money management
-    const observeMoneyManagementChanges = () => {
-        const moneyManagementContainer = document.getElementById('menu4Content');
-        if (moneyManagementContainer) {
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    // Si des nœuds sont ajoutés ou si des attributs changent
-                    if (mutation.type === 'childList' || mutation.type === 'attributes') {
-                        // Attendre un court instant pour que les données soient sauvegardées
-                        setTimeout(forceUpdateResultPanel, 100);
-                    }
-                });
-            });
-            
-            observer.observe(moneyManagementContainer, {
-                childList: true,
-                subtree: true,
-                attributes: true
-            });
-        }
-    };
-    
-    // Démarrer l'observation après un délai
-    setTimeout(observeMoneyManagementChanges, 2000);
-    
-    // Mettre à jour toutes les 2 secondes pour être sûr (fallback)
-    setInterval(() => {
-        if (currentMenuPage === 'menu-4' && !isInSelectedView) {
-            forceUpdateResultPanel();
-        }
-    }, 2000);
+    // Démarrer la surveillance immédiatement
+    setTimeout(() => {
+        startAutoUpdate();
+        
+        // Vérifier toutes les 2 secondes en backup
+        setInterval(() => {
+            if (currentMenuPage === 'menu-4' && !isInSelectedView) {
+                getMoneyManagementData();
+                showResultPanel();
+            }
+        }, 2000);
+    }, 1000);
+});
+
+// Polling global de secours toutes les secondes
+setInterval(() => {
+  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+    if (window.getMoneyManagementData && window.showResultPanel) {
+      window.getMoneyManagementData();
+      window.showResultPanel();
+    }
+  }
+}, 1000);
+
+// Mettre à jour immédiatement au chargement de la page
+window.addEventListener('load', function() {
+  setTimeout(() => {
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      if (window.getMoneyManagementData && window.showResultPanel) {
+        window.getMoneyManagementData();
+        window.showResultPanel();
+      }
+    }
+  }, 500);
 });

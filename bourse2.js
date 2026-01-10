@@ -1,3 +1,7 @@
+// ============================================
+// GÉOLOCALISATION ET FUSEAU HORAIRE
+// ============================================
+
 async function getAddress(lat, lon) {
   try {
     const res = await fetch(
@@ -101,266 +105,39 @@ let resultPanelData = {
   currentPeriod: 'monthly',
   monthlyGoal: 0,
   yearlyGoal: 0,
-  monthlyBalance: 0,
-  yearlyBalance: 0,
-  highestTransaction: { amount: 0, category: '', description: '' },
-  lowestTransaction: { amount: 0, category: '', description: '' }
+  monthlyBalance: 0,  // CHANGÉ: income → balance
+  yearlyBalance: 0,   // CHANGÉ: income → balance
+  monthlyIncome: 0,
+  monthlyExpenses: 0,
+  yearlyIncome: 0,
+  yearlyExpenses: 0,
+  highestTransaction: { amount: 0, category: '', type: '' },
+  lowestTransaction: { amount: 0, category: '', type: '' },
+  hasTransactions: false
 };
-
-// ============================================
-// CARROUSEL TRADINGVIEW - DIFFÉRENTS MARCHÉS
-// ============================================
-
-// Configuration des marchés à afficher dans le carrousel
-const tradingViewMarkets = [
-  {
-    name: "CAC 40",
-    symbol: "CAC40",
-    tradingViewSymbol: "FR40",
-    description: "Indice français",
-    color: "#4169E1"
-  },
-  {
-    name: "S&P 500",
-    symbol: "SPX",
-    tradingViewSymbol: "SPX",
-    description: "Indice américain",
-    color: "#32CD32"
-  },
-  {
-    name: "DAX",
-    symbol: "DAX",
-    tradingViewSymbol: "DE40",
-    description: "Indice allemand",
-    color: "#FFD700"
-  },
-  {
-    name: "NASDAQ",
-    symbol: "NASDAQ",
-    tradingViewSymbol: "NAS100",
-    description: "Indice technologique",
-    color: "#00BFFF"
-  },
-  {
-    name: "FTSE 100",
-    symbol: "FTSE",
-    tradingViewSymbol: "UK100",
-    description: "Indice britannique",
-    color: "#FF4500"
-  },
-  {
-    name: "NIKKEI 225",
-    symbol: "NIKKEI",
-    tradingViewSymbol: "JP225",
-    description: "Indice japonais",
-    color: "#FF69B4"
-  }
-];
-
-// Index courant du carrousel
-let currentMarketIndex = 0;
-let carouselInterval = null;
-
-// Fonction pour charger un widget TradingView pour un marché spécifique
-function loadTradingViewWidget(market) {
-  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-  if (!kinfopaneltousContent) return;
-  
-  kinfopaneltousContent.innerHTML = '';
-  
-  // Créer le conteneur du widget
-  const widgetContainer = document.createElement('div');
-  widgetContainer.className = 'tradingview-widget-container carousel-widget';
-  widgetContainer.style.cssText = `
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  `;
-  
-  // En-tête du marché
-  const marketHeader = document.createElement('div');
-  marketHeader.className = 'market-header';
-  marketHeader.style.cssText = `
-    padding: 15px;
-    background: linear-gradient(135deg, ${market.color}40, ${market.color}20);
-    border-radius: 8px 8px 0 0;
-    margin-bottom: 10px;
-  `;
-  
-  marketHeader.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <h3 style="margin: 0; color: white; font-size: 18px;">${market.name}</h3>
-        <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.8); font-size: 12px;">${market.description}</p>
-      </div>
-      <div style="font-size: 24px; color: white; opacity: 0.8;">📊</div>
-    </div>
-  `;
-  
-  widgetContainer.appendChild(marketHeader);
-  
-  // Conteneur du graphique
-  const chartContainer = document.createElement('div');
-  chartContainer.id = `tradingview_${market.symbol.toLowerCase()}`;
-  chartContainer.style.cssText = `
-    flex: 1;
-    min-height: 250px;
-    border-radius: 0 0 8px 8px;
-    overflow: hidden;
-  `;
-  
-  widgetContainer.appendChild(chartContainer);
-  
-  // Contrôles du carrousel
-  const carouselControls = document.createElement('div');
-  carouselControls.className = 'carousel-controls';
-  carouselControls.style.cssText = `
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    padding: 10px;
-    background: rgba(30, 30, 40, 0.8);
-    border-radius: 8px;
-    margin-top: 10px;
-  `;
-  
-  // Boutons de navigation
-  const prevBtn = document.createElement('button');
-  prevBtn.innerHTML = '◀';
-  prevBtn.style.cssText = `
-    background: ${market.color};
-    border: none;
-    color: white;
-    padding: 8px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: opacity 0.3s;
-  `;
-  prevBtn.onmouseover = () => prevBtn.style.opacity = '0.8';
-  prevBtn.onmouseout = () => prevBtn.style.opacity = '1';
-  prevBtn.onclick = () => showPreviousMarket();
-  
-  const nextBtn = document.createElement('button');
-  nextBtn.innerHTML = '▶';
-  nextBtn.style.cssText = `
-    background: ${market.color};
-    border: none;
-    color: white;
-    padding: 8px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: opacity 0.3s;
-  `;
-  nextBtn.onmouseover = () => nextBtn.style.opacity = '0.8';
-  nextBtn.onmouseout = () => nextBtn.style.opacity = '1';
-  nextBtn.onclick = () => showNextMarket();
-  
-  // Indicateur de position
-  const positionIndicator = document.createElement('div');
-  positionIndicator.className = 'position-indicator';
-  positionIndicator.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  `;
-  
-  tradingViewMarkets.forEach((_, index) => {
-    const dot = document.createElement('span');
-    dot.style.cssText = `
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: ${index === currentMarketIndex ? market.color : 'rgba(255,255,255,0.3)'};
-      cursor: pointer;
-      transition: background 0.3s;
-    `;
-    dot.onclick = () => {
-      currentMarketIndex = index;
-      loadTradingViewWidget(tradingViewMarkets[currentMarketIndex]);
-      updatePositionIndicator();
-    };
-    positionIndicator.appendChild(dot);
-  });
-  
-  carouselControls.appendChild(prevBtn);
-  carouselControls.appendChild(positionIndicator);
-  carouselControls.appendChild(nextBtn);
-  
-  widgetContainer.appendChild(carouselControls);
-  kinfopaneltousContent.appendChild(widgetContainer);
-  
-  // Charger le widget TradingView
-  setTimeout(() => {
-    new TradingView.widget({
-      "container_id": `tradingview_${market.symbol.toLowerCase()}`,
-      "width": "100%",
-      "height": "250",
-      "symbol": market.tradingViewSymbol,
-      "interval": "D",
-      "timezone": window.appTimezone || "Europe/London",
-      "theme": "dark",
-      "style": "1",
-      "locale": "fr",
-      "toolbar_bg": "#f1f3f6",
-      "enable_publishing": false,
-      "hide_volume": true,
-      "save_image": false,
-      "details": false,
-      "studies": [],
-      "show_popup_button": false,
-      "popup_width": "1000",
-      "popup_height": "650"
-    });
-  }, 100);
-  
-  // Mettre à jour l'indicateur de position
-  function updatePositionIndicator() {
-    const dots = positionIndicator.querySelectorAll('span');
-    dots.forEach((dot, index) => {
-      dot.style.background = index === currentMarketIndex ? market.color : 'rgba(255,255,255,0.3)';
-    });
-  }
-  
-  updatePositionIndicator();
-}
-
-// Fonction pour afficher le marché suivant
-function showNextMarket() {
-  currentMarketIndex = (currentMarketIndex + 1) % tradingViewMarkets.length;
-  loadTradingViewWidget(tradingViewMarkets[currentMarketIndex]);
-}
-
-// Fonction pour afficher le marché précédent
-function showPreviousMarket() {
-  currentMarketIndex = (currentMarketIndex - 1 + tradingViewMarkets.length) % tradingViewMarkets.length;
-  loadTradingViewWidget(tradingViewMarkets[currentMarketIndex]);
-}
-
-// Démarrer le carrousel automatique
-function startCarousel() {
-  if (carouselInterval) clearInterval(carouselInterval);
-  
-  carouselInterval = setInterval(() => {
-    showNextMarket();
-  }, 10000); // Change toutes les 10 secondes
-}
-
-// Arrêter le carrousel
-function stopCarousel() {
-  if (carouselInterval) {
-    clearInterval(carouselInterval);
-    carouselInterval = null;
-  }
-}
 
 // ============================================
 // FONCTIONS POUR LE PANEL RESULTAT (MENU 4)
 // ============================================
 
-// Fonction pour récupérer et calculer les données du money management avec BALANCE
+// Fonction pour calculer la balance (revenus - dépenses)
+function calculateBalance(transactions) {
+  const income = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+  
+  const expenses = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+  
+  return {
+    income: income,
+    expenses: expenses,
+    balance: income - expenses
+  };
+}
+
+// Fonction pour récupérer et calculer les données du money management
 function getMoneyManagementData(period = null) {
   try {
     // Utiliser la période passée en paramètre ou celle stockée
@@ -368,6 +145,9 @@ function getMoneyManagementData(period = null) {
     
     // Récupérer les transactions
     const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
+    
+    // Vérifier s'il y a des transactions
+    resultPanelData.hasTransactions = transactions.length > 0;
     
     // Récupérer les objectifs
     const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
@@ -394,73 +174,68 @@ function getMoneyManagementData(period = null) {
       return tDate.getFullYear() === currentYear;
     });
     
-    // Calculer la BALANCE (revenus - dépenses) pour chaque période
-    const monthlyBalance = monthlyTransactions.reduce((sum, t) => {
-      return t.type === 'income' ? sum + t.amount : sum - t.amount;
-    }, 0);
-    
-    const yearlyBalance = yearlyTransactions.reduce((sum, t) => {
-      return t.type === 'income' ? sum + t.amount : sum - t.amount;
-    }, 0);
+    // Calculer les balances
+    const monthlyData = calculateBalance(monthlyTransactions);
+    const yearlyData = calculateBalance(yearlyTransactions);
     
     // Trouver les transactions les plus hautes et basses pour CHAQUE période
-    let monthlyHighest = { amount: 0, category: '', description: '' };
-    let monthlyLowest = { amount: 0, category: '', description: '' };
-    let yearlyHighest = { amount: 0, category: '', description: '' };
-    let yearlyLowest = { amount: 0, category: '', description: '' };
+    let monthlyHighest = { amount: 0, category: '', type: '' };
+    let monthlyLowest = { amount: 0, category: '', type: '' };
+    let yearlyHighest = { amount: 0, category: '', type: '' };
+    let yearlyLowest = { amount: 0, category: '', type: '' };
     
     // Pour le mois
     if (monthlyTransactions.length > 0) {
-      const allMonthlyAmounts = monthlyTransactions.map(t => ({
-        ...t,
-        signedAmount: t.type === 'income' ? t.amount : -t.amount
-      }));
+      const monthlyIncomes = monthlyTransactions.filter(t => t.type === 'income');
+      const monthlyExpenses = monthlyTransactions.filter(t => t.type === 'expense');
       
-      if (allMonthlyAmounts.length > 0) {
-        monthlyHighest = allMonthlyAmounts.reduce((max, t) => 
-          t.signedAmount > max.signedAmount ? t : max
+      if (monthlyIncomes.length > 0) {
+        monthlyHighest = monthlyIncomes.reduce((max, t) => 
+          parseFloat(t.amount) > parseFloat(max.amount) ? t : max
         );
-        monthlyLowest = allMonthlyAmounts.reduce((min, t) => 
-          t.signedAmount < min.signedAmount ? t : min
+      }
+      
+      if (monthlyExpenses.length > 0) {
+        monthlyLowest = monthlyExpenses.reduce((min, t) => 
+          parseFloat(t.amount) < parseFloat(min.amount) ? t : min
         );
+        // Pour les dépenses, le "lowest" est la plus petite valeur (négative)
+        monthlyLowest.amount = Math.abs(parseFloat(monthlyLowest.amount));
       }
     }
     
     // Pour l'année
     if (yearlyTransactions.length > 0) {
-      const allYearlyAmounts = yearlyTransactions.map(t => ({
-        ...t,
-        signedAmount: t.type === 'income' ? t.amount : -t.amount
-      }));
+      const yearlyIncomes = yearlyTransactions.filter(t => t.type === 'income');
+      const yearlyExpenses = yearlyTransactions.filter(t => t.type === 'expense');
       
-      if (allYearlyAmounts.length > 0) {
-        yearlyHighest = allYearlyAmounts.reduce((max, t) => 
-          t.signedAmount > max.signedAmount ? t : max
+      if (yearlyIncomes.length > 0) {
+        yearlyHighest = yearlyIncomes.reduce((max, t) => 
+          parseFloat(t.amount) > parseFloat(max.amount) ? t : max
         );
-        yearlyLowest = allYearlyAmounts.reduce((min, t) => 
-          t.signedAmount < min.signedAmount ? t : min
+      }
+      
+      if (yearlyExpenses.length > 0) {
+        yearlyLowest = yearlyExpenses.reduce((min, t) => 
+          parseFloat(t.amount) < parseFloat(min.amount) ? t : min
         );
+        yearlyLowest.amount = Math.abs(parseFloat(yearlyLowest.amount));
       }
     }
     
     // Mettre à jour les données
     resultPanelData.monthlyGoal = monthlyGoal;
     resultPanelData.yearlyGoal = yearlyGoal;
-    resultPanelData.monthlyBalance = monthlyBalance;
-    resultPanelData.yearlyBalance = yearlyBalance;
+    resultPanelData.monthlyBalance = monthlyData.balance;  // CHANGÉ
+    resultPanelData.yearlyBalance = yearlyData.balance;    // CHANGÉ
+    resultPanelData.monthlyIncome = monthlyData.income;
+    resultPanelData.monthlyExpenses = monthlyData.expenses;
+    resultPanelData.yearlyIncome = yearlyData.income;
+    resultPanelData.yearlyExpenses = yearlyData.expenses;
     resultPanelData.highestTransaction = currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest;
     resultPanelData.lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
-    resultPanelData.currentPeriod = currentPeriod;
     
-    return {
-      monthlyGoal,
-      yearlyGoal,
-      monthlyBalance,
-      yearlyBalance,
-      highestTransaction: currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest,
-      lowestTransaction: currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest,
-      currentPeriod
-    };
+    return resultPanelData;
     
   } catch (e) {
     console.error('Erreur lors de la récupération des données:', e);
@@ -476,12 +251,6 @@ function forceUpdateResultPanel() {
   }
 }
 
-// Fonction pour vérifier si le panel résultat est visible
-function isResultPanelVisible() {
-  const megaBox = document.getElementById('megaBox');
-  return megaBox && megaBox.classList.contains('menu-4') && !window.isInSelectedView;
-}
-
 // Afficher le panel résultat
 function showResultPanel() {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
@@ -489,11 +258,23 @@ function showResultPanel() {
   
   kinfopaneltousContent.innerHTML = '';
   
-  const resultPanel = document.createElement('div');
-  resultPanel.className = 'result-panel';
-  
   // Récupérer les données à jour
   const data = getMoneyManagementData();
+  
+  // Si pas de transactions, afficher message
+  if (!data.hasTransactions) {
+    const noDataDiv = document.createElement('div');
+    noDataDiv.className = 'no-data-message';
+    noDataDiv.innerHTML = `
+      <p>Aucune transaction enregistrée</p>
+      <p style="font-size: 12px; margin-top: 10px;">Ajoutez des transactions dans Money Management</p>
+    `;
+    kinfopaneltousContent.appendChild(noDataDiv);
+    return;
+  }
+  
+  const resultPanel = document.createElement('div');
+  resultPanel.className = 'result-panel';
   
   // Déterminer l'objectif et la balance actuels selon la période
   const currentGoal = resultPanelData.currentPeriod === 'monthly' 
@@ -505,18 +286,20 @@ function showResultPanel() {
     : resultPanelData.yearlyBalance;
   
   // Calculer le pourcentage (max 100%, min 0%)
-  // Si le goal est 0, le pourcentage est 0
   let percentage = 0;
   if (currentGoal > 0) {
-    percentage = Math.min(Math.max((currentBalance / currentGoal) * 100, 0), 100);
+    percentage = (currentBalance / currentGoal) * 100;
+    percentage = Math.max(0, Math.min(percentage, 100));
+  } else if (currentBalance > 0) {
+    // Si pas d'objectif mais une balance positive, afficher 100%
+    percentage = 100;
   }
   
   // Déterminer si le goal est atteint ou dépassé
   const isGoalReached = percentage >= 100;
   
-  // Pour l'affichage du montant sur la barre verte - montrer si > 0 et > 10%
-  const showAmountOnBar = percentage > 10 && currentBalance > 0;
-  const showRemainingAmount = !isGoalReached && currentGoal > currentBalance && (currentGoal - currentBalance) > 0;
+  // Pour l'affichage du montant sur la barre verte
+  const showAmountOnBar = percentage > 15;
   
   resultPanel.innerHTML = `
     <div class="period-selector">
@@ -528,20 +311,26 @@ function showResultPanel() {
     
     <div class="progress-section">
       <div class="progress-header">
-        <span class="period-label">${resultPanelData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly'}</span>
+        <span class="period-label">${resultPanelData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly'} Balance</span>
         <span class="percentage-label">${percentage.toFixed(1)}%</span>
       </div>
       
       <div class="progress-bar-container">
         <div class="progress-bar">
-          <div class="progress-filled" style="width: ${percentage}%">
-            ${showAmountOnBar ? `£${Math.abs(currentBalance).toFixed(0)}` : ''}
-          </div>
-          ${showRemainingAmount ? `
-            <div class="progress-remaining">
-              ${percentage < 90 ? `£${Math.max(0, currentGoal - currentBalance).toFixed(0)}` : ''}
+          ${currentGoal > 0 ? `
+            <div class="progress-filled" style="width: ${percentage}%">
+              ${showAmountOnBar ? `£${currentBalance.toFixed(0)}` : ''}
             </div>
-          ` : ''}
+            ${!isGoalReached ? `
+              <div class="progress-remaining">
+                ${percentage < 85 ? `£${Math.max(0, currentGoal - currentBalance).toFixed(0)}` : ''}
+              </div>
+            ` : ''}
+          ` : `
+            <div class="progress-filled" style="width: ${currentBalance > 0 ? '100%' : '0%'}; border-radius: 17.5px;">
+              ${currentBalance > 0 ? `£${currentBalance.toFixed(0)}` : 'No Goal Set'}
+            </div>
+          `}
         </div>
       </div>
     </div>
@@ -549,20 +338,33 @@ function showResultPanel() {
     <div class="indicators-container">
       <div class="indicator-box indicator-highest">
         <div class="indicator-label">
-          <i class="fas fa-arrow-up"></i> Highest
+          <i class="fas fa-arrow-up"></i> Highest Income
         </div>
         <div class="indicator-value">
-          £${Math.abs(resultPanelData.highestTransaction.amount || 0).toFixed(2)}
-          ${resultPanelData.highestTransaction.description ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.highestTransaction.description}</div>` : ''}
+          ${data.highestTransaction.amount > 0 ? `£${parseFloat(data.highestTransaction.amount).toFixed(2)}` : 'N/A'}
+          ${data.highestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${data.highestTransaction.category}</div>` : ''}
         </div>
       </div>
+      
       <div class="indicator-box indicator-lowest">
         <div class="indicator-label">
-          <i class="fas fa-arrow-down"></i> Lowest
+          <i class="fas fa-arrow-down"></i> Lowest Expense
         </div>
         <div class="indicator-value">
-          £${Math.abs(resultPanelData.lowestTransaction.amount || 0).toFixed(2)}
-          ${resultPanelData.lowestTransaction.description ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.lowestTransaction.description}</div>` : ''}
+          ${data.lowestTransaction.amount > 0 ? `£${parseFloat(data.lowestTransaction.amount).toFixed(2)}` : 'N/A'}
+          ${data.lowestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${data.lowestTransaction.category}</div>` : ''}
+        </div>
+      </div>
+      
+      <div class="indicator-box indicator-balance">
+        <div class="indicator-label">
+          <i class="fas fa-scale-balanced"></i> Current Balance
+        </div>
+        <div class="indicator-value">
+          £${currentBalance.toFixed(2)}
+          <div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">
+            ${resultPanelData.currentPeriod === 'monthly' ? 'This Month' : 'This Year'}
+          </div>
         </div>
       </div>
     </div>
@@ -588,313 +390,679 @@ function showResultPanel() {
       // Recharger les données avec la nouvelle période
       getMoneyManagementData(period);
       
-      // Mettre à jour immédiatement
-      showResultPanel();
-    });
-  });
-}
-
-// ============================================
-// CHARGEMENT DES ACTUALITÉS TRADINGVIEW
-// ============================================
-
-function loadKinfopaneltousNews(asset) {
-  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-  if (!kinfopaneltousContent) return;
-  
-  kinfopaneltousContent.innerHTML = '';
-  
-  const loaderDiv = document.createElement('div');
-  loaderDiv.className = 'kinfopaneltous-loader';
-  loaderDiv.textContent = 'Loading...';
-  kinfopaneltousContent.appendChild(loaderDiv);
-  
-  const widgetDiv = document.createElement('div');
-  widgetDiv.className = 'tradingview-kinfopaneltous-news';
-  widgetDiv.id = 'tradingview_kinfopaneltous_news';
-  
-  setTimeout(() => {
-    kinfopaneltousContent.removeChild(loaderDiv);
-    kinfopaneltousContent.appendChild(widgetDiv);
-    
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
-    script.async = true;
-    
-    script.textContent = JSON.stringify({
-      "feedMode": "symbol",
-      "symbol": asset.tradingViewSymbol,
-      "isTransparent": true,
-      "displayMode": "compact",
-      "width": "250",
-      "height": "400",
-      "colorTheme": "dark",
-      "locale": "fr",
-      "utm_source": "tradingview.com",
-      "utm_medium": "widget",
-      "utm_campaign": "timeline",
-      "noReferrer": true,
-      "showSymbolLogo": false,
-      "fontSize": "small",
-      "textColor": "#ffffff"
-    });
-    
-    widgetDiv.appendChild(script);
-    
-    setTimeout(removeAllTooltips, 1500);
-  }, 500);
-}
-
-// ============================================
-// SUPPRESSION DES TOOLTIPS
-// ============================================
-
-function removeAllTooltips() {
-  const elements = document.querySelectorAll('[title]');
-  elements.forEach(el => {
-    if (el.title && el.title !== '') {
-      el.setAttribute('data-original-title', el.title);
-      el.removeAttribute('title');
-    }
-  });
-  
-  const ariaElements = document.querySelectorAll('[aria-label]');
-  ariaElements.forEach(el => {
-    el.setAttribute('data-original-aria-label', el.getAttribute('aria-label'));
-    el.removeAttribute('aria-label');
-  });
-  
-  document.addEventListener('mouseover', function(e) {
-    if (e.target.hasAttribute('title') || e.target.hasAttribute('aria-label')) {
-      e.stopPropagation();
-    }
-  }, true);
-}
-
-// ============================================
-// GESTION DES ÉVÉNEMENTS EN TEMPS RÉEL
-// ============================================
-
-// Écouter les événements personnalisés du money management
-document.addEventListener('moneyManagerUpdated', function() {
-  if (isResultPanelVisible()) {
-    getMoneyManagementData();
-    showResultPanel();
-  }
-});
-
-// Écouter les changements de localStorage
-window.addEventListener('storage', function(e) {
-  if (e.key === 'moneyManagerTransactions' || 
-      e.key === 'moneyManagerGoals' || 
-      e.key === 'moneyManagerYearlyGoal') {
-    if (isResultPanelVisible()) {
+      // Mettre à jour immédiatement avec animation
+      resultPanel.classList.add('updating');
       setTimeout(() => {
-        getMoneyManagementData();
         showResultPanel();
-      }, 100);
-    }
-  }
-});
-
-// Surveiller les changements dans le DOM du money management
-function setupMoneyManagementObserver() {
-  const moneyManagementContainer = document.getElementById('menu4Content');
-  if (moneyManagementContainer) {
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        // Si des boutons sont cliqués dans le money management
-        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-          setTimeout(() => {
-            if (isResultPanelVisible()) {
-              getMoneyManagementData();
-              showResultPanel();
-            }
-          }, 300);
-        }
-      });
+      }, 300);
     });
-    
-    observer.observe(moneyManagementContainer, {
-      childList: true,
-      subtree: true,
-      attributes: false
-    });
-    
-    // Observer également les boutons spécifiques
-    const addTransactionBtn = document.getElementById('addTransactionBtn');
-    const setGoalBtn = document.getElementById('setGoalBtn');
-    const setAllGoalBtn = document.getElementById('setAllGoalBtn');
-    
-    if (addTransactionBtn) {
-      addTransactionBtn.addEventListener('click', function() {
-        setTimeout(() => {
-          if (isResultPanelVisible()) {
-            getMoneyManagementData();
-            showResultPanel();
-          }
-        }, 500);
-      });
-    }
-    
-    if (setGoalBtn) {
-      setGoalBtn.addEventListener('click', function() {
-        setTimeout(() => {
-          if (isResultPanelVisible()) {
-            getMoneyManagementData();
-            showResultPanel();
-          }
-        }, 500);
-      });
-    }
-    
-    if (setAllGoalBtn) {
-      setAllGoalBtn.addEventListener('click', function() {
-        setTimeout(() => {
-          if (isResultPanelVisible()) {
-            getMoneyManagementData();
-            showResultPanel();
-          }
-        }, 500);
-      });
-    }
-  }
+  });
 }
 
 // ============================================
-// GESTION DU PANEL INFO EN FONCTION DE L'ÉTAT
-// ============================================
-
-function updatePanelInfo() {
-  const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
-  if (!kinfopaneltousContainer) return;
-  
-  kinfopaneltousContainer.classList.add('active');
-  
-  // Vérifier si nous sommes dans le menu 4
-  const megaBox = document.getElementById('megaBox');
-  if (!megaBox) return;
-  
-  const isMenu4 = megaBox.classList.contains('menu-4');
-  
-  // Si Selected View est ouvert, afficher les news
-  if (window.isInSelectedView && window.selectedAsset) {
-    loadKinfopaneltousNews(window.selectedAsset);
-    stopCarousel();
-  } 
-  // Sinon, afficher selon la page active
-  else {
-    if (isMenu4) {
-      // Toujours charger les données à jour pour le menu 4
-      getMoneyManagementData();
-      showResultPanel();
-      stopCarousel();
-    } else {
-      // Pour les autres menus, afficher le carrousel TradingView
-      if (tradingViewMarkets.length > 0) {
-        loadTradingViewWidget(tradingViewMarkets[currentMarketIndex]);
-        startCarousel();
-      }
-    }
-  }
-}
-
-// ============================================
-// DÉTECTION DE LA PAGE ACTIVE
-// ============================================
-
-function updateCurrentMenuPage() {
-  const megaBox = document.getElementById('megaBox');
-  if (!megaBox) return;
-  
-  if (megaBox.classList.contains('menu-1')) window.currentMenuPage = 'menu-1';
-  else if (megaBox.classList.contains('menu-2')) window.currentMenuPage = 'menu-2';
-  else if (megaBox.classList.contains('menu-3')) window.currentMenuPage = 'menu-3';
-  else if (megaBox.classList.contains('menu-4')) window.currentMenuPage = 'menu-4';
-  else if (megaBox.classList.contains('menu-5')) window.currentMenuPage = 'menu-5';
-}
-
-// ============================================
-// INITIALISATION AU CHARGEMENT DE LA PAGE
+// CONFIGURATION DES ACTIFS ET TRADINGVIEW
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialiser les variables globales
-  if (!window.currentMenuPage) window.currentMenuPage = 'menu-1';
-  if (!window.isInSelectedView) window.isInSelectedView = false;
-  if (!window.selectedAsset) window.selectedAsset = null;
-  
-  // Initialiser les boutons monthly/yearly par défaut
-  resultPanelData.currentPeriod = 'monthly';
-  
-  // Initialiser l'index du marché
-  currentMarketIndex = 0;
-  
-  // Détecter la page initiale
-  updateCurrentMenuPage();
-  
-  // Mettre à jour le panel info
-  setTimeout(updatePanelInfo, 100);
-  
-  // Configurer l'observateur pour le money management
-  setTimeout(setupMoneyManagementObserver, 1000);
-  
-  // Mettre à jour périodiquement le panel résultat si on est dans le menu 4
-  setInterval(() => {
-    if (isResultPanelVisible()) {
-      getMoneyManagementData();
-      showResultPanel();
+    // Configuration des actifs avec symboles TradingView
+    const assetTypes = {
+        crypto: [
+            {
+                id: 'bitcoin',
+                name: 'Bitcoin (BTC)',
+                symbol: 'BTC',
+                tradingViewSymbol: 'BITSTAMP:BTCUSD',
+                displayName: 'Bitcoin',
+                kinfopaneltousSymbol: 'BTCUSD'
+            },
+            {
+                id: 'litecoin',
+                name: 'Litecoin (LTC)',
+                symbol: 'LTC',
+                tradingViewSymbol: 'BITSTAMP:LTCUSD',
+                displayName: 'Litecoin',
+                kinfopaneltousSymbol: 'LTCUSD'
+            },
+            {
+                id: 'ethereum',
+                name: 'Ethereum (ETH)',
+                symbol: 'ETH',
+                tradingViewSymbol: 'BITSTAMP:ETHUSD',
+                displayName: 'Ethereum',
+                kinfopaneltousSymbol: 'ETHUSD'
+            },
+            {
+                id: 'xrp',
+                name: 'XRP',
+                symbol: 'XRP',
+                tradingViewSymbol: 'BITSTAMP:XRPUSD',
+                displayName: 'XRP',
+                kinfopaneltousSymbol: 'XRPUSD'
+            }
+        ],
+        shares: [
+            {
+               id: 'nasdaq',
+               name: 'NASDAQ Composite',
+               symbol: 'NASDAQ',
+               tradingViewSymbol: 'NASDAQ:IXIC',
+               displayName: 'NASDAQ',
+               kinfopaneltousSymbol: 'NASDAQ:IXIC'
+            },
+            {
+                id: 'apple',
+                name: 'Apple (AAPL)',
+                symbol: 'AAPL',
+                tradingViewSymbol: 'NASDAQ:AAPL',
+                displayName: 'Apple',
+                kinfopaneltousSymbol: 'NASDAQ:AAPL'
+            },
+            {
+                id: 'tesla',
+                name: 'Tesla (TSLA)',
+                symbol: 'TSLA',
+                tradingViewSymbol: 'NASDAQ:TSLA',
+                displayName: 'Tesla',
+                kinfopaneltousSymbol: 'NASDAQ:TSLA'
+            },
+            {
+                id: 'microsoft',
+                name: 'Microsoft (MSFT)',
+                symbol: 'MSFT',
+                tradingViewSymbol: 'NASDAQ:MSFT',
+                displayName: 'Microsoft',
+                kinfopaneltousSymbol: 'NASDAQ:MSFT'
+            }
+        ],
+        commodities: [
+            {
+                id: 'gold',
+                name: 'Gold (XAUUSD)',
+                symbol: 'XAU',
+                tradingViewSymbol: 'OANDA:XAUUSD',
+                displayName: 'Gold',
+                kinfopaneltousSymbol: 'XAUUSD'
+            },
+            {
+                id: 'silver',
+                name: 'Silver (XAGUSD)',
+                symbol: 'XAG',
+                tradingViewSymbol: 'OANDA:XAGUSD',
+                displayName: 'Silver',
+                kinfopaneltousSymbol: 'XAGUSD'
+            },
+            {
+                id: 'platinum',
+                name: 'Platinum (XPTUSD)',
+                symbol: 'XPT',
+                tradingViewSymbol: 'TVC:PLATINUM',
+                displayName: 'Platinum',
+                kinfopaneltousSymbol: 'PLATINUM'
+            },
+            {
+                id: 'oil',
+                name: 'Crude Oil (WTI)',
+                symbol: 'OIL',
+                tradingViewSymbol: 'TVC:USOIL',
+                displayName: 'Crude Oil',
+                kinfopaneltousSymbol: 'USOIL'
+            }
+        ],
+        forex: [
+            {
+                id: 'eurusd',
+                name: 'EUR/USD',
+                symbol: 'EUR',
+                tradingViewSymbol: 'FX_IDC:EURUSD',
+                displayName: 'EUR/USD',
+                kinfopaneltousSymbol: 'EURUSD'
+            },
+            {
+                id: 'gbpusd',
+                name: 'GBP/USD',
+                symbol: 'GBP',
+                tradingViewSymbol: 'FX_IDC:GBPUSD',
+                displayName: 'GBP/USD',
+                kinfopaneltousSymbol: 'GBPUSD'
+            },
+            {
+                id: 'audusd',
+                name: 'AUD/USD',
+                symbol: 'AUD',
+                tradingViewSymbol: 'FX_IDC:AUDUSD',
+                displayName: 'AUD/USD',
+                kinfopaneltousSymbol: 'AUDUSD'
+            },
+            {
+                id: 'nzdusd',
+                name: 'NZD/USD',
+                symbol: 'NZD',
+                tradingViewSymbol: 'FX_IDC:NZDUSD',
+                displayName: 'NZD/USD',
+                kinfopaneltousSymbol: 'NZDUSD'
+            }
+        ]
+    };
+
+    let currentAssetType = 'crypto';
+    let currentAssets = assetTypes.crypto;
+    let selectedAsset = null;
+    let tvWidgets = {};
+    let selectedTVWidget = null;
+    let chartStates = {};
+    let currentKinfopaneltousWidget = null;
+    let isInSelectedView = false;
+    let currentMenuPage = 'menu-1';
+    
+    // Fuseau horaire par défaut
+    if (!window.appTimezone) {
+        window.appTimezone = "Europe/London";
     }
-  }, 3000);
-  
-  // Surveiller les changements de menu
-  const megaBox = document.getElementById('megaBox');
-  if (megaBox) {
-    const observerMenuChange = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        if (mutation.attributeName === 'class') {
-          // Mettre à jour la page active
-          updateCurrentMenuPage();
-          
-          // Mettre à jour le panel info seulement si Selected View n'est PAS actif
-          if (!window.isInSelectedView) {
-            updatePanelInfo();
-          }
+
+    // Éléments du DOM
+    const carousel = document.getElementById('mainCarousel');
+    const carouselScene = document.getElementById('carouselScene');
+    const selectedView = document.getElementById('selectedView');
+    const backBtn = document.getElementById('backBtn');
+    const loader = document.getElementById('loader');
+    const menuSections = document.querySelectorAll('.menu-section');
+    const sideMenu = document.getElementById('sideMenu');
+    const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
+    const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+    const megaBox = document.getElementById('megaBox');
+
+    // === SUPPRESSION DES TOOLTIPS ===
+    function removeAllTooltips() {
+        const elements = document.querySelectorAll('[title]');
+        elements.forEach(el => {
+            if (el.title && el.title !== '') {
+                el.setAttribute('data-original-title', el.title);
+                el.removeAttribute('title');
+            }
+        });
+        
+        const ariaElements = document.querySelectorAll('[aria-label]');
+        ariaElements.forEach(el => {
+            el.setAttribute('data-original-aria-label', el.getAttribute('aria-label'));
+            el.removeAttribute('aria-label');
+        });
+        
+        document.addEventListener('mouseover', function(e) {
+            if (e.target.hasAttribute('title') || e.target.hasAttribute('aria-label')) {
+                e.stopPropagation();
+            }
+        }, true);
+    }
+
+    // === AFFICHER LE MESSAGE PAR DÉFAUT (Menu 1) ===
+    function showDefaultMessage() {
+        kinfopaneltousContent.innerHTML = '';
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'kinfopaneltous-default';
+        messageDiv.style.cssText = `
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+        `;
+        messageDiv.textContent = 'Bonjour Mohamed';
+        
+        kinfopaneltousContent.appendChild(messageDiv);
+    }
+
+    // === CHARGEMENT DES KINFOPANELTOUS POUR LES ACTUALITÉS ===
+    function loadKinfopaneltousNews(asset) {
+        kinfopaneltousContent.innerHTML = '';
+        
+        const loaderDiv = document.createElement('div');
+        loaderDiv.className = 'kinfopaneltous-loader';
+        loaderDiv.textContent = 'Loading...';
+        kinfopaneltousContent.appendChild(loaderDiv);
+        
+        const widgetDiv = document.createElement('div');
+        widgetDiv.className = 'tradingview-kinfopaneltous-news';
+        widgetDiv.id = 'tradingview_kinfopaneltous_news';
+        
+        setTimeout(() => {
+            kinfopaneltousContent.removeChild(loaderDiv);
+            kinfopaneltousContent.appendChild(widgetDiv);
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
+            script.async = true;
+            
+            script.textContent = JSON.stringify({
+                "feedMode": "symbol",
+                "symbol": asset.tradingViewSymbol,
+                "isTransparent": true,
+                "displayMode": "compact",
+                "width": "250",
+                "height": "400",
+                "colorTheme": "dark",
+                "locale": "fr",
+                "utm_source": "tradingview.com",
+                "utm_medium": "widget",
+                "utm_campaign": "timeline",
+                "noReferrer": true,
+                "showSymbolLogo": false,
+                "fontSize": "small",
+                "textColor": "#ffffff"
+            });
+            
+            widgetDiv.appendChild(script);
+            
+            currentKinfopaneltousWidget = widgetDiv;
+            
+            setTimeout(removeAllTooltips, 1500);
+        }, 500);
+    }
+
+    // === GESTION DU PANEL INFO EN FONCTION DE L'ÉTAT ===
+    function updatePanelInfo() {
+        kinfopaneltousContainer.classList.add('active');
+        
+        // PRIORITÉ 1: Si Selected View est ouvert, TOUJOURS afficher les news
+        if (isInSelectedView && selectedAsset) {
+            loadKinfopaneltousNews(selectedAsset);
+        } 
+        // PRIORITÉ 2: Sinon, afficher selon la page active
+        else {
+            if (currentMenuPage === 'menu-1') {
+                showDefaultMessage();
+            } else if (currentMenuPage === 'menu-4') {
+                // Toujours charger les données à jour
+                getMoneyManagementData();
+                showResultPanel();
+            } else {
+                // Pour les autres pages
+                showDefaultMessage();
+            }
         }
-      });
+    }
+
+    // === DÉTECTION DE LA PAGE ACTIVE ===
+    function updateCurrentMenuPage() {
+        const classes = megaBox.classList;
+        if (classes.contains('menu-1')) currentMenuPage = 'menu-1';
+        else if (classes.contains('menu-2')) currentMenuPage = 'menu-2';
+        else if (classes.contains('menu-3')) currentMenuPage = 'menu-3';
+        else if (classes.contains('menu-4')) currentMenuPage = 'menu-4';
+        else if (classes.contains('menu-5')) currentMenuPage = 'menu-5';
+    }
+
+    // === INITIALISATION ===
+    function init() {
+        const saved = localStorage.getItem('chartStates');
+        if (saved) {
+            try {
+                chartStates = JSON.parse(saved);
+            } catch (e) {
+                console.error('Erreur lors du chargement des états:', e);
+                chartStates = {};
+            }
+        }
+        
+        menuSections.forEach(section => {
+            section.addEventListener('click', function() {
+                const type = this.getAttribute('data-type');
+                
+                menuSections.forEach(s => s.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentAssetType = type;
+                currentAssets = assetTypes[type];
+                
+                updateCarousel();
+            });
+        });
+        
+        updateCarousel();
+        
+        // Détecter la page initiale
+        updateCurrentMenuPage();
+        updatePanelInfo();
+        
+        setTimeout(removeAllTooltips, 1000);
+        
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    removeAllTooltips();
+                }
+            });
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    // === CRÉATION DES WIDGETS TRADINGVIEW ===
+    function createTradingViewWidget(containerId, symbol, assetId, isCarousel = false) {
+        if (!window.TradingView) {
+            console.error('Bibliothèque TradingView non chargée');
+            setTimeout(() => createTradingViewWidget(containerId, symbol, assetId, isCarousel), 100);
+            return null;
+        }
+
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error('Conteneur non trouvé:', containerId);
+            return null;
+        }
+
+        const widgetConfig = {
+            width: isCarousel ? '400' : '1000',
+            height: isCarousel ? '200' : '500',
+            symbol: symbol,
+            interval: '5',
+            timezone: window.appTimezone,
+            theme: "dark",
+            style: "1",
+            locale: "fr",
+            enable_publishing: false,
+            allow_symbol_change: false,
+            save_image: false,
+            container_id: containerId,
+            time_frames: [
+                { text: "5min", resolution: "5", description: "5 Minutes", title: "5min" },
+                { text: "15min", resolution: "15", description: "15 Minutes", title: "15min" },
+                { text: "2h", resolution: "120", description: "2 Hours", title: "2h" },
+                { text: "1D", resolution: "1D", description: "1 Day", title: "1D" }
+            ]
+        };
+
+        if (isCarousel) {
+            widgetConfig.toolbar_bg = "#111216";
+            widgetConfig.hide_legend = true;
+            widgetConfig.hide_side_toolbar = true;
+            widgetConfig.hide_top_toolbar = true;
+            widgetConfig.details = false;
+            widgetConfig.hotlist = false;
+            widgetConfig.calendar = false;
+            widgetConfig.show_popup_button = false;
+            widgetConfig.disabled_features = [
+                "header_widget", "left_toolbar", "timeframes_toolbar",
+                "edit_buttons_in_legend", "legend_context_menu", "control_bar",
+                "border_around_the_chart", "countdown", "header_compare",
+                "header_screenshot", "header_undo_redo", "header_saveload",
+                "header_settings", "header_chart_type", "header_indicators",
+                "volume_force_overlay", "study_templates", "symbol_info"
+            ];
+            widgetConfig.enabled_features = [
+                "hide_volume", "move_logo_to_main_pane"
+            ];
+        } else {
+            widgetConfig.toolbar_bg = "#f1f3f6";
+            widgetConfig.hide_side_toolbar = false;
+            widgetConfig.hide_legend = false;
+            widgetConfig.details = true;
+            widgetConfig.hotlist = true;
+            widgetConfig.calendar = true;
+            
+            const chartKey = `chart_${assetId}`;
+            const savedState = chartStates[chartKey];
+            
+            if (savedState && savedState.symbol === symbol) {
+                widgetConfig.studies_overrides = savedState.studies;
+            } else {
+                widgetConfig.studies = ["RSI@tv-basicstudies", "EMA@tv-basicstudies"];
+                widgetConfig.studies_overrides = {
+                    "volume.volume.color.0": "rgba(0, 0, 0, 0)",
+                    "volume.volume.color.1": "rgba(0, 0, 0, 0)",
+                    "RSI.rsi.linewidth": 2,
+                    "RSI.rsi.period": 14,
+                    "RSI.rsi.plottype": "line",
+                    "EMA.ema.color": "#FF6B00",
+                    "EMA.ema.linewidth": 2,
+                    "EMA.ema.period": 50,
+                    "EMA.ema.plottype": "line",
+                    "EMA.ema.transparency": 0
+                };
+            }
+        }
+
+        try {
+            const widget = new TradingView.widget(widgetConfig);
+            
+            if (!isCarousel) {
+                widget.onChartReady(() => {
+                    const chart = widget.chart();
+                    setInterval(() => {
+                        if (selectedAsset && selectedTVWidget) {
+                            try {
+                                chart.getSavedStudies((studies) => {
+                                    const state = {
+                                        studies: studies,
+                                        timestamp: Date.now(),
+                                        symbol: selectedAsset.tradingViewSymbol
+                                    };
+                                    chartStates[`chart_${selectedAsset.id}`] = state;
+                                    localStorage.setItem('chartStates', JSON.stringify(chartStates));
+                                });
+                            } catch (e) {
+                                console.error('Erreur sauvegarde:', e);
+                            }
+                        }
+                    }, 30000);
+                });
+            }
+            
+            return widget;
+        } catch (error) {
+            console.error('Erreur création widget TradingView:', error);
+            return null;
+        }
+    }
+
+    // === MISE À JOUR DU CAROUSEL ===
+    function updateCarousel() {
+        carousel.innerHTML = '';
+        
+        currentAssets.forEach((asset, index) => {
+            const carouselItem = document.createElement('div');
+            carouselItem.className = 'carousel-item';
+            carouselItem.setAttribute('data-crypto', asset.id);
+            
+            const widgetId = `${asset.id}_carousel_widget`;
+            
+            carouselItem.innerHTML = `
+                <div class="market-name">${asset.displayName}</div>
+                <div class="carousel-chart">
+                    <div class="tradingview-widget-container" id="${widgetId}"></div>
+                </div>
+                <div class="carousel-overlay" data-asset-id="${asset.id}"></div>
+            `;
+            
+            carousel.appendChild(carouselItem);
+            carouselItem.style.transform = `rotateY(${index * 90}deg) translateZ(280px)`;
+        });
+        
+        setTimeout(() => {
+            currentAssets.forEach(asset => {
+                const widgetId = `${asset.id}_carousel_widget`;
+                tvWidgets[asset.id] = createTradingViewWidget(
+                    widgetId,
+                    asset.tradingViewSymbol,
+                    asset.id,
+                    true
+                );
+            });
+            
+            setTimeout(removeAllTooltips, 2000);
+            initCarouselClicks();
+        }, 1000);
+    }
+
+    // === INITIALISATION DES CLICS DU CAROUSEL ===
+    function initCarouselClicks() {
+        document.querySelectorAll('.carousel-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const assetId = this.getAttribute('data-asset-id');
+                selectAsset(assetId);
+            });
+        });
+    }
+
+    // === SÉLECTION D'ACTIF ===
+    function selectAsset(assetId) {
+        selectedAsset = currentAssets.find(c => c.id === assetId);
+        if (!selectedAsset) return;
+
+        // Activer le mode Selected View
+        isInSelectedView = true;
+        
+        // Animation et transition
+        carousel.classList.add('carousel-paused');
+        carouselScene.classList.add('hidden');
+        sideMenu.classList.add('hidden');
+        selectedView.classList.add('active');
+        backBtn.classList.remove('hidden');
+        loader.classList.remove('hidden');
+
+        // Mettre à jour le panel info (afficher les news)
+        updatePanelInfo();
+
+        // Préparer le graphique TradingView
+        const tvContainer = document.getElementById('tradingview_selected');
+        if (tvContainer) {
+            tvContainer.innerHTML = '';
+        }
+
+        setTimeout(() => {
+            if (selectedTVWidget) {
+                window.removeEventListener('beforeunload', () => {});
+            }
+            
+            selectedTVWidget = createTradingViewWidget(
+                'tradingview_selected',
+                selectedAsset.tradingViewSymbol,
+                selectedAsset.id,
+                false
+            );
+            
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                removeAllTooltips();
+            }, 1500);
+        }, 500);
+    }
+
+    // === RETOUR AU CAROUSEL ===
+    backBtn.addEventListener('click', function() {
+        // Désactiver le mode Selected View
+        isInSelectedView = false;
+        
+        selectedView.classList.remove('active');
+        carouselScene.classList.remove('hidden');
+        backBtn.classList.add('hidden');
+        sideMenu.classList.remove('hidden');
+        carousel.classList.remove('carousel-paused');
+        
+        // Mettre à jour le panel info selon la page active
+        updatePanelInfo();
+        
+        removeAllTooltips();
+    });
+
+    // === SURVEILLANCE DU CHANGEMENT DE MENU ===
+    const observerMenuChange = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'class') {
+                // Mettre à jour la page active
+                updateCurrentMenuPage();
+                
+                // Mettre à jour le panel info seulement si Selected View n'est PAS actif
+                if (!isInSelectedView) {
+                    updatePanelInfo();
+                }
+            }
+        });
     });
     
     observerMenuChange.observe(megaBox, {
-      attributes: true,
-      attributeFilter: ['class']
+        attributes: true,
+        attributeFilter: ['class']
     });
-  }
-  
-  // Gérer la visibilité de la page pour arrêter/démarrer le carrousel
-  document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-      stopCarousel();
-    } else {
-      const megaBox = document.getElementById('megaBox');
-      const isMenu4 = megaBox && megaBox.classList.contains('menu-4');
-      
-      if (!window.isInSelectedView && !isMenu4 && tradingViewMarkets.length > 0) {
-        startCarousel();
-      }
+
+    // DÉMARRER L'APPLICATION
+    init();
+
+    window.addEventListener('resize', function() {
+        sideMenu.style.top = '50%';
+        sideMenu.style.transform = 'translateY(-50%)';
+    });
+    
+    // Stocker les widgets dans l'objet global
+    window.tvWidgets = tvWidgets;
+    window.selectedTVWidget = selectedTVWidget;
+    window.isInSelectedView = isInSelectedView;
+    window.currentMenuPage = currentMenuPage;
+    window.forceUpdateResultPanel = forceUpdateResultPanel;
+    
+    // ============================================
+    // SURVEILLANCE DES CHANGEMENTS EN TEMPS RÉEL
+    // ============================================
+    
+    // Surveiller les changements dans le localStorage (mises à jour instantanées)
+    let lastTransactionUpdate = null;
+    
+    function checkForTransactionUpdates() {
+        const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
+        const currentUpdate = JSON.stringify(transactions);
+        
+        if (currentUpdate !== lastTransactionUpdate) {
+            lastTransactionUpdate = currentUpdate;
+            forceUpdateResultPanel();
+        }
     }
-  });
+    
+    // Vérifier toutes les 500ms pour les mises à jour instantanées
+    setInterval(checkForTransactionUpdates, 500);
+    
+    // Écouter les événements de storage (autres onglets)
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'moneyManagerTransactions' || 
+            e.key === 'moneyManagerGoals' || 
+            e.key === 'moneyManagerYearlyGoal') {
+            forceUpdateResultPanel();
+        }
+    });
+    
+    // Observer les changements dans le DOM du money management
+    const observeMoneyManagementChanges = () => {
+        const moneyManagementContainer = document.getElementById('menu4Content');
+        if (moneyManagementContainer) {
+            const observer = new MutationObserver(function() {
+                setTimeout(forceUpdateResultPanel, 100);
+            });
+            
+            observer.observe(moneyManagementContainer, {
+                childList: true,
+                subtree: true,
+                attributes: true
+            });
+        }
+    };
+    
+    // Démarrer l'observation après un délai
+    setTimeout(observeMoneyManagementChanges, 1000);
 });
 
-// ============================================
-// EXPOSITION DES FONCTIONS GLOBALES
-// ============================================
-
-window.showResultPanel = showResultPanel;
-window.forceUpdateResultPanel = forceUpdateResultPanel;
-window.getMoneyManagementData = getMoneyManagementData;
-window.loadTradingViewWidget = loadTradingViewWidget;
-window.showNextMarket = showNextMarket;
-window.showPreviousMarket = showPreviousMarket;
-window.startCarousel = startCarousel;
-window.stopCarousel = stopCarousel;
+// Initialiser le statut du point Fahim
+document.addEventListener('DOMContentLoaded', function() {
+    const fahimDot = document.getElementById('fahimDot');
+    if (fahimDot) {
+        fahimDot.style.backgroundColor = '#00FF00';
+    }
+});

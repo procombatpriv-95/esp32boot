@@ -243,6 +243,7 @@ function getMoneyManagementData(period = null) {
 }
 
 // Afficher le panel résultat
+// Afficher le panel résultat
 function showResultPanel() {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
   if (!kinfopaneltousContent) return;
@@ -255,19 +256,25 @@ function showResultPanel() {
   // Récupérer les données à jour
   const data = getMoneyManagementData();
   
-  // Déterminer l'objectif et le revenu actuels selon la période
-  // Déterminer l'objectif et le revenu actuels selon la période
-const currentGoal = resultPanelData.currentPeriod === 'monthly' 
+  // Déterminer l'objectif et la BALANCE (revenus - dépenses) selon la période
+  const currentGoal = resultPanelData.currentPeriod === 'monthly' 
     ? resultPanelData.monthlyGoal 
     : resultPanelData.yearlyGoal;
 
-const currentIncome = resultPanelData.currentPeriod === 'monthly'
+  // Calculer la BALANCE au lieu de juste les revenus
+  const currentIncome = resultPanelData.currentPeriod === 'monthly'
     ? resultPanelData.monthlyIncome
     : resultPanelData.yearlyIncome;
+
+  const currentExpenses = resultPanelData.currentPeriod === 'monthly'
+    ? (resultPanelData.monthlyExpenses || 0)
+    : (resultPanelData.yearlyExpenses || 0);
+
+  const currentBalance = Math.max(0, currentIncome - currentExpenses);
   
-  // Calculer le pourcentage (max 100%)
+  // Calculer le pourcentage (max 100%) - BASÉ SUR LA BALANCE
   const percentage = currentGoal > 0 
-    ? Math.min((currentIncome / currentGoal) * 100, 100) 
+    ? Math.min((currentBalance / currentGoal) * 100, 100) 
     : 0;
   
   // Déterminer si le goal est atteint ou dépassé
@@ -293,11 +300,11 @@ const currentIncome = resultPanelData.currentPeriod === 'monthly'
       <div class="progress-bar-container">
         <div class="progress-bar">
           <div class="progress-filled" style="width: ${percentage}%">
-            ${showAmountOnBar ? `£${currentIncome.toFixed(0)}` : ''}
+            ${showAmountOnBar ? `£${currentBalance.toFixed(0)}` : ''}
           </div>
           ${!isGoalReached ? `
             <div class="progress-remaining">
-              ${percentage < 90 ? `£${Math.max(0, currentGoal - currentIncome).toFixed(0)}` : ''}
+              ${percentage < 90 ? `£${Math.max(0, currentGoal - currentBalance).toFixed(0)}` : ''}
             </div>
           ` : ''}
         </div>

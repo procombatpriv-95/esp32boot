@@ -121,10 +121,10 @@ function getMoneyManagementData(period = null) {
     // Utiliser la période passée en paramètre ou celle stockée
     const currentPeriod = period || resultPanelData.currentPeriod;
     
-    // Récupérer les transactions
+    // Récupérer les transactions TOUJOURS à jour
     const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
     
-    // Récupérer les objectifs
+    // Récupérer les objectifs TOUJOURS à jour
     const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
     const yearlyGoal = parseFloat(localStorage.getItem('moneyManagerYearlyGoal') || '0');
     
@@ -171,13 +171,13 @@ function getMoneyManagementData(period = null) {
       
       if (monthlyIncomes.length > 0) {
         monthlyHighest = monthlyIncomes.reduce((max, t) => 
-          t.amount > max.amount ? t : max
+          t.amount > max.amount ? t : max, { amount: 0, category: '' }
         );
       }
       
       if (monthlyExpenses.length > 0) {
         monthlyLowest = monthlyExpenses.reduce((min, t) => 
-          t.amount < min.amount ? t : min
+          t.amount < min.amount ? t : min, { amount: 0, category: '' }
         );
       }
     }
@@ -189,36 +189,33 @@ function getMoneyManagementData(period = null) {
       
       if (yearlyIncomes.length > 0) {
         yearlyHighest = yearlyIncomes.reduce((max, t) => 
-          t.amount > max.amount ? t : max
+          t.amount > max.amount ? t : max, { amount: 0, category: '' }
         );
       }
       
       if (yearlyExpenses.length > 0) {
         yearlyLowest = yearlyExpenses.reduce((min, t) => 
-          t.amount < min.amount ? t : min
+          t.amount < min.amount ? t : min, { amount: 0, category: '' }
         );
       }
     }
     
-    // Déterminer les données selon la période courante
-    const highestTransaction = currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest;
-    const lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
-    
-    // Mettre à jour les données globales
+    // Mettre à jour les données GLOBALES pour les utiliser partout
     resultPanelData.monthlyGoal = monthlyGoal;
     resultPanelData.yearlyGoal = yearlyGoal;
     resultPanelData.monthlyIncome = monthlyIncome;
     resultPanelData.yearlyIncome = yearlyIncome;
-    resultPanelData.highestTransaction = highestTransaction;
-    resultPanelData.lowestTransaction = lowestTransaction;
+    resultPanelData.highestTransaction = currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest;
+    resultPanelData.lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
+    resultPanelData.currentPeriod = currentPeriod;
     
     return {
       monthlyGoal,
       yearlyGoal,
       monthlyIncome,
       yearlyIncome,
-      highestTransaction,
-      lowestTransaction,
+      highestTransaction: currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest,
+      lowestTransaction: currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest,
       currentPeriod
     };
     
@@ -230,86 +227,52 @@ function getMoneyManagementData(period = null) {
 
 // Fonction pour forcer la mise à jour du panel résultat
 function forceUpdateResultPanel() {
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    // Forcer le recalcul des données
-    const data = getMoneyManagementData();
+  // Vérifier si le panel résultat est visible
+  const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
+  const isResultPanelVisible = kinfopaneltousContainer && 
+                               kinfopaneltousContainer.classList.contains('active') && 
+                               window.currentMenuPage === 'menu-4';
+  
+  if (isResultPanelVisible && !window.isInSelectedView) {
+    // Toujours récupérer les données fraîches
+    const freshData = getMoneyManagementData();
     
-    // Mettre à jour les données globales
-    resultPanelData = {
-      ...resultPanelData,
-      ...data,
-      monthlyGoal: data.monthlyGoal,
-      yearlyGoal: data.yearlyGoal,
-      monthlyIncome: data.monthlyIncome,
-      yearlyIncome: data.yearlyIncome,
-      highestTransaction: data.highestTransaction,
-      lowestTransaction: data.lowestTransaction
-    };
+    // Mettre à jour l'affichage immédiatement
+    showResultPanel(freshData);
     
-    // Actualiser l'affichage
-    showResultPanel();
+    // Forcer également une mise à jour si on est en période différente
+    const currentPeriod = resultPanelData.currentPeriod;
+    if (currentPeriod === 'monthly') {
+      // S'assurer que les données mensuelles sont à jour
+      getMoneyManagementData('monthly');
+    } else if (currentPeriod === 'yearly') {
+      // S'assurer que les données annuelles sont à jour
+      getMoneyManagementData('yearly');
+    }
   }
 }
 
-// Fonction pour mettre à jour automatiquement quand les données changent
-function setupAutoUpdateOnDataChange() {
-  console.log('Setting up auto-update for result panel...');
-  
-  // Surveiller les changements dans le localStorage
-  window.addEventListener('storage', function(e) {
-    if (e.key === 'moneyManagerTransactions' || 
-        e.key === 'moneyManagerGoals' || 
-        e.key === 'moneyManagerYearlyGoal') {
-      console.log('Data change detected in localStorage, updating result panel...');
-      forceUpdateResultPanel();
-    }
-  });
-  
-  // Surveiller aussi les changements dans la même fenêtre (pour les transactions ajoutées dans le même onglet)
-  const originalSetItem = localStorage.setItem;
-  localStorage.setItem = function(key, value) {
-    originalSetItem.apply(this, arguments);
-    
-    // Déclencher un événement personnalisé
-    if (key === 'moneyManagerTransactions' || 
-        key === 'moneyManagerGoals' || 
-        key === 'moneyManagerYearlyGoal') {
-      const event = new Event('storage');
-      event.key = key;
-      event.newValue = value;
-      window.dispatchEvent(event);
-    }
-  };
-}
-
-// Fonction pour déclencher une mise à jour immédiate
-function triggerResultPanelUpdate() {
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    forceUpdateResultPanel();
-  }
-}
-
-// Afficher le panel résultat
-function showResultPanel() {
+// Afficher le panel résultat avec des données
+function showResultPanel(data = null) {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
   if (!kinfopaneltousContent) return;
+  
+  // Utiliser les données fournies ou les récupérer
+  const displayData = data || getMoneyManagementData();
   
   kinfopaneltousContent.innerHTML = '';
   
   const resultPanel = document.createElement('div');
   resultPanel.className = 'result-panel';
   
-  // Récupérer les données à jour
-  const data = getMoneyManagementData();
-  
   // Déterminer l'objectif et le revenu actuels selon la période
-  const currentGoal = resultPanelData.currentPeriod === 'monthly' 
-    ? resultPanelData.monthlyGoal 
-    : resultPanelData.yearlyGoal;
+  const currentGoal = displayData.currentPeriod === 'monthly' 
+    ? displayData.monthlyGoal 
+    : displayData.yearlyGoal;
   
-  const currentIncome = resultPanelData.currentPeriod === 'monthly'
-    ? resultPanelData.monthlyIncome
-    : resultPanelData.yearlyIncome;
+  const currentIncome = displayData.currentPeriod === 'monthly'
+    ? displayData.monthlyIncome
+    : displayData.yearlyIncome;
   
   // Calculer le pourcentage (max 100%)
   const percentage = currentGoal > 0 
@@ -320,19 +283,19 @@ function showResultPanel() {
   const isGoalReached = percentage >= 100;
   
   // Pour l'affichage du montant sur la barre verte
-  const showAmountOnBar = percentage > 10; // Afficher si > 10% pour les deux périodes
+  const showAmountOnBar = percentage > 10;
   
   resultPanel.innerHTML = `
     <div class="period-selector">
-      <button class="period-btn ${resultPanelData.currentPeriod === 'monthly' ? 'active' : ''}" 
+      <button class="period-btn ${displayData.currentPeriod === 'monthly' ? 'active' : ''}" 
               data-period="monthly">Monthly</button>
-      <button class="period-btn ${resultPanelData.currentPeriod === 'yearly' ? 'active' : ''}" 
+      <button class="period-btn ${displayData.currentPeriod === 'yearly' ? 'active' : ''}" 
               data-period="yearly">Yearly</button>
     </div>
     
     <div class="progress-section">
       <div class="progress-header">
-        <span class="period-label">${resultPanelData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly'}</span>
+        <span class="period-label">${displayData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly'}</span>
         <span class="percentage-label">${percentage.toFixed(1)}%</span>
       </div>
       
@@ -356,8 +319,8 @@ function showResultPanel() {
           <i class="fas fa-arrow-up"></i> Highest
         </div>
         <div class="indicator-value">
-          £${resultPanelData.highestTransaction.amount.toFixed(2)}
-          ${resultPanelData.highestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.highestTransaction.category}</div>` : ''}
+          £${displayData.highestTransaction.amount.toFixed(2)}
+          ${displayData.highestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${displayData.highestTransaction.category}</div>` : ''}
         </div>
       </div>
       <div class="indicator-box indicator-lowest">
@@ -365,8 +328,8 @@ function showResultPanel() {
           <i class="fas fa-arrow-down"></i> Lowest
         </div>
         <div class="indicator-value">
-          £${resultPanelData.lowestTransaction.amount.toFixed(2)}
-          ${resultPanelData.lowestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.lowestTransaction.category}</div>` : ''}
+          £${displayData.lowestTransaction.amount.toFixed(2)}
+          ${displayData.lowestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${displayData.lowestTransaction.category}</div>` : ''}
         </div>
       </div>
     </div>
@@ -390,10 +353,10 @@ function showResultPanel() {
       resultPanelData.currentPeriod = period;
       
       // Recharger les données avec la nouvelle période
-      getMoneyManagementData(period);
+      const updatedData = getMoneyManagementData(period);
       
       // Mettre à jour immédiatement
-      showResultPanel();
+      showResultPanel(updatedData);
     });
   });
 }
@@ -677,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (currentMenuPage === 'menu-1') {
                 showDefaultMessage();
             } else if (currentMenuPage === 'menu-4') {
-                // Toujours charger les données à jour
+                // Charger les données à jour
                 getMoneyManagementData();
                 showResultPanel();
             } else {
@@ -997,22 +960,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // DÉMARRER L'APPLICATION
     init();
-    
-    // Activer la mise à jour automatique
-    setupAutoUpdateOnDataChange();
-    
-    // Intervalle de vérification (fallback)
-    window.lastTransactionState = localStorage.getItem('moneyManagerTransactions');
-    setInterval(() => {
-      if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-        const currentTransactions = localStorage.getItem('moneyManagerTransactions');
-        if (window.lastTransactionState !== currentTransactions) {
-          window.lastTransactionState = currentTransactions;
-          console.log('Transaction state changed, updating panel...');
-          forceUpdateResultPanel();
-        }
-      }
-    }, 500);
 
     window.addEventListener('resize', function() {
         sideMenu.style.top = '50%';
@@ -1025,49 +972,80 @@ document.addEventListener('DOMContentLoaded', function() {
     window.isInSelectedView = isInSelectedView;
     window.currentMenuPage = currentMenuPage;
     window.forceUpdateResultPanel = forceUpdateResultPanel;
-    window.triggerResultPanelUpdate = triggerResultPanelUpdate;
     
     // ============================================
     // SURVEILLANCE DES CHANGEMENTS EN TEMPS RÉEL
     // ============================================
     
-    // Surveiller les changements dans le localStorage
+    // Surveiller les changements dans le localStorage (entre onglets)
     window.addEventListener('storage', function(e) {
         if (e.key === 'moneyManagerTransactions' || 
             e.key === 'moneyManagerGoals' || 
             e.key === 'moneyManagerYearlyGoal') {
-            console.log('Storage event detected:', e.key);
+            console.log('Changement détecté dans localStorage:', e.key);
+            
+            // Rafraîchir immédiatement
             forceUpdateResultPanel();
         }
     });
     
-    // Créer un observer pour surveiller les changements dans le DOM du money management
-    const observeMoneyManagementChanges = () => {
+    // Observer les changements dans le DOM du money management
+    function observeMoneyManagementChanges() {
         const moneyManagementContainer = document.getElementById('menu4Content');
         if (moneyManagementContainer) {
             const observer = new MutationObserver(function(mutations) {
+                // Vérifier si des transactions ont été modifiées
+                let shouldUpdate = false;
+                
                 mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList' || mutation.type === 'attributes') {
-                        setTimeout(forceUpdateResultPanel, 100);
+                    if (mutation.type === 'childList') {
+                        // Si des nœuds ont été ajoutés/supprimés
+                        shouldUpdate = true;
                     }
                 });
+                
+                if (shouldUpdate) {
+                    // Petit délai pour laisser le temps à la sauvegarde
+                    setTimeout(() => {
+                        forceUpdateResultPanel();
+                    }, 300);
+                }
             });
             
             observer.observe(moneyManagementContainer, {
                 childList: true,
                 subtree: true,
-                attributes: true
+                attributes: false
             });
+            
+            console.log('Observation des changements Money Management activée');
         }
-    };
+    }
     
     // Démarrer l'observation après un délai
-    setTimeout(observeMoneyManagementChanges, 2000);
+    setTimeout(observeMoneyManagementChanges, 1000);
     
-    // Mettre à jour toutes les 2 secondes pour être sûr (fallback)
-    setInterval(() => {
-        if (currentMenuPage === 'menu-4' && !isInSelectedView) {
+    // Vérifier les changements toutes les secondes (fallback)
+    const autoRefreshInterval = setInterval(() => {
+        // Seulement si le panel résultat est visible
+        if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
             forceUpdateResultPanel();
         }
-    }, 2000);
+    }, 1000);
+    
+    // Nettoyer l'intervalle si la page se ferme
+    window.addEventListener('beforeunload', () => {
+        clearInterval(autoRefreshInterval);
+    });
+    
+    // Initialiser avec des données fraîches
+    setTimeout(() => {
+        // Charger les données immédiatement
+        getMoneyManagementData();
+        
+        // S'assurer que le panel est à jour si on est sur le menu 4
+        if (window.currentMenuPage === 'menu-4') {
+            showResultPanel();
+        }
+    }, 500);
 });

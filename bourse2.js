@@ -224,14 +224,6 @@ function getMoneyManagementData(period = null) {
   }
 }
 
-// Fonction pour forcer la mise à jour du panel résultat
-function forceUpdateResultPanel() {
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    getMoneyManagementData();
-    showResultPanel();
-  }
-}
-
 // Afficher le panel résultat
 function showResultPanel() {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
@@ -332,157 +324,193 @@ function showResultPanel() {
       const period = this.getAttribute('data-period');
       resultPanelData.currentPeriod = period;
       
-      // Recharger les données avec la nouvelle période
+      // Mettre à jour immédiatement avec la nouvelle période
       getMoneyManagementData(period);
-      
-      // Mettre à jour immédiatement
       showResultPanel();
     });
   });
 }
 
 // ============================================
-// SYSTÈME DE MISE À JOUR AUTOMATIQUE
+// SYSTÈME DE SURVEILLANCE EN TEMPS RÉEL
 // ============================================
 
-// Observer pour surveiller les changements dans localStorage
-function setupLocalStorageObserver() {
-  // Sauvegarde de la fonction originale de localStorage
-  const originalSetItem = localStorage.setItem;
-  const originalRemoveItem = localStorage.removeItem;
-  const originalClear = localStorage.clear;
-  
-  // Redéfinir setItem pour déclencher un événement personnalisé
-  localStorage.setItem = function(key, value) {
-    // Appeler la fonction originale
-    originalSetItem.apply(this, arguments);
-    
-    // Vérifier si c'est une clé du money management
-    if (key.includes('moneyManager')) {
-      // Déclencher un événement personnalisé
-      const event = new CustomEvent('moneyManagerDataChanged', {
-        detail: { key, value }
-      });
-      window.dispatchEvent(event);
-      
-      // Mettre à jour le panel immédiatement
-      if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-        setTimeout(() => {
-          getMoneyManagementData();
-          showResultPanel();
-        }, 100);
-      }
-    }
-  };
-  
-  // Redéfinir removeItem
-  localStorage.removeItem = function(key) {
-    originalRemoveItem.apply(this, arguments);
-    
-    if (key.includes('moneyManager')) {
-      const event = new CustomEvent('moneyManagerDataChanged', {
-        detail: { key, action: 'removed' }
-      });
-      window.dispatchEvent(event);
-      
-      if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-        setTimeout(() => {
-          getMoneyManagementData();
-          showResultPanel();
-        }, 100);
-      }
-    }
-  };
-  
-  // Redéfinir clear
-  localStorage.clear = function() {
-    originalClear.apply(this, arguments);
-    
-    const event = new CustomEvent('moneyManagerDataChanged', {
-      detail: { action: 'cleared' }
+// Stocker le dernier état connu des données
+let lastTransactionCount = 0;
+let lastTransactionHash = '';
+let lastGoalHash = '';
+let autoUpdateInterval = null;
+
+// Fonction pour calculer un hash simple des transactions
+function calculateTransactionHash() {
+  try {
+    const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
+    // Créer un hash simple basé sur le nombre et le montant total
+    let hash = transactions.length.toString();
+    let totalAmount = 0;
+    transactions.forEach(t => {
+      totalAmount += t.amount;
+      hash += t.id + t.amount + t.type;
     });
-    window.dispatchEvent(event);
-    
-    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-      setTimeout(() => {
-        getMoneyManagementData();
-        showResultPanel();
-      }, 100);
-    }
-  };
-  
-  // Écouter les événements storage standards (pour les autres onglets)
-  window.addEventListener('storage', function(e) {
-    if (e.key && e.key.includes('moneyManager')) {
-      if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-        setTimeout(() => {
-          getMoneyManagementData();
-          showResultPanel();
-        }, 100);
-      }
-    }
-  });
-  
-  // Écouter les événements personnalisés
-  window.addEventListener('moneyManagerDataChanged', function() {
-    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-      setTimeout(() => {
-        getMoneyManagementData();
-        showResultPanel();
-      }, 100);
-    }
-  });
+    return hash + totalAmount.toString();
+  } catch (e) {
+    return '';
+  }
 }
 
-// Polling intelligent pour vérifier les changements
-function setupIntelligentPolling() {
-  let lastTransactionCount = 0;
-  let lastMonthlyGoal = 0;
-  let lastYearlyGoal = 0;
-  
-  function checkForChanges() {
-    try {
-      // Vérifier les transactions
-      const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
-      const currentTransactionCount = transactions.length;
-      
-      // Vérifier les objectifs mensuels
-      const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
-      const currentYear = new Date().getFullYear();
-      const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-      const monthKey = `${currentYear}-${currentMonth}`;
-      const currentMonthlyGoal = monthlyGoals[monthKey] || 0;
-      
-      // Vérifier l'objectif annuel
-      const currentYearlyGoal = parseFloat(localStorage.getItem('moneyManagerYearlyGoal') || '0');
-      
-      // Si quelque chose a changé
-      if (currentTransactionCount !== lastTransactionCount ||
-          currentMonthlyGoal !== lastMonthlyGoal ||
-          currentYearlyGoal !== lastYearlyGoal) {
-        
-        // Mettre à jour les références
-        lastTransactionCount = currentTransactionCount;
-        lastMonthlyGoal = currentMonthlyGoal;
-        lastYearlyGoal = currentYearlyGoal;
-        
-        // Mettre à jour le panel si nécessaire
-        if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-          getMoneyManagementData();
-          showResultPanel();
-        }
-      }
-    } catch (e) {
-      console.error('Erreur lors de la vérification des changements:', e);
-    }
+// Fonction pour calculer un hash simple des objectifs
+function calculateGoalHash() {
+  try {
+    const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
+    const yearlyGoal = localStorage.getItem('moneyManagerYearlyGoal') || '0';
+    return JSON.stringify(monthlyGoals) + yearlyGoal;
+  } catch (e) {
+    return '';
+  }
+}
+
+// Fonction pour vérifier les changements et mettre à jour
+function checkForUpdates() {
+  // Vérifier si nous sommes dans le menu 4 et pas en mode selected view
+  if (window.currentMenuPage !== 'menu-4' || window.isInSelectedView) {
+    return;
   }
   
-  // Vérifier toutes les 500ms (très réactif)
-  setInterval(checkForChanges, 500);
+  // Calculer les hashs actuels
+  const currentTransactionHash = calculateTransactionHash();
+  const currentGoalHash = calculateGoalHash();
   
-  // Vérifier immédiatement
-  setTimeout(checkForChanges, 1000);
+  // Vérifier si quelque chose a changé
+  if (currentTransactionHash !== lastTransactionHash || currentGoalHash !== lastGoalHash) {
+    console.log('Changement détecté, mise à jour du panel...');
+    
+    // Mettre à jour les hashs
+    lastTransactionHash = currentTransactionHash;
+    lastGoalHash = currentGoalHash;
+    
+    // Mettre à jour les données
+    getMoneyManagementData();
+    
+    // Mettre à jour l'affichage
+    showResultPanel();
+    
+    // Forcer un reflow pour s'assurer que l'affichage est actualisé
+    const panel = document.querySelector('.kinfopaneltous-container');
+    if (panel) {
+      panel.style.display = 'none';
+      panel.offsetHeight; // Force reflow
+      panel.style.display = 'flex';
+    }
+  }
 }
+
+// Démarrer la surveillance automatique
+function startAutoUpdate() {
+  // Initialiser les hashs
+  lastTransactionHash = calculateTransactionHash();
+  lastGoalHash = calculateGoalHash();
+  
+  // Vérifier toutes les 500ms (très réactif)
+  if (autoUpdateInterval) {
+    clearInterval(autoUpdateInterval);
+  }
+  
+  autoUpdateInterval = setInterval(checkForUpdates, 500);
+  
+  console.log('Surveillance automatique démarrée');
+}
+
+// Arrêter la surveillance
+function stopAutoUpdate() {
+  if (autoUpdateInterval) {
+    clearInterval(autoUpdateInterval);
+    autoUpdateInterval = null;
+  }
+}
+
+// ============================================
+// SURCHARGE DU LOCALSTORAGE POUR DÉTECTION IMMÉDIATE
+// ============================================
+
+// Surcharger localStorage.setItem pour détecter les changements immédiatement
+const originalSetItem = localStorage.setItem;
+localStorage.setItem = function(key, value) {
+  // Appeler la méthode originale
+  originalSetItem.apply(this, arguments);
+  
+  // Vérifier si c'est une clé du money management
+  if (key && key.includes('moneyManager')) {
+    console.log(`Changement détecté dans localStorage: ${key}`);
+    
+    // Mettre à jour immédiatement si dans le menu 4
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      setTimeout(() => {
+        getMoneyManagementData();
+        showResultPanel();
+      }, 100);
+    }
+  }
+};
+
+// Surcharger localStorage.removeItem
+const originalRemoveItem = localStorage.removeItem;
+localStorage.removeItem = function(key) {
+  originalRemoveItem.apply(this, arguments);
+  
+  if (key && key.includes('moneyManager')) {
+    console.log(`Suppression détectée dans localStorage: ${key}`);
+    
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      setTimeout(() => {
+        getMoneyManagementData();
+        showResultPanel();
+      }, 100);
+    }
+  }
+};
+
+// Surcharger localStorage.clear
+const originalClear = localStorage.clear;
+localStorage.clear = function() {
+  originalClear.apply(this, arguments);
+  
+  console.log('localStorage effacé');
+  
+  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+    setTimeout(() => {
+      getMoneyManagementData();
+      showResultPanel();
+    }, 100);
+  }
+};
+
+// ============================================
+// ÉVÉNEMENTS GLOBAUX POUR LA MISE À JOUR
+// ============================================
+
+// Écouter les événements storage (pour les changements depuis d'autres onglets)
+window.addEventListener('storage', function(e) {
+  if (e.key && e.key.includes('moneyManager')) {
+    console.log(`Événement storage détecté: ${e.key}`);
+    
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      setTimeout(() => {
+        getMoneyManagementData();
+        showResultPanel();
+      }, 100);
+    }
+  }
+});
+
+// Créer un événement personnalisé pour les mises à jour
+window.addEventListener('transactionUpdated', function() {
+  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+    setTimeout(() => {
+      getMoneyManagementData();
+      showResultPanel();
+    }, 100);
+  }
+});
 
 // ============================================
 // CONFIGURATION DES ACTIFS ET TRADINGVIEW
@@ -1094,64 +1122,28 @@ document.addEventListener('DOMContentLoaded', function() {
     window.selectedTVWidget = selectedTVWidget;
     window.isInSelectedView = isInSelectedView;
     window.currentMenuPage = currentMenuPage;
-    window.forceUpdateResultPanel = forceUpdateResultPanel;
+    window.getMoneyManagementData = getMoneyManagementData;
+    window.showResultPanel = showResultPanel;
     
     // ============================================
-    // MISE À JOUR AUTOMATIQUE - INSTALLATION
+    // DÉMARRER LA SURVEILLANCE AUTOMATIQUE
     // ============================================
     
-    // Configurer l'observateur de localStorage
-    setupLocalStorageObserver();
-    
-    // Configurer le polling intelligent
-    setupIntelligentPolling();
-    
-    // Vérifier immédiatement au chargement
+    // Démarrer la surveillance immédiatement
     setTimeout(() => {
-        if (currentMenuPage === 'menu-4' && !isInSelectedView) {
-            getMoneyManagementData();
-            showResultPanel();
-        }
-    }, 500);
+        startAutoUpdate();
+        
+        // Vérifier toutes les 2 secondes en backup
+        setInterval(() => {
+            if (currentMenuPage === 'menu-4' && !isInSelectedView) {
+                getMoneyManagementData();
+                showResultPanel();
+            }
+        }, 2000);
+    }, 1000);
 });
 
-// ============================================
-// ÉVÉNEMENTS GLOBAUX POUR LA MISE À JOUR
-// ============================================
-
-// Surveillance globale du localStorage
-window.addEventListener('storage', function(e) {
-  // Vérifier si c'est une clé du money management
-  if (e.key && e.key.includes('moneyManager')) {
-    // Attendre un peu pour que les données soient disponibles
-    setTimeout(() => {
-      if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-        if (window.getMoneyManagementData) {
-          window.getMoneyManagementData();
-        }
-        if (window.showResultPanel) {
-          window.showResultPanel();
-        }
-      }
-    }, 300);
-  }
-});
-
-// Événement personnalisé pour les mises à jour
-window.addEventListener('transactionUpdated', function() {
-  setTimeout(() => {
-    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-      if (window.getMoneyManagementData) {
-        window.getMoneyManagementData();
-      }
-      if (window.showResultPanel) {
-        window.showResultPanel();
-      }
-    }
-  }, 100);
-});
-
-// Polling de secours toutes les secondes
+// Polling global de secours toutes les secondes
 setInterval(() => {
   if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
     if (window.getMoneyManagementData && window.showResultPanel) {
@@ -1160,3 +1152,15 @@ setInterval(() => {
     }
   }
 }, 1000);
+
+// Mettre à jour immédiatement au chargement de la page
+window.addEventListener('load', function() {
+  setTimeout(() => {
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      if (window.getMoneyManagementData && window.showResultPanel) {
+        window.getMoneyManagementData();
+        window.showResultPanel();
+      }
+    }
+  }, 500);
+});

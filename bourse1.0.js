@@ -244,6 +244,8 @@ function getMoneyManagementData(period = null) {
 
 // Afficher le panel résultat
 // Afficher le panel résultat
+// Afficher le panel résultat
+// Afficher le panel résultat
 function showResultPanel() {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
   if (!kinfopaneltousContent) return;
@@ -283,6 +285,12 @@ function showResultPanel() {
   // Pour l'affichage du montant sur la barre verte
   const showAmountOnBar = percentage > 10; // Afficher si > 10% pour les deux périodes
   
+  // CORRECTION CRITIQUE: Quand percentage est 0, on force width à 0 et on ajoute une classe spéciale
+  const progressFilledClass = percentage === 0 ? 'progress-filled empty' : 'progress-filled';
+  const progressFilledStyle = percentage === 0 
+    ? 'width: 0%; min-width: 0; padding-right: 0;' 
+    : `width: ${percentage}%`;
+  
   resultPanel.innerHTML = `
     <div class="period-selector">
       <button class="period-btn ${resultPanelData.currentPeriod === 'monthly' ? 'active' : ''}" 
@@ -299,7 +307,7 @@ function showResultPanel() {
       
       <div class="progress-bar-container">
         <div class="progress-bar">
-          <div class="progress-filled" style="width: ${percentage}%">
+          <div class="${progressFilledClass}" style="${progressFilledStyle}">
             ${showAmountOnBar ? `£${currentBalance.toFixed(0)}` : ''}
           </div>
           ${!isGoalReached ? `
@@ -954,18 +962,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (savedState && savedState.symbol === symbol) {
                 widgetConfig.studies_overrides = savedState.studies;
             } else {
-                widgetConfig.studies = ["RSI@tv-basicstudies", "EMA@tv-basicstudies"];
+                widgetConfig.studies = ["RSI@tv-basicstudies", "VWAP@tv-basicstudies"];
                 widgetConfig.studies_overrides = {
                     "volume.volume.color.0": "rgba(0, 0, 0, 0)",
                     "volume.volume.color.1": "rgba(0, 0, 0, 0)",
                     "RSI.rsi.linewidth": 2,
                     "RSI.rsi.period": 14,
                     "RSI.rsi.plottype": "line",
-                    "EMA.ema.color": "#FF6B00",
-                    "EMA.ema.linewidth": 2,
-                    "EMA.ema.period": 50,
-                    "EMA.ema.plottype": "line",
-                    "EMA.ema.transparency": 0
+                    "VWAP.vwap.color": "#FF6B00",
+                    "VWAP.vwap.linewidth": 2,
+                    "VWAP.vwap.period": 50,
+                    "VWAP.vwap.plottype": "line",
+                    "VWAP.vwap.transparency": 0
                 };
             }
         }
@@ -1165,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 getMoneyManagementData();
                 showResultPanel();
             }
-        }, 2000);
+        }, 1000);
     }, 1000);
 });
 
@@ -1177,7 +1185,7 @@ setInterval(() => {
       window.showResultPanel();
     }
   }
-}, 500);
+}, 300);
 
 // Mettre à jour immédiatement au chargement de la page
 window.addEventListener('load', function() {

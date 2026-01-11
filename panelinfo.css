@@ -248,7 +248,12 @@ a, button, .clickable {
   position: relative;
   z-index: 2;
 }
-
+.progress-filled.empty {
+    min-width: 0 !important;
+    padding-right: 0 !important;
+    background: transparent !important;
+    border-radius: 17.5px !important;
+}
 .progress-remaining {
   background: #e74c3c;
   height: 100%;

@@ -116,6 +116,7 @@ let resultPanelData = {
 // ============================================
 
 // Fonction pour récupérer et calculer les données du money management
+// Fonction pour récupérer et calculer les données du money management
 function getMoneyManagementData(period = null) {
   try {
     // Utiliser la période passée en paramètre ou celle stockée
@@ -158,6 +159,15 @@ function getMoneyManagementData(period = null) {
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
     
+    // CALCULER LES DÉPENSES (AJOUTÉ)
+    const monthlyExpenses = monthlyTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const yearlyExpenses = yearlyTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
     // Trouver les transactions les plus hautes et basses pour CHAQUE période
     let monthlyHighest = { amount: 0, category: '' };
     let monthlyLowest = { amount: 0, category: '' };
@@ -167,7 +177,7 @@ function getMoneyManagementData(period = null) {
     // Pour le mois
     if (monthlyTransactions.length > 0) {
       const monthlyIncomes = monthlyTransactions.filter(t => t.type === 'income');
-      const monthlyExpenses = monthlyTransactions.filter(t => t.type === 'expense');
+      const monthlyExpensesList = monthlyTransactions.filter(t => t.type === 'expense');
       
       if (monthlyIncomes.length > 0) {
         monthlyHighest = monthlyIncomes.reduce((max, t) => 
@@ -175,8 +185,8 @@ function getMoneyManagementData(period = null) {
         );
       }
       
-      if (monthlyExpenses.length > 0) {
-        monthlyLowest = monthlyExpenses.reduce((min, t) => 
+      if (monthlyExpensesList.length > 0) {
+        monthlyLowest = monthlyExpensesList.reduce((min, t) => 
           t.amount < min.amount ? t : min
         );
       }
@@ -185,7 +195,7 @@ function getMoneyManagementData(period = null) {
     // Pour l'année
     if (yearlyTransactions.length > 0) {
       const yearlyIncomes = yearlyTransactions.filter(t => t.type === 'income');
-      const yearlyExpenses = yearlyTransactions.filter(t => t.type === 'expense');
+      const yearlyExpensesList = yearlyTransactions.filter(t => t.type === 'expense');
       
       if (yearlyIncomes.length > 0) {
         yearlyHighest = yearlyIncomes.reduce((max, t) => 
@@ -193,18 +203,22 @@ function getMoneyManagementData(period = null) {
         );
       }
       
-      if (yearlyExpenses.length > 0) {
-        yearlyLowest = yearlyExpenses.reduce((min, t) => 
+      if (yearlyExpensesList.length > 0) {
+        yearlyLowest = yearlyExpensesList.reduce((min, t) => 
           t.amount < min.amount ? t : min
         );
       }
     }
     
-    // Mettre à jour les données
+    // Mettre à jour les données (AJOUT DES DÉPENSES ET TRANSACTIONS)
     resultPanelData.monthlyGoal = monthlyGoal;
     resultPanelData.yearlyGoal = yearlyGoal;
     resultPanelData.monthlyIncome = monthlyIncome;
     resultPanelData.yearlyIncome = yearlyIncome;
+    resultPanelData.monthlyExpenses = monthlyExpenses; // AJOUT
+    resultPanelData.yearlyExpenses = yearlyExpenses;   // AJOUT
+    resultPanelData.monthlyTransactions = monthlyTransactions; // AJOUT
+    resultPanelData.yearlyTransactions = yearlyTransactions;   // AJOUT
     resultPanelData.highestTransaction = currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest;
     resultPanelData.lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
     
@@ -213,6 +227,10 @@ function getMoneyManagementData(period = null) {
       yearlyGoal,
       monthlyIncome,
       yearlyIncome,
+      monthlyExpenses,  // AJOUT
+      yearlyExpenses,   // AJOUT
+      monthlyTransactions, // AJOUT
+      yearlyTransactions,  // AJOUT
       highestTransaction: currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest,
       lowestTransaction: currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest,
       currentPeriod
@@ -224,6 +242,7 @@ function getMoneyManagementData(period = null) {
   }
 }
 
+// Afficher le panel résultat
 // Afficher le panel résultat
 function showResultPanel() {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
@@ -237,18 +256,25 @@ function showResultPanel() {
   // Récupérer les données à jour
   const data = getMoneyManagementData();
   
-  // Déterminer l'objectif et le revenu actuels selon la période
+  // Déterminer l'objectif et la BALANCE (revenus - dépenses) selon la période
   const currentGoal = resultPanelData.currentPeriod === 'monthly' 
     ? resultPanelData.monthlyGoal 
     : resultPanelData.yearlyGoal;
-  
+
+  // Calculer la BALANCE au lieu de juste les revenus
   const currentIncome = resultPanelData.currentPeriod === 'monthly'
     ? resultPanelData.monthlyIncome
     : resultPanelData.yearlyIncome;
+
+  const currentExpenses = resultPanelData.currentPeriod === 'monthly'
+    ? (resultPanelData.monthlyExpenses || 0)
+    : (resultPanelData.yearlyExpenses || 0);
+
+  const currentBalance = Math.max(0, currentIncome - currentExpenses);
   
-  // Calculer le pourcentage (max 100%)
+  // Calculer le pourcentage (max 100%) - BASÉ SUR LA BALANCE
   const percentage = currentGoal > 0 
-    ? Math.min((currentIncome / currentGoal) * 100, 100) 
+    ? Math.min((currentBalance / currentGoal) * 100, 100) 
     : 0;
   
   // Déterminer si le goal est atteint ou dépassé
@@ -274,11 +300,11 @@ function showResultPanel() {
       <div class="progress-bar-container">
         <div class="progress-bar">
           <div class="progress-filled" style="width: ${percentage}%">
-            ${showAmountOnBar ? `£${currentIncome.toFixed(0)}` : ''}
+            ${showAmountOnBar ? `£${currentBalance.toFixed(0)}` : ''}
           </div>
           ${!isGoalReached ? `
             <div class="progress-remaining">
-              ${percentage < 90 ? `£${Math.max(0, currentGoal - currentIncome).toFixed(0)}` : ''}
+              ${percentage < 90 ? `£${Math.max(0, currentGoal - currentBalance).toFixed(0)}` : ''}
             </div>
           ` : ''}
         </div>

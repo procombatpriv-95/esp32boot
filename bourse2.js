@@ -245,6 +245,7 @@ function getMoneyManagementData(period = null) {
 // Afficher le panel résultat
 // Afficher le panel résultat
 // Afficher le panel résultat
+// Afficher le panel résultat
 function showResultPanel() {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
   if (!kinfopaneltousContent) return;
@@ -284,9 +285,10 @@ function showResultPanel() {
   // Pour l'affichage du montant sur la barre verte
   const showAmountOnBar = percentage > 10; // Afficher si > 10% pour les deux périodes
   
-  // CORRECTION: Quand percentage est 0, on force width à 0 et on enlève min-width
+  // CORRECTION CRITIQUE: Quand percentage est 0, on force width à 0 et on ajoute une classe spéciale
+  const progressFilledClass = percentage === 0 ? 'progress-filled empty' : 'progress-filled';
   const progressFilledStyle = percentage === 0 
-    ? 'width: 0%; min-width: 0;' 
+    ? 'width: 0%; min-width: 0; padding-right: 0;' 
     : `width: ${percentage}%`;
   
   resultPanel.innerHTML = `
@@ -305,7 +307,7 @@ function showResultPanel() {
       
       <div class="progress-bar-container">
         <div class="progress-bar">
-          <div class="progress-filled" style="${progressFilledStyle}">
+          <div class="${progressFilledClass}" style="${progressFilledStyle}">
             ${showAmountOnBar ? `£${currentBalance.toFixed(0)}` : ''}
           </div>
           ${!isGoalReached ? `

@@ -589,6 +589,14 @@ document.addEventListener('DOMContentLoaded', function() {
         ],
         shares: [
             {
+                id: 'S&P 500',
+                name: 'S&P 500 (SP500)',
+                symbol: 'S&P 500',
+                tradingViewSymbol: 'Vantage:SP500',
+                displayName: 'S&P 500',
+                kinfopaneltousSymbol: 'Vantage:SP500'
+            },
+            {
                id: 'nasdaq',
                name: 'NASDAQ Composite',
                symbol: 'NASDAQ',
@@ -596,6 +604,7 @@ document.addEventListener('DOMContentLoaded', function() {
                displayName: 'NASDAQ',
                kinfopaneltousSymbol: 'NASDAQ:IXIC'
             },
+
             {
                 id: 'apple',
                 name: 'Apple (AAPL)',
@@ -604,21 +613,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayName: 'Apple',
                 kinfopaneltousSymbol: 'NASDAQ:AAPL'
             },
+
             {
-                id: 'tesla',
-                name: 'Tesla (TSLA)',
-                symbol: 'TSLA',
-                tradingViewSymbol: 'NASDAQ:TSLA',
-                displayName: 'Tesla',
-                kinfopaneltousSymbol: 'NASDAQ:TSLA'
-            },
-            {
-                id: 'microsoft',
-                name: 'Microsoft (MSFT)',
-                symbol: 'MSFT',
-                tradingViewSymbol: 'NASDAQ:MSFT',
-                displayName: 'Microsoft',
-                kinfopaneltousSymbol: 'NASDAQ:MSFT'
+                id: 'GameStop',
+                name: 'GameStop (GME)',
+                symbol: 'GME',
+                tradingViewSymbol: 'NYSE:GME',
+                displayName: 'GameStop',
+                kinfopaneltousSymbol: 'NYSE:GME'
             }
         ],
         commodities: [

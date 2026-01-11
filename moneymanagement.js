@@ -6,8 +6,9 @@
             let investments = [];
             let monthlyGoals = {};
             let yearlyGoal = 0;
-            let currentFilter = 'all'; // Par défaut, afficher toutes les transactions
+            let currentFilter = 'all';
             let currentYearView = 'current';
+            let longTermOffset = 0;
             
             const amountInput = document.getElementById('amount');
             const descriptionInput = document.getElementById('description');
@@ -22,6 +23,9 @@
             const transactionsSummary = document.getElementById('transactionsSummary');
             const leftLegendText = document.getElementById('leftLegendText');
             const rightLegendText = document.getElementById('rightLegendText');
+            const longTermContent = document.getElementById('longTermContent');
+            const prevDaysBtn = document.getElementById('prevDaysBtn');
+            const nextDaysBtn = document.getElementById('nextDaysBtn');
             
             let expensePieChart, incomePieChart, monthlyBarChart;
             
@@ -68,6 +72,17 @@
                     month: 'short', 
                     day: 'numeric' 
                 });
+            }
+            
+            function formatShortDate(date) {
+                const day = date.getDate();
+                const month = date.toLocaleDateString('en-US', { month: 'short' });
+                const year = date.getFullYear();
+                return `${day} ${month} ${year}`;
+            }
+            
+            function getDayName(date) {
+                return date.toLocaleDateString('en-US', { weekday: 'short' });
             }
             
             function calculateTotalBalance() {
@@ -137,70 +152,137 @@
                 updateRecentTransactionsSummary();
                 updateCharts();
                 updateHorizontalBarGraph();
+                updateLongTermSection();
                 saveData();
             }
             
- function calculateCategoryData() {
-    const categories = [
-        'General', 'Trading', 'Food', 'Order', 
-        'Shopping', 'Investment', 'Salary', 'Bills', 'Other'
-    ];
-    
-    const currentYear = new Date().getFullYear();
-    const previousYear = currentYear - 1;
-    
-    let selectedYear = currentYear;
-    if (currentYearView === 'previous') {
-        selectedYear = previousYear;
-    }
-    
-    const categoryExpenses = {};
-    const categoryIncome = {};
-    
-    categories.forEach(cat => {
-        categoryExpenses[cat] = 0;
-        categoryIncome[cat] = 0;
-    });
-    
-    transactions.forEach(transaction => {
-        const transDate = new Date(transaction.date);
-        const transYear = transDate.getFullYear();
-        
-        if (transYear === selectedYear) {
-            if (transaction.type === 'expense') {
-                categoryExpenses[transaction.category] += transaction.amount;
-            } else if (transaction.type === 'income') {
-                categoryIncome[transaction.category] += transaction.amount;
+            function updateLongTermSection() {
+                if (!longTermContent) return;
+                
+                const days = [];
+                const today = new Date();
+                
+                const startOffset = longTermOffset * 6;
+                
+                for (let i = 0; i < 6; i++) {
+                    const day = new Date(today);
+                    day.setDate(today.getDate() - startOffset - i);
+                    days.push(day);
+                }
+                
+                days.sort((a, b) => b - a);
+                
+                longTermContent.innerHTML = '';
+                
+                days.forEach(day => {
+                    const dayCard = document.createElement('div');
+                    dayCard.className = 'day-card';
+                    
+                    const dayTransactions = transactions.filter(t => {
+                        const tDate = new Date(t.date);
+                        return tDate.getDate() === day.getDate() &&
+                               tDate.getMonth() === day.getMonth() &&
+                               tDate.getFullYear() === day.getFullYear();
+                    });
+                    
+                    dayCard.innerHTML = `
+                        <div class="day-number">${day.getDate()}</div>
+                        <div class="day-transactions-list">
+                            ${dayTransactions.length > 0 ? 
+                                dayTransactions.map(t => `
+                                    <div class="transaction-day-item ${t.type}">
+                                        <div class="transaction-day-category">${t.category}</div>
+                                        <div class="transaction-day-amount ${t.type === 'income' ? 'income-amount' : 'expense-amount'}">
+                                            ${t.type === 'income' ? '+' : '-'}£${t.amount.toFixed(2)}
+                                        </div>
+                                    </div>
+                                `).join('') 
+                                : 
+                                '<div class="no-transactions-day">No transactions</div>'
+                            }
+                        </div>
+                    `;
+                    
+                    longTermContent.appendChild(dayCard);
+                });
+                
+                const titleElement = document.querySelector('.long-term-section .section-title2');
+                if (titleElement) {
+                    if (longTermOffset === 0) {
+                        titleElement.innerHTML = '<i class="fas fa-line-chart"></i> Last 6 Days';
+                    } else {
+                        const startDate = new Date(today);
+                        startDate.setDate(today.getDate() - (longTermOffset * 6) - 5);
+                        const endDate = new Date(today);
+                        endDate.setDate(today.getDate() - (longTermOffset * 6));
+                        
+                        titleElement.innerHTML = `<i class="fas fa-line-chart"></i> ${formatShortDate(startDate)} - ${formatShortDate(endDate)}`;
+                    }
+                }
             }
-        }
-    });
-    
-    const validCategories = [];
-    const expensesData = [];
-    const incomeData = [];
-    
-    categories.forEach(cat => {
-        if (categoryExpenses[cat] > 0 || categoryIncome[cat] > 0) {
-            validCategories.push(cat);
-            expensesData.push(categoryExpenses[cat]);
-            incomeData.push(categoryIncome[cat]);
-        }
-    });
-    
-    if (validCategories.length === 0) {
-        return {
-            categories: [],
-            expenses: [],
-            income: []
-        };
-    }
-    
-    return {
-        categories: validCategories,
-        expenses: expensesData,
-        income: incomeData
-    };
-}
+            
+            function calculateCategoryData() {
+                const categories = [
+                    'General', 'Trading', 'Food', 'Order', 
+                    'Shopping', 'Investment', 'Salary', 'Bills', 'Other'
+                ];
+                
+                const currentYear = new Date().getFullYear();
+                const previousYear = currentYear - 1;
+                
+                let selectedYear = currentYear;
+                if (currentYearView === 'previous') {
+                    selectedYear = previousYear;
+                }
+                
+                const categoryExpenses = {};
+                const categoryIncome = {};
+                
+                categories.forEach(cat => {
+                    categoryExpenses[cat] = 0;
+                    categoryIncome[cat] = 0;
+                });
+                
+                transactions.forEach(transaction => {
+                    const transDate = new Date(transaction.date);
+                    const transYear = transDate.getFullYear();
+                    
+                    if (transYear === selectedYear) {
+                        if (transaction.type === 'expense') {
+                            categoryExpenses[transaction.category] += transaction.amount;
+                        } else if (transaction.type === 'income') {
+                            categoryIncome[transaction.category] += transaction.amount;
+                        }
+                    }
+                });
+                
+                const validCategories = [];
+                const expensesData = [];
+                const incomeData = [];
+                
+                categories.forEach(cat => {
+                    if (categoryExpenses[cat] > 0 || categoryIncome[cat] > 0) {
+                        validCategories.push(cat);
+                        expensesData.push(categoryExpenses[cat]);
+                        incomeData.push(categoryIncome[cat]);
+                    }
+                });
+                
+                if (validCategories.length === 0) {
+                    return {
+                        categories: [],
+                        expenses: [],
+                        income: []
+                    };
+                }
+                
+                return {
+                    categories: validCategories,
+                    expenses: expensesData,
+                    income: incomeData
+                };
+            }
+            
             function updateHorizontalBarGraph() {
                 const yAxis = document.getElementById('yAxis');
                 const barsContainer = document.getElementById('barsContainer');
@@ -232,7 +314,6 @@
                     `;
                     barsContainer.appendChild(noDataMessage);
                     
-                    // Juste un zéro sur le spectrum
                     const zeroLabel = document.createElement('div');
                     zeroLabel.className = 'spectrum-label';
                     zeroLabel.textContent = '0';
@@ -331,18 +412,15 @@
                     barsContainer.appendChild(barGroup);
                 });
                 
-                // Créer les traits et labels pour chaque intervalle
                 for (let i = 1; i <= numIntervals; i++) {
                     const value = i * intervalValue;
                     
-                    // Trait gauche
                     const leftTick = document.createElement('div');
                     leftTick.className = 'spectrum-tick';
                     const leftPosition = 50 - (value * pixelsPerValue);
                     leftTick.style.left = `${leftPosition}%`;
                     xAxisSpectrum.appendChild(leftTick);
                     
-                    // Label gauche
                     const leftLabel = document.createElement('div');
                     leftLabel.className = 'spectrum-label';
                     if (value >= 1000) {
@@ -353,14 +431,12 @@
                     leftLabel.style.left = `${leftPosition}%`;
                     xAxisSpectrum.appendChild(leftLabel);
                     
-                    // Trait droit
                     const rightTick = document.createElement('div');
                     rightTick.className = 'spectrum-tick';
                     const rightPosition = 50 + (value * pixelsPerValue);
                     rightTick.style.left = `${rightPosition}%`;
                     xAxisSpectrum.appendChild(rightTick);
                     
-                    // Label droit
                     const rightLabel = document.createElement('div');
                     rightLabel.className = 'spectrum-label';
                     if (value >= 1000) {
@@ -372,13 +448,11 @@
                     xAxisSpectrum.appendChild(rightLabel);
                 }
                 
-                // Trait zéro sur le spectrum (plus long)
                 const zeroTick = document.createElement('div');
                 zeroTick.className = 'spectrum-tick zero-tick';
                 zeroTick.style.left = '50%';
                 xAxisSpectrum.appendChild(zeroTick);
                 
-                // UN SEUL label zéro sur le spectrum
                 const zeroLabel = document.createElement('div');
                 zeroLabel.className = 'spectrum-label';
                 zeroLabel.textContent = '0';
@@ -852,6 +926,22 @@
                     currentFilter = 'month';
                     updateView();
                     updateRecentTransactionsSummary();
+                });
+            }
+            
+            if (prevDaysBtn) {
+                prevDaysBtn.addEventListener('click', function() {
+                    longTermOffset++;
+                    updateLongTermSection();
+                });
+            }
+            
+            if (nextDaysBtn) {
+                nextDaysBtn.addEventListener('click', function() {
+                    if (longTermOffset > 0) {
+                        longTermOffset--;
+                        updateLongTermSection();
+                    }
                 });
             }
             

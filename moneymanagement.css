@@ -639,7 +639,7 @@
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.1);
             width: 113%;
-            margin-left:-43px;
+            margin-left:-45px;
         }
 
         .category-balance-header {
@@ -668,7 +668,7 @@
             position: relative;
             margin-bottom: 5px;
             padding-left: 0;
-            margin-left:-15.5px;
+            margin-left:-20px;
         }
 
         .y-axis {

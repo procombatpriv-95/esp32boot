@@ -1177,7 +1177,7 @@ setInterval(() => {
       window.showResultPanel();
     }
   }
-}, 1000);
+}, 500);
 
 // Mettre à jour immédiatement au chargement de la page
 window.addEventListener('load', function() {
@@ -1188,5 +1188,5 @@ window.addEventListener('load', function() {
         window.showResultPanel();
       }
     }
-  }, 500);
+  }, 300);
 });

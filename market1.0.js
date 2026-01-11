@@ -1,3 +1,43 @@
+        const markets = [
+            { 
+                id: 'cac40', 
+                name: 'CAC 40', 
+                symbol: 'CAC40',
+                width: 150,
+                height: 90,
+                colorTheme: 'dark',
+                position: { x: 0, y: 0 }
+            },
+            { 
+                id: 'gold', 
+                name: 'Or', 
+                symbol: 'XAUUSD',
+                width: 150,
+                height: 90,
+                colorTheme: 'dark',
+                position: { x: 151, y: 0 }
+            },
+            { 
+                id: 'eurusd', 
+                name: 'EUR/USD', 
+                symbol: 'EURUSD',
+                width: 150,
+                height: 90,
+                colorTheme: 'dark',
+                position: { x: 0, y: 91 }
+            },
+            { 
+                id: 'bitcoin', 
+                name: 'Bitcoin', 
+                symbol: 'BITSTAMP:BTCUSD',
+                width: 150,
+                height: 90,
+                colorTheme: 'dark',
+                position: { x: 151, y: 91 }
+            }
+        ];
+
+        // Initialiser le canvas
         const canvas = document.getElementById('marketCanvas');
         const ctx = canvas.getContext('2d');
         

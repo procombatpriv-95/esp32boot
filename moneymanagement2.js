@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const menu4Content = document.getElementById('menu4Content');
-    if (!menu4Content) return;
+    // === CONFIGURATION SUPABASE ===
+    const SUPABASE_URL = 'https://obetden7wnehmdknbt0meag.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ObETdEn7WNehMDkNt0meag_ubB_n7VK';
     
+    // === VARIABLES GLOBALES ===
     let transactions = [];
     let investments = [];
     let monthlyGoals = {};
@@ -10,72 +12,64 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentYearView = 'current';
     let longTermOffset = 0;
     
-    // Configuration Supabase
-    const supabaseUrl = 'https://obetden7wnehmdknbt0meag.supabase.co';
-    const supabaseKey = 'sb_publishable_ObETdEn7WNehMDkNt0meag_ubB_n7VK';
-    const supabaseHeaders = {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+    // === ÉLÉMENTS DOM ===
+    const elements = {
+        menu4Content: document.getElementById('menu4Content'),
+        amountInput: document.getElementById('amount'),
+        descriptionInput: document.getElementById('description'),
+        dateInput: document.getElementById('date'),
+        goalAmountInput: document.getElementById('goalAmount'),
+        goalAllAmountInput: document.getElementById('goalAllAmount'),
+        transactionTypeSelect: document.getElementById('transactionType'),
+        categorySelect: document.getElementById('category'),
+        allBtn: document.getElementById('allBtn'),
+        monthlyBtn: document.getElementById('monthlyBtn'),
+        addTransactionBtn: document.getElementById('addTransactionBtn'),
+        setGoalBtn: document.getElementById('setGoalBtn'),
+        setAllGoalBtn: document.getElementById('setAllGoalBtn'),
+        clearAllBtn: document.getElementById('clearAllBtn'),
+        transactionsList: document.getElementById('transactionsList'),
+        recentIncome: document.getElementById('recentIncome'),
+        recentExpenses: document.getElementById('recentExpenses'),
+        recentBalance: document.getElementById('recentBalance'),
+        currentBalanceControl: document.getElementById('currentBalanceControl'),
+        totalTransactions: document.getElementById('totalTransactions'),
+        yAxis: document.getElementById('yAxis'),
+        barsContainer: document.getElementById('barsContainer'),
+        xAxisSpectrum: document.getElementById('xAxisSpectrum'),
+        leftLegendText: document.getElementById('leftLegendText'),
+        rightLegendText: document.getElementById('rightLegendText'),
+        longTermContent: document.getElementById('longTermContent'),
+        prevDaysBtn: document.getElementById('prevDaysBtn'),
+        nextDaysBtn: document.getElementById('nextDaysBtn')
     };
-    
-    // Éléments DOM
-    const amountInput = document.getElementById('amount');
-    const descriptionInput = document.getElementById('description');
-    const dateInput = document.getElementById('date');
-    const goalAmountInput = document.getElementById('goalAmount');
-    const goalAllAmountInput = document.getElementById('goalAllAmount');
-    const transactionTypeSelect = document.getElementById('transactionType');
-    const categorySelect = document.getElementById('category');
-    const allBtn = document.getElementById('allBtn');
-    const monthlyBtn = document.getElementById('monthlyBtn');
-    const recentTransactionsTitle = document.getElementById('recentTransactionsTitle');
-    const transactionsSummary = document.getElementById('transactionsSummary');
-    const leftLegendText = document.getElementById('leftLegendText');
-    const rightLegendText = document.getElementById('rightLegendText');
-    const longTermContent = document.getElementById('longTermContent');
-    const prevDaysBtn = document.getElementById('prevDaysBtn');
-    const nextDaysBtn = document.getElementById('nextDaysBtn');
     
     let expensePieChart, incomePieChart, monthlyBarChart;
     
+    // === INITIALISATION DE LA DATE ===
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
-    if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
+    if (elements.dateInput) elements.dateInput.value = `${yyyy}-${mm}-${dd}`;
     
-    // ============================================
-    // FONCTIONS SUPABASE - STOCKAGE EN LIGNE UNIQUEMENT
-    // ============================================
+    // === FONCTIONS SUPABASE ===
     
-    // Générer un ID unique de session
     function getSessionId() {
-        let sessionId = sessionStorage.getItem('money_session_id');
+        let sessionId = localStorage.getItem('money_session_id');
         if (!sessionId) {
             sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('money_session_id', sessionId);
+            localStorage.setItem('money_session_id', sessionId);
         }
         return sessionId;
     }
     
-    // Vérifier la connexion Internet
-    async function checkInternetConnection() {
-        try {
-            const response = await fetch('https://www.google.com', { mode: 'no-cors' });
-            return true;
-        } catch (error) {
-            return false;
-        }
-    }
-    
-    // Sauvegarder TOUT sur Supabase
-    async function saveAllToSupabase() {
+    async function saveToSupabase() {
         const sessionId = getSessionId();
         
         try {
-            // Préparer les données
+            console.log('💾 Sauvegarde sur Supabase...');
+            
             const dataToSave = {
                 session_id: sessionId,
                 transactions: JSON.stringify(transactions),
@@ -85,105 +79,51 @@ document.addEventListener('DOMContentLoaded', function() {
                 total_transactions: transactions.length,
                 total_investments: investments.length,
                 last_updated: new Date().toISOString(),
-                device_info: navigator.userAgent,
+                device_info: navigator.userAgent.substring(0, 100),
                 timestamp: Date.now()
             };
             
-            console.log('📤 Envoi des données à Supabase...', dataToSave);
-            
-            // Vérifier la taille des données
-            const dataSize = JSON.stringify(dataToSave).length;
-            if (dataSize > 50000) { // 50KB max
-                console.warn('⚠️ Données volumineuses:', dataSize, 'bytes');
-            }
-            
-            // Sauvegarder sur Supabase
-            const response = await fetch(`${supabaseUrl}/rest/v1/money_storage`, {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/money_data`, {
                 method: 'POST',
-                headers: supabaseHeaders,
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
                 body: JSON.stringify(dataToSave)
             });
             
-            if (!response.ok) {
+            if (response.ok) {
+                console.log('✅ Données sauvegardées sur Supabase !');
+                showNotification('✅ Données sauvegardées en ligne', 'success');
+                return true;
+            } else {
                 const errorText = await response.text();
-                throw new Error(`Supabase error ${response.status}: ${errorText}`);
+                console.error('❌ Erreur Supabase:', errorText);
+                showNotification('❌ Erreur de sauvegarde', 'error');
+                return false;
             }
-            
-            console.log('✅ DONNÉES SAUVEGARDÉES SUR SUPABASE !');
-            console.log('📊 Statistiques:');
-            console.log('- Transactions:', transactions.length);
-            console.log('- Investissements:', investments.length);
-            console.log('- Objectifs mensuels:', Object.keys(monthlyGoals).length);
-            console.log('- Session ID:', sessionId);
-            
-            // Afficher une notification à l'utilisateur
-            showNotification('✅ Données sauvegardées en ligne !', 'success');
-            
-            return true;
-            
         } catch (error) {
-            console.error('❌ ERREUR SUPABASE CRITIQUE:', error);
-            showNotification('❌ Erreur de sauvegarde en ligne', 'error');
-            
-            // En cas d'erreur, on peut essayer une méthode alternative
-            await saveBackupToSupabase();
+            console.error('❌ Erreur réseau:', error);
+            showNotification('❌ Pas de connexion internet', 'error');
             return false;
         }
     }
     
-    // Méthode de backup pour Supabase
-    async function saveBackupToSupabase() {
-        try {
-            const sessionId = getSessionId();
-            
-            // Format simplifié pour contourner les problèmes
-            const backupData = {
-                session_id: sessionId,
-                data_summary: {
-                    transaction_count: transactions.length,
-                    investment_count: investments.length,
-                    goal_count: Object.keys(monthlyGoals).length,
-                    total_balance: calculateTotalBalance(),
-                    last_updated: new Date().toISOString()
-                },
-                raw_data: btoa(encodeURIComponent(JSON.stringify({
-                    t: transactions,
-                    i: investments,
-                    m: monthlyGoals,
-                    y: yearlyGoal
-                }))),
-                backup_timestamp: Date.now()
-            };
-            
-            const response = await fetch(`${supabaseUrl}/rest/v1/money_backup`, {
-                method: 'POST',
-                headers: supabaseHeaders,
-                body: JSON.stringify(backupData)
-            });
-            
-            if (response.ok) {
-                console.log('✅ Backup envoyé à Supabase');
-                return true;
-            }
-        } catch (error) {
-            console.error('❌ Backup échoué:', error);
-        }
-        return false;
-    }
-    
-    // Charger depuis Supabase
     async function loadFromSupabase() {
         const sessionId = getSessionId();
         
         try {
             console.log('📥 Chargement depuis Supabase...');
             
-            // D'abord essayer la table principale
             const response = await fetch(
-                `${supabaseUrl}/rest/v1/money_storage?session_id=eq.${sessionId}&order=last_updated.desc&limit=1`,
+                `${SUPABASE_URL}/rest/v1/money_data?session_id=eq.${sessionId}&order=last_updated.desc&limit=1`,
                 {
-                    method: 'GET',
-                    headers: supabaseHeaders
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
                 }
             );
             
@@ -193,57 +133,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data && data.length > 0) {
                     const latestData = data[0];
                     
-                    // Récupérer les données
                     transactions = JSON.parse(latestData.transactions || '[]');
                     investments = JSON.parse(latestData.investments || '[]');
                     monthlyGoals = JSON.parse(latestData.monthly_goals || '{}');
                     yearlyGoal = latestData.yearly_goal || 0;
                     
-                    console.log('✅ Données chargées depuis Supabase:');
-                    console.log('- Transactions:', transactions.length);
-                    console.log('- Dernière mise à jour:', latestData.last_updated);
-                    
+                    console.log('✅ Données chargées depuis Supabase');
                     showNotification('✅ Données chargées depuis le cloud', 'success');
                     return true;
                 }
             }
             
-            console.log('ℹ️ Aucune donnée trouvée pour cette session');
+            console.log('ℹ️ Aucune donnée sur Supabase');
             return false;
-            
         } catch (error) {
-            console.error('❌ Erreur de chargement Supabase:', error);
-            showNotification('❌ Impossible de charger depuis le cloud', 'error');
+            console.error('❌ Erreur de chargement:', error);
             return false;
         }
     }
     
-    // Synchronisation complète
-    async function syncWithSupabase() {
-        console.log('🔄 Synchronisation avec Supabase...');
-        
-        try {
-            // 1. Charger d'abord depuis Supabase
-            const loaded = await loadFromSupabase();
-            
-            // 2. Mettre à jour l'interface
-            updateDashboard();
-            
-            // 3. Si on n'a pas pu charger, on sauvegarde les données actuelles
-            if (!loaded && (transactions.length > 0 || Object.keys(monthlyGoals).length > 0)) {
-                await saveAllToSupabase();
-            }
-            
-            console.log('✅ Synchronisation terminée');
-            
-        } catch (error) {
-            console.error('❌ Erreur de synchronisation:', error);
-        }
-    }
+    // === FONCTIONS UTILITAIRES ===
     
-    // Fonction utilitaire pour afficher les notifications
     function showNotification(message, type = 'info') {
-        // Créer la notification
         const notification = document.createElement('div');
         notification.className = `supabase-notification ${type}`;
         notification.innerHTML = `
@@ -254,51 +165,23 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="notification-close">&times;</button>
         `;
         
-        // Style de la notification
         notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
             background: ${type === 'success' ? '#2ecc71' : '#e74c3c'};
             color: white;
-            padding: 15px 20px;
-            border-radius: 5px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 9999;
+            padding: 12px 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 10000;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            min-width: 300px;
-            max-width: 400px;
+            min-width: 250px;
             animation: slideIn 0.3s ease;
-            font-family: Arial, sans-serif;
         `;
         
-        // Style du contenu
-        notification.querySelector('.notification-content').style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-        `;
-        
-        // Style du bouton fermer
-        notification.querySelector('.notification-close').style.cssText = `
-            background: none;
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            margin-left: 15px;
-            padding: 0;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        `;
-        
-        // Ajouter l'animation
         const style = document.createElement('style');
         style.textContent = `
             @keyframes slideIn {
@@ -312,27 +195,20 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         document.head.appendChild(style);
         
-        // Fermer la notification
         notification.querySelector('.notification-close').onclick = () => {
             notification.style.animation = 'slideOut 0.3s ease forwards';
             setTimeout(() => notification.remove(), 300);
         };
         
-        // Auto-fermer après 5 secondes
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.style.animation = 'slideOut 0.3s ease forwards';
                 setTimeout(() => notification.remove(), 300);
             }
-        }, 5000);
+        }, 3000);
         
-        // Ajouter au DOM
         document.body.appendChild(notification);
     }
-    
-    // ============================================
-    // FONCTIONS DE L'APPLICATION
-    // ============================================
     
     function getMonthNames() {
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -380,10 +256,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${day} ${month} ${year}`;
     }
     
-    function getDayName(date) {
-        return date.toLocaleDateString('en-US', { weekday: 'short' });
-    }
-    
     function calculateTotalBalance() {
         const totalIncome = transactions
             .filter(t => t.type === 'income')
@@ -396,10 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return totalIncome - totalExpenses;
     }
     
-    function getColor(index) {
-        const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
-        return colors[index % colors.length];
-    }
+    // === FONCTIONS DE L'INTERFACE ===
     
     function updateDashboard() {
         updateView();
@@ -409,18 +278,130 @@ document.addEventListener('DOMContentLoaded', function() {
         updateHorizontalBarGraph();
         updateLongTermSection();
         
-        // SAUVEGARDE AUTOMATIQUE SUR SUPABASE
-        saveAllToSupabase().catch(error => {
-            console.error('Auto-save failed:', error);
+        // Sauvegarde automatique sur Supabase
+        if (transactions.length > 0 || Object.keys(monthlyGoals).length > 0) {
+            saveToSupabase();
+        }
+    }
+    
+    function updateView() {
+        if (!elements.transactionsList) return;
+        
+        let filtered;
+        
+        if (currentFilter === 'month') {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            filtered = transactions.filter(t => {
+                const tDate = new Date(t.date);
+                return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+            });
+        } else {
+            filtered = transactions;
+        }
+        
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        if (filtered.length === 0) {
+            elements.transactionsList.innerHTML = `
+                <div class="no-data">
+                    <i class="fas fa-exchange-alt"></i>
+                    <div>No transactions yet</div>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        filtered.slice(0, 8).forEach(transaction => {
+            const sign = transaction.type === 'income' ? '+' : '-';
+            const amountClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
+            
+            html += `
+                <div class="transaction-item" data-id="${transaction.id}">
+                    <div class="transaction-info">
+                        <div class="transaction-category">${transaction.category}</div>
+                        <div class="transaction-description">${transaction.description}</div>
+                        <div class="transaction-date">${formatDate(transaction.date)}</div>
+                    </div>
+                    <div class="transaction-amount ${amountClass}">
+                        ${sign}£${transaction.amount.toFixed(2)}
+                    </div>
+                    <div class="transaction-actions">
+                        <button class="trash-icon-btn" onclick="deleteTransaction(${transaction.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
         });
+        
+        elements.transactionsList.innerHTML = html;
+    }
+    
+    window.deleteTransaction = function(id) {
+        if (confirm('Are you sure you want to delete this transaction?')) {
+            transactions = transactions.filter(t => t.id !== id);
+            updateDashboard();
+        }
+    }
+    
+    function updateRecentTransactionsSummary() {
+        let filtered;
+        
+        if (currentFilter === 'month') {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            filtered = transactions.filter(t => {
+                const tDate = new Date(t.date);
+                return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+            });
+        } else {
+            filtered = transactions;
+        }
+        
+        const totalIncome = filtered
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        const totalExpenses = filtered
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        const balance = totalIncome - totalExpenses;
+        
+        if (elements.recentIncome) {
+            elements.recentIncome.textContent = '£' + totalIncome.toFixed(2);
+        }
+        
+        if (elements.recentExpenses) {
+            elements.recentExpenses.textContent = '£' + totalExpenses.toFixed(2);
+        }
+        
+        if (elements.recentBalance) {
+            elements.recentBalance.textContent = '£' + balance.toFixed(2);
+        }
+    }
+    
+    function updateSummary() {
+        const balance = calculateTotalBalance();
+
+        if (elements.currentBalanceControl) {
+            elements.currentBalanceControl.textContent = '£' + balance.toFixed(2);
+        }
+        
+        if (elements.totalTransactions) {
+            elements.totalTransactions.textContent = transactions.length;
+        }
     }
     
     function updateLongTermSection() {
-        if (!longTermContent) return;
+        if (!elements.longTermContent) return;
         
         const days = [];
         const today = new Date();
-        
         const startOffset = longTermOffset * 6;
         
         for (let i = 0; i < 6; i++) {
@@ -431,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         days.sort((a, b) => b - a);
         
-        longTermContent.innerHTML = '';
+        elements.longTermContent.innerHTML = '';
         
         days.forEach(day => {
             const dayCard = document.createElement('div');
@@ -462,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
             
-            longTermContent.appendChild(dayCard);
+            elements.longTermContent.appendChild(dayCard);
         });
         
         const titleElement = document.querySelector('.long-term-section .section-title2');
@@ -527,14 +508,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        if (validCategories.length === 0) {
-            return {
-                categories: [],
-                expenses: [],
-                income: []
-            };
-        }
-        
         return {
             categories: validCategories,
             expenses: expensesData,
@@ -543,26 +516,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateHorizontalBarGraph() {
-        const yAxis = document.getElementById('yAxis');
-        const barsContainer = document.getElementById('barsContainer');
-        const xAxisSpectrum = document.getElementById('xAxisSpectrum');
-        
-        if (!yAxis || !barsContainer || !xAxisSpectrum) return;
+        if (!elements.yAxis || !elements.barsContainer || !elements.xAxisSpectrum) return;
         
         const categoryData = calculateCategoryData();
         const categories = categoryData.categories;
         const expensesData = categoryData.expenses;
         const incomeData = categoryData.income;
         
-        if (leftLegendText && rightLegendText) {
+        if (elements.leftLegendText && elements.rightLegendText) {
             const yearText = currentYearView === 'current' ? 'Current Year' : 'Previous Year';
-            leftLegendText.textContent = `${yearText} Expenses`;
-            rightLegendText.textContent = `${yearText} Income`;
+            elements.leftLegendText.textContent = `${yearText} Expenses`;
+            elements.rightLegendText.textContent = `${yearText} Income`;
         }
         
-        yAxis.innerHTML = '';
-        barsContainer.innerHTML = '';
-        xAxisSpectrum.innerHTML = '';
+        elements.yAxis.innerHTML = '';
+        elements.barsContainer.innerHTML = '';
+        elements.xAxisSpectrum.innerHTML = '';
         
         if (categories.length === 0) {
             const noDataMessage = document.createElement('div');
@@ -571,14 +540,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-chart-bar"></i>
                 <div>No data available for selected year</div>
             `;
-            barsContainer.appendChild(noDataMessage);
+            elements.barsContainer.appendChild(noDataMessage);
             
             const zeroLabel = document.createElement('div');
             zeroLabel.className = 'spectrum-label';
             zeroLabel.textContent = '0';
             zeroLabel.style.left = '50%';
-            xAxisSpectrum.appendChild(zeroLabel);
-            
+            elements.xAxisSpectrum.appendChild(zeroLabel);
             return;
         }
         
@@ -586,10 +554,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const maxIncome = Math.max(...incomeData);
         const maxValue = Math.max(maxExpense, maxIncome);
         
-        let maxDisplayValue;
-        if (maxValue === 0) {
-            maxDisplayValue = 1000;
-        } else {
+        let maxDisplayValue = 1000;
+        if (maxValue > 0) {
             if (maxValue < 500) {
                 maxDisplayValue = Math.ceil(maxValue / 100) * 100;
             } else if (maxValue < 2000) {
@@ -598,8 +564,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 maxDisplayValue = Math.ceil(maxValue / 1000) * 1000;
             }
         }
-        
-        maxDisplayValue = Math.max(maxDisplayValue, 1000);
         
         const numIntervals = 4;
         const intervalValue = maxDisplayValue / numIntervals;
@@ -613,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
             categoryLabel.style.display = 'flex';
             categoryLabel.style.alignItems = 'center';
             categoryLabel.style.justifyContent = 'flex-end';
-            yAxis.appendChild(categoryLabel);
+            elements.yAxis.appendChild(categoryLabel);
             
             const barGroup = document.createElement('div');
             barGroup.className = 'bar-group';
@@ -637,11 +601,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 leftBar.style.right = '50%';
                 leftBar.style.height = '70%';
                 
-                if (expenseValue >= 1000) {
-                    leftBar.textContent = `£${(expenseValue / 1000).toFixed(1)}k`;
-                } else {
-                    leftBar.textContent = `£${expenseValue.toFixed(0)}`;
-                }
+                leftBar.textContent = expenseValue >= 1000 ? 
+                    `£${(expenseValue / 1000).toFixed(1)}k` : `£${expenseValue.toFixed(0)}`;
                 barGroup.appendChild(leftBar);
                 
                 setTimeout(() => {
@@ -656,11 +617,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 rightBar.style.left = '50%';
                 rightBar.style.height = '70%';
                 
-                if (incomeValue >= 1000) {
-                    rightBar.textContent = `£${(incomeValue / 1000).toFixed(1)}k`;
-                } else {
-                    rightBar.textContent = `£${incomeValue.toFixed(0)}`;
-                }
+                rightBar.textContent = incomeValue >= 1000 ? 
+                    `£${(incomeValue / 1000).toFixed(1)}k` : `£${incomeValue.toFixed(0)}`;
                 barGroup.appendChild(rightBar);
                 
                 setTimeout(() => {
@@ -668,189 +626,57 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 50 + (index * 100));
             }
             
-            barsContainer.appendChild(barGroup);
+            elements.barsContainer.appendChild(barGroup);
         });
         
         for (let i = 1; i <= numIntervals; i++) {
             const value = i * intervalValue;
+            const leftPosition = 50 - (value * pixelsPerValue);
+            const rightPosition = 50 + (value * pixelsPerValue);
             
+            // Left side (expenses)
             const leftTick = document.createElement('div');
             leftTick.className = 'spectrum-tick';
-            const leftPosition = 50 - (value * pixelsPerValue);
             leftTick.style.left = `${leftPosition}%`;
-            xAxisSpectrum.appendChild(leftTick);
+            elements.xAxisSpectrum.appendChild(leftTick);
             
             const leftLabel = document.createElement('div');
             leftLabel.className = 'spectrum-label';
-            if (value >= 1000) {
-                leftLabel.textContent = `-£${(value / 1000).toFixed(1)}k`;
-            } else {
-                leftLabel.textContent = `-£${Math.round(value)}`;
-            }
+            leftLabel.textContent = value >= 1000 ? `-£${(value / 1000).toFixed(1)}k` : `-£${Math.round(value)}`;
             leftLabel.style.left = `${leftPosition}%`;
-            xAxisSpectrum.appendChild(leftLabel);
+            elements.xAxisSpectrum.appendChild(leftLabel);
             
+            // Right side (income)
             const rightTick = document.createElement('div');
             rightTick.className = 'spectrum-tick';
-            const rightPosition = 50 + (value * pixelsPerValue);
             rightTick.style.left = `${rightPosition}%`;
-            xAxisSpectrum.appendChild(rightTick);
+            elements.xAxisSpectrum.appendChild(rightTick);
             
             const rightLabel = document.createElement('div');
             rightLabel.className = 'spectrum-label';
-            if (value >= 1000) {
-                rightLabel.textContent = `£${(value / 1000).toFixed(1)}k`;
-            } else {
-                rightLabel.textContent = `£${Math.round(value)}`;
-            }
+            rightLabel.textContent = value >= 1000 ? `£${(value / 1000).toFixed(1)}k` : `£${Math.round(value)}`;
             rightLabel.style.left = `${rightPosition}%`;
-            xAxisSpectrum.appendChild(rightLabel);
+            elements.xAxisSpectrum.appendChild(rightLabel);
         }
         
+        // Zero point
         const zeroTick = document.createElement('div');
         zeroTick.className = 'spectrum-tick zero-tick';
         zeroTick.style.left = '50%';
-        xAxisSpectrum.appendChild(zeroTick);
+        elements.xAxisSpectrum.appendChild(zeroTick);
         
         const zeroLabel = document.createElement('div');
         zeroLabel.className = 'spectrum-label';
         zeroLabel.textContent = '0';
         zeroLabel.style.left = '50%';
         zeroLabel.style.transform = 'translateX(-50%)';
-        xAxisSpectrum.appendChild(zeroLabel);
+        elements.xAxisSpectrum.appendChild(zeroLabel);
     }
     
-    function updateView() {
-        const list = document.getElementById('transactionsList');
-        if (!list) return;
-        
-        let filtered;
-        
-        if (currentFilter === 'month') {
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            filtered = transactions.filter(t => {
-                const tDate = new Date(t.date);
-                return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-            });
-        } else {
-            filtered = transactions;
-        }
-        
-        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        if (filtered.length === 0) {
-            list.innerHTML = `
-                <div class="no-data">
-                    <i class="fas fa-exchange-alt"></i>
-                    <div>No transactions yet</div>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '';
-        filtered.slice(0, 8).forEach(transaction => {
-            const sign = transaction.type === 'income' ? '+' : '-';
-            const amountClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
-            
-            html += `
-                <div class="transaction-item" data-id="${transaction.id}">
-                    <div class="transaction-info">
-                        <div class="transaction-category">${transaction.category}</div>
-                        <div class="transaction-description">${transaction.description}</div>
-                        <div class="transaction-date">${formatDate(transaction.date)}</div>
-                    </div>
-                    <div class="transaction-amount ${amountClass}">
-                        ${sign}£${transaction.amount.toFixed(2)}
-                    </div>
-                    <div class="transaction-actions">
-                        <button class="trash-icon-btn" onclick="deleteTransaction(${transaction.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        list.innerHTML = html;
-    }
-    
-    window.deleteTransaction = function(id) {
-        if (confirm('Are you sure you want to delete this transaction?')) {
-            transactions = transactions.filter(t => t.id !== id);
-            updateDashboard();
-        }
-    }
-    
-    function updateRecentTransactionsSummary() {
-        let filtered;
-        
-        if (currentFilter === 'month') {
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            filtered = transactions.filter(t => {
-                const tDate = new Date(t.date);
-                return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-            });
-        } else {
-            filtered = transactions;
-        }
-        
-        const totalIncome = filtered
-            .filter(t => t.type === 'income')
-            .reduce((sum, t) => sum + t.amount, 0);
-            
-        const totalExpenses = filtered
-            .filter(t => t.type === 'expense')
-            .reduce((sum, t) => sum + t.amount, 0);
-            
-        const balance = totalIncome - totalExpenses;
-        
-        if (document.getElementById('recentIncome')) {
-            document.getElementById('recentIncome').textContent = '£' + totalIncome.toFixed(2);
-        }
-        
-        if (document.getElementById('recentExpenses')) {
-            document.getElementById('recentExpenses').textContent = '£' + totalExpenses.toFixed(2);
-        }
-        
-        if (document.getElementById('recentBalance')) {
-            document.getElementById('recentBalance').textContent = '£' + balance.toFixed(2);
-        }
-    }
-    
-    function clearAllTransactions() {
-        if (transactions.length === 0) {
-            return;
-        }
-        
-        if (confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.')) {
-            transactions = [];
-            investments = [];
-            monthlyGoals = {};
-            yearlyGoal = 0;
-            updateDashboard();
-        }
-    }
-    
-    function updateSummary() {
-        const balance = calculateTotalBalance();
-
-        if (document.getElementById('currentBalanceControl')) {
-            document.getElementById('currentBalanceControl').textContent = '£' + balance.toFixed(2);
-        }
-        
-        if (document.getElementById('totalTransactions')) {
-            document.getElementById('totalTransactions').textContent = transactions.length;
-        }
-    }
+    // === FONCTIONS DES GRAPHIQUES ===
     
     function initCharts() {
         if (typeof Chart === 'undefined') {
-            console.error('Chart.js n\'est pas chargé');
             setTimeout(initCharts, 100);
             return;
         }
@@ -870,11 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
         }
@@ -894,11 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
         }
@@ -955,46 +773,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
+                    interaction: { mode: 'index', intersect: false },
                     scales: {
                         x: {
                             stacked: false,
                             ticks: {
                                 maxRotation: 45,
                                 minRotation: 45,
-                                font: {
-                                    size: 8
-                                },
+                                font: { size: 8 },
                                 color: 'white'
                             },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
                         },
                         y: {
                             beginAtZero: true,
                             stacked: false,
                             ticks: {
-                                font: {
-                                    size: 8
-                                },
+                                font: { size: 8 },
                                 color: 'white',
-                                callback: function(value) {
-                                    return '£' + value;
-                                }
+                                callback: function(value) { return '£' + value; }
                             },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
                         }
                     },
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
                             mode: 'index',
                             intersect: false,
@@ -1087,12 +890,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // === GESTION DES TRANSACTIONS ===
+    
     function addTransaction() {
-        const amount = parseFloat(amountInput.value);
-        const description = descriptionInput.value.trim();
-        const date = dateInput.value;
-        const type = transactionTypeSelect.value;
-        const category = categorySelect.value;
+        const amount = parseFloat(elements.amountInput.value);
+        const description = elements.descriptionInput.value.trim();
+        const date = elements.dateInput.value;
+        const type = elements.transactionTypeSelect.value;
+        const category = elements.categorySelect.value;
         
         if (!amount || amount <= 0) {
             alert('Please enter a valid amount');
@@ -1122,12 +927,12 @@ document.addEventListener('DOMContentLoaded', function() {
         transactions.push(transaction);
         updateDashboard();
         
-        amountInput.value = '';
-        descriptionInput.value = '';
+        elements.amountInput.value = '';
+        elements.descriptionInput.value = '';
     }
     
     function setGoal() {
-        const amount = parseFloat(goalAmountInput.value);
+        const amount = parseFloat(elements.goalAmountInput.value);
         
         if (!amount || amount <= 0) {
             alert('Please enter a valid goal amount');
@@ -1142,11 +947,11 @@ document.addEventListener('DOMContentLoaded', function() {
         monthlyGoals[goalKey] = amount;
         updateDashboard();
         
-        goalAmountInput.value = '';
+        elements.goalAmountInput.value = '';
     }
     
     function setAllGoals() {
-        const amount = parseFloat(goalAllAmountInput.value);
+        const amount = parseFloat(elements.goalAllAmountInput.value);
         
         if (!amount || amount <= 0) {
             alert('Please enter a valid goal amount');
@@ -1156,204 +961,214 @@ document.addEventListener('DOMContentLoaded', function() {
         yearlyGoal = amount;
         updateDashboard();
         
-        goalAllAmountInput.value = '';
+        elements.goalAllAmountInput.value = '';
     }
     
-    // Ajouter un bouton de vérification Supabase
-    function addSupabaseStatusButton() {
-        const statusBtn = document.createElement('button');
-        statusBtn.id = 'supabaseStatusBtn';
-        statusBtn.className = 'supabase-status-btn';
-        statusBtn.innerHTML = '<i class="fas fa-cloud"></i> Supabase';
-        statusBtn.title = 'Vérifier la connexion à Supabase';
+    function clearAllTransactions() {
+        if (transactions.length === 0) return;
         
-        statusBtn.addEventListener('click', async function() {
-            statusBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-            statusBtn.disabled = true;
-            
-            try {
-                // Test de connexion
-                const testResponse = await fetch(`${supabaseUrl}/rest/v1/money_storage?select=count`, {
-                    headers: { 'apikey': supabaseKey }
-                });
-                
-                if (testResponse.ok) {
-                    // Vérifier les données
-                    const dataResponse = await fetch(
-                        `${supabaseUrl}/rest/v1/money_storage?session_id=eq.${getSessionId()}&order=last_updated.desc&limit=1`,
-                        { headers: { 'apikey': supabaseKey } }
-                    );
-                    
-                    if (dataResponse.ok) {
-                        const data = await dataResponse.json();
-                        if (data.length > 0) {
-                            const lastUpdate = new Date(data[0].last_updated);
-                            alert(`✅ Supabase connecté !\n\n📊 Dernière sauvegarde: ${lastUpdate.toLocaleString()}\n📈 Transactions: ${JSON.parse(data[0].transactions).length}\n💾 Taille: ${Math.round(JSON.stringify(data[0]).length / 1024)} KB`);
-                        } else {
-                            alert('✅ Supabase connecté !\n\nℹ️ Aucune donnée sauvegardée pour cette session.');
-                        }
-                    }
-                } else {
-                    alert('❌ Impossible de se connecter à Supabase');
-                }
-            } catch (error) {
-                alert('❌ Erreur de connexion à Supabase');
-            }
-            
-            statusBtn.innerHTML = '<i class="fas fa-cloud"></i> Supabase';
-            statusBtn.disabled = false;
-        });
-        
-        // Ajouter au header
-        const header = document.querySelector('.section-title:first-of-type');
-        if (header) {
-            header.appendChild(statusBtn);
+        if (confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.')) {
+            transactions = [];
+            investments = [];
+            monthlyGoals = {};
+            yearlyGoal = 0;
+            updateDashboard();
         }
     }
     
-    const addTransactionBtn = document.getElementById('addTransactionBtn');
-    const setGoalBtn = document.getElementById('setGoalBtn');
-    const setAllGoalBtn = document.getElementById('setAllGoalBtn');
-    const clearAllBtn = document.getElementById('clearAllBtn');
+    // === BOUTON DE DEBUG SUPABASE ===
     
-    if (addTransactionBtn) addTransactionBtn.addEventListener('click', addTransaction);
-    if (setGoalBtn) setGoalBtn.addEventListener('click', setGoal);
-    if (setAllGoalBtn) setAllGoalBtn.addEventListener('click', setAllGoals);
-    if (clearAllBtn) clearAllBtn.addEventListener('click', clearAllTransactions);
-    
-    if (allBtn) {
-        allBtn.addEventListener('click', function() {
-            allBtn.classList.add('active');
-            monthlyBtn.classList.remove('active');
-            currentFilter = 'all';
-            updateView();
-            updateRecentTransactionsSummary();
-        });
-    }
-    
-    if (monthlyBtn) {
-        monthlyBtn.addEventListener('click', function() {
-            monthlyBtn.classList.add('active');
-            allBtn.classList.remove('active');
-            currentFilter = 'month';
-            updateView();
-            updateRecentTransactionsSummary();
-        });
-    }
-    
-    if (prevDaysBtn) {
-        prevDaysBtn.addEventListener('click', function() {
-            longTermOffset++;
-            updateLongTermSection();
-        });
-    }
-    
-    if (nextDaysBtn) {
-        nextDaysBtn.addEventListener('click', function() {
-            if (longTermOffset > 0) {
-                longTermOffset--;
-                updateLongTermSection();
+    function addDebugButton() {
+        const debugBtn = document.createElement('button');
+        debugBtn.innerHTML = '🐛 Debug Supabase';
+        debugBtn.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 9999;
+            font-size: 12px;
+        `;
+        
+        debugBtn.onclick = async function() {
+            console.clear();
+            console.log('=== DEBUG SUPABASE ===');
+            console.log('URL:', SUPABASE_URL);
+            console.log('Key (first 10):', SUPABASE_KEY.substring(0, 10) + '...');
+            console.log('Session ID:', getSessionId());
+            console.log('Transactions:', transactions.length);
+            
+            // Test de connexion
+            try {
+                console.log('Testing connection...');
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/money_data?limit=1`, {
+                    headers: { 'apikey': SUPABASE_KEY }
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Table exists, rows:', data.length);
+                    alert('✅ Supabase connection OK!\nTable exists with ' + data.length + ' rows');
+                } else {
+                    const error = await response.text();
+                    console.error('Error:', error);
+                    alert('❌ Supabase error: ' + response.status + '\n' + error);
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                alert('❌ Network error: ' + error.message);
             }
-        });
+        };
+        
+        document.body.appendChild(debugBtn);
     }
     
-    document.querySelectorAll('.category-balance-section .month-btn[data-year]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.category-balance-section .month-btn[data-year]').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentYearView = this.dataset.year;
-            updateHorizontalBarGraph();
-        });
-    });
+    // === ÉVÉNEMENTS ===
     
-    document.querySelectorAll('.monthly-section .month-btn[data-year]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.monthly-section .month-btn[data-year]').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentYearView = this.dataset.year;
-            updateCharts();
+    function setupEventListeners() {
+        if (elements.addTransactionBtn) {
+            elements.addTransactionBtn.addEventListener('click', addTransaction);
+        }
+        
+        if (elements.setGoalBtn) {
+            elements.setGoalBtn.addEventListener('click', setGoal);
+        }
+        
+        if (elements.setAllGoalBtn) {
+            elements.setAllGoalBtn.addEventListener('click', setAllGoals);
+        }
+        
+        if (elements.clearAllBtn) {
+            elements.clearAllBtn.addEventListener('click', clearAllTransactions);
+        }
+        
+        if (elements.allBtn) {
+            elements.allBtn.addEventListener('click', function() {
+                elements.allBtn.classList.add('active');
+                elements.monthlyBtn.classList.remove('active');
+                currentFilter = 'all';
+                updateView();
+                updateRecentTransactionsSummary();
+            });
+        }
+        
+        if (elements.monthlyBtn) {
+            elements.monthlyBtn.addEventListener('click', function() {
+                elements.monthlyBtn.classList.add('active');
+                elements.allBtn.classList.remove('active');
+                currentFilter = 'month';
+                updateView();
+                updateRecentTransactionsSummary();
+            });
+        }
+        
+        if (elements.prevDaysBtn) {
+            elements.prevDaysBtn.addEventListener('click', function() {
+                longTermOffset++;
+                updateLongTermSection();
+            });
+        }
+        
+        if (elements.nextDaysBtn) {
+            elements.nextDaysBtn.addEventListener('click', function() {
+                if (longTermOffset > 0) {
+                    longTermOffset--;
+                    updateLongTermSection();
+                }
+            });
+        }
+        
+        // Year view buttons
+        document.querySelectorAll('.category-balance-section .month-btn[data-year]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.category-balance-section .month-btn[data-year]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentYearView = this.dataset.year;
+                updateHorizontalBarGraph();
+            });
         });
-    });
+        
+        document.querySelectorAll('.monthly-section .month-btn[data-year]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.monthly-section .month-btn[data-year]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentYearView = this.dataset.year;
+                updateCharts();
+            });
+        });
+        
+        // Enter key for adding transactions
+        if (elements.amountInput && elements.descriptionInput) {
+            elements.amountInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addTransaction();
+            });
+            elements.descriptionInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addTransaction();
+            });
+        }
+    }
+    
+    // === INITIALISATION ===
     
     async function initApp() {
-        console.log("🚀 Initialisation de l'application Money Management");
+        console.log('🚀 Initialisation Money Management');
         
-        // Ajouter le bouton de status Supabase
-        addSupabaseStatusButton();
+        // Vérifier si on est dans la bonne page
+        if (!elements.menu4Content) return;
         
-        // Initialiser les graphiques
+        // Ajouter le bouton de debug
+        addDebugButton();
+        
+        // Charger Chart.js si nécessaire
         if (typeof Chart === 'undefined') {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
             script.onload = async function() {
                 initCharts();
-                
-                // CHARGER DIRECTEMENT DEPUIS SUPABASE
-                console.log('⬇️ Chargement depuis Supabase...');
-                const loaded = await loadFromSupabase();
-                
-                if (!loaded) {
-                    console.log('ℹ️ Aucune donnée sur Supabase, démarrage avec données vides');
-                    transactions = [];
-                    investments = [];
-                    monthlyGoals = {};
-                    yearlyGoal = 0;
-                }
-                
+                await loadFromSupabase();
                 updateDashboard();
             };
             document.head.appendChild(script);
         } else {
             initCharts();
-            
-            // CHARGER DIRECTEMENT DEPUIS SUPABASE
-            console.log('⬇️ Chargement depuis Supabase...');
-            const loaded = await loadFromSupabase();
-            
-            if (!loaded) {
-                console.log('ℹ️ Aucune donnée sur Supabase, démarrage avec données vides');
-                transactions = [];
-                investments = [];
-                monthlyGoals = {};
-                yearlyGoal = 0;
-            }
-            
+            await loadFromSupabase();
             updateDashboard();
         }
         
-        console.log("✅ Application Money Management initialisée (100% Supabase)");
+        // Configurer les événements
+        setupEventListeners();
+        
+        console.log('✅ Application initialisée');
     }
     
-    initApp();
+    // === SAUVEGARDE AVANT FERMETURE ===
     
-    window.addEventListener('resize', function() {
-        setTimeout(updateCharts, 100);
-        setTimeout(updateHorizontalBarGraph, 100);
-    });
-    
-    // Sauvegarde automatique toutes les 30 secondes
-    setInterval(() => {
-        if (transactions.length > 0 || Object.keys(monthlyGoals).length > 0) {
-            saveAllToSupabase().catch(console.error);
-        }
-    }, 30000);
-    
-    // Sauvegarder avant de quitter la page
     window.addEventListener('beforeunload', function() {
-        if (transactions.length > 0 || Object.keys(monthlyGoals).length > 0) {
-            // Sauvegarde synchrone (peut ralentir un peu)
-            navigator.sendBeacon(
-                `${supabaseUrl}/rest/v1/money_storage`,
-                JSON.stringify({
-                    session_id: getSessionId(),
-                    transactions: JSON.stringify(transactions),
-                    investments: JSON.stringify(investments),
-                    monthly_goals: JSON.stringify(monthlyGoals),
-                    yearly_goal: yearlyGoal,
-                    last_updated: new Date().toISOString(),
-                    exit_save: true
-                })
-            );
+        if (transactions.length > 0) {
+            // Essayer de sauvegarder une dernière fois
+            const data = {
+                session_id: getSessionId(),
+                transactions: JSON.stringify(transactions),
+                investments: JSON.stringify(investments),
+                monthly_goals: JSON.stringify(monthlyGoals),
+                yearly_goal: yearlyGoal,
+                last_updated: new Date().toISOString(),
+                exit_save: true
+            };
+            
+            // Utiliser sendBeacon pour une sauvegarde asynchrone
+            navigator.sendBeacon(`${SUPABASE_URL}/rest/v1/money_data`, JSON.stringify(data));
         }
     });
+    
+    // === DÉMARRAGE ===
+    
+    initApp();
 });

@@ -45,7 +45,7 @@ function openBackgroundMenu(e){
     {name: 'City',  bg: 'https://www.wallpaperbetter.com/wallpaper/546/980/857/beautiful-city-lights-at-night-1080P-wallpaper.jpg'},
     {name: 'Chill', bg: 'https://img.tastelife.tv/assets/uploads/2022/01/New_Zealand_-_AMAZING_Beautiful_Nature_with_Relaxing_Music__Soundscapes_16x9.jpg'},
     {name: 'Mountain', bg: 'https://print.marcdaviet.com/wp-content/uploads/2021/08/Paysage-montagne.jpg'},
-    {name: 'Dark', bg: 'https://jooinn.com/images/city-at-night-48.jpg'}
+    {name: 'Mosque', bg: 'https://images.unsplash.com/photo-1512632578888-169bbbc64f33?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8bW9zcXVlfGVufDB8fDB8fHww'}
   ];
 
   // Création de chaque option

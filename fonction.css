@@ -1,4 +1,90 @@
+.fonctioncontainer,
+.fonctioncontainer *,
+.fonctioncontainer *::before,
+.fonctioncontainer *::after {
+    box-sizing: border-box;
 
+
+}
+
+.fonctioncontainer {
+    position: absolute;
+    width: 400px;
+    height: 600px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+
+}
+
+.main-button {
+    font-family: Arial, sans-serif;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: rgba(17, 18, 22, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    z-index: 1100 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    user-select: none;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    position: absolute;
+    top: 20px;
+    left: 40px;
+}
+
+.main-button.expanded {
+    width: 240px;
+    height: 40px;
+    border-radius: 25px;
+    left: 50px;
+    top: 20px;
+    z-index: 1100 !important;
+    position: absolute;
+}
+
+.sub-buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 200px;
+    z-index: 1100 !important;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-50%);
+    height: 30px;
+    padding: 0 15px;
+    position: absolute;
+    transition: opacity 0.1s ease 0.1s, visibility 0s linear 0.2s;
+    right: 30px !important;   /* Ajuste cette valeur */
+    top: 25px !important;
+}
+
+        .sub-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: rgba(17, 18, 22, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
 .main-button:hover {
     transform: scale(1.05);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);

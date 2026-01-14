@@ -1,0 +1,123 @@
+        #textdiv2 {
+            width: 250px;
+            height: 321px;
+            overflow-y: auto;
+            padding: 5px;
+            box-sizing: border-box;
+            border-radius: 20px;
+            background: transparent;
+            margin: 20px auto 0 auto;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            margin: 6px;
+            padding: 8px 12px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            position: relative;
+            clear: both;
+            font-size: 14px;
+            line-height: 1.4;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            animation: fadeIn 0.3s ease-in;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+        }
+        
+        .received {
+            background: #e0e0e0;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .sent {
+            background: linear-gradient(135deg, #0084ff, #0099ff);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .timestamp {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 3px;
+            display: block;
+            text-align: right;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .input-container {
+            display: flex;
+            align-items: center;
+            box-sizing: border-box;
+            margin-top: 20px;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        #noteInput {
+            padding: 12px;
+            border-radius: 50px;
+            border: none;
+            outline: none;
+            background-color: white;
+            color: white;
+            font-size: 16px;
+            width: 167px;
+            height: 20px;
+            margin-left: 5px;
+            background: #111216;
+            background-color: rgba(17, 18, 22, 0.5);
+        }
+        
+        #noteInput::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        #sendButton {
+            background-color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            margin-left: 10px;
+            background: #111216;
+            background-color: rgba(17, 18, 22, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        
+        #sendButton:active {
+            transform: scale(0.95);
+        }
+        
+        #sendButton svg {
+            stroke: white;
+        }
+        
+        /* Style pour la barre de défilement */
+        #textdiv2::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        #textdiv2::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        #textdiv2::-webkit-scrollbar-thumb {
+            background: rgba(0, 132, 255, 0.4);
+            border-radius: 10px;
+        }

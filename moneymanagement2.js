@@ -46,157 +46,293 @@ document.addEventListener('DOMContentLoaded', function() {
     const dd = String(today.getDate()).padStart(2, '0');
     if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
     
-    // Fonctions Supabase
-    async function saveToSupabase() {
+    // ============================================
+    // FONCTIONS SUPABASE - STOCKAGE EN LIGNE UNIQUEMENT
+    // ============================================
+    
+    // Générer un ID unique de session
+    function getSessionId() {
+        let sessionId = sessionStorage.getItem('money_session_id');
+        if (!sessionId) {
+            sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('money_session_id', sessionId);
+        }
+        return sessionId;
+    }
+    
+    // Vérifier la connexion Internet
+    async function checkInternetConnection() {
         try {
-            // Préparer les données pour Supabase
+            const response = await fetch('https://www.google.com', { mode: 'no-cors' });
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+    
+    // Sauvegarder TOUT sur Supabase
+    async function saveAllToSupabase() {
+        const sessionId = getSessionId();
+        
+        try {
+            // Préparer les données
             const dataToSave = {
-                transactions: transactions,
-                investments: investments,
-                monthly_goals: monthlyGoals,
+                session_id: sessionId,
+                transactions: JSON.stringify(transactions),
+                investments: JSON.stringify(investments),
+                monthly_goals: JSON.stringify(monthlyGoals),
                 yearly_goal: yearlyGoal,
+                total_transactions: transactions.length,
+                total_investments: investments.length,
                 last_updated: new Date().toISOString(),
-                device_id: getDeviceId()
+                device_info: navigator.userAgent,
+                timestamp: Date.now()
             };
             
-            // Sauvegarder dans Supabase
-            const response = await fetch(`${supabaseUrl}/rest/v1/money_data`, {
+            console.log('📤 Envoi des données à Supabase...', dataToSave);
+            
+            // Vérifier la taille des données
+            const dataSize = JSON.stringify(dataToSave).length;
+            if (dataSize > 50000) { // 50KB max
+                console.warn('⚠️ Données volumineuses:', dataSize, 'bytes');
+            }
+            
+            // Sauvegarder sur Supabase
+            const response = await fetch(`${supabaseUrl}/rest/v1/money_storage`, {
                 method: 'POST',
                 headers: supabaseHeaders,
                 body: JSON.stringify(dataToSave)
             });
             
             if (!response.ok) {
-                const errorData = await response.text();
-                console.error('Erreur Supabase:', errorData);
-                throw new Error(`HTTP ${response.status}: ${errorData}`);
+                const errorText = await response.text();
+                throw new Error(`Supabase error ${response.status}: ${errorText}`);
             }
             
-            console.log('✅ Données sauvegardées sur Supabase');
+            console.log('✅ DONNÉES SAUVEGARDÉES SUR SUPABASE !');
+            console.log('📊 Statistiques:');
+            console.log('- Transactions:', transactions.length);
+            console.log('- Investissements:', investments.length);
+            console.log('- Objectifs mensuels:', Object.keys(monthlyGoals).length);
+            console.log('- Session ID:', sessionId);
+            
+            // Afficher une notification à l'utilisateur
+            showNotification('✅ Données sauvegardées en ligne !', 'success');
+            
             return true;
+            
         } catch (error) {
-            console.error('❌ Erreur lors de la sauvegarde sur Supabase:', error);
+            console.error('❌ ERREUR SUPABASE CRITIQUE:', error);
+            showNotification('❌ Erreur de sauvegarde en ligne', 'error');
+            
+            // En cas d'erreur, on peut essayer une méthode alternative
+            await saveBackupToSupabase();
             return false;
         }
     }
     
-    async function loadFromSupabase() {
+    // Méthode de backup pour Supabase
+    async function saveBackupToSupabase() {
         try {
-            // Récupérer les données depuis Supabase
-            const response = await fetch(`${supabaseUrl}/rest/v1/money_data?order=last_updated.desc&limit=1`, {
-                method: 'GET',
-                headers: supabaseHeaders
+            const sessionId = getSessionId();
+            
+            // Format simplifié pour contourner les problèmes
+            const backupData = {
+                session_id: sessionId,
+                data_summary: {
+                    transaction_count: transactions.length,
+                    investment_count: investments.length,
+                    goal_count: Object.keys(monthlyGoals).length,
+                    total_balance: calculateTotalBalance(),
+                    last_updated: new Date().toISOString()
+                },
+                raw_data: btoa(encodeURIComponent(JSON.stringify({
+                    t: transactions,
+                    i: investments,
+                    m: monthlyGoals,
+                    y: yearlyGoal
+                }))),
+                backup_timestamp: Date.now()
+            };
+            
+            const response = await fetch(`${supabaseUrl}/rest/v1/money_backup`, {
+                method: 'POST',
+                headers: supabaseHeaders,
+                body: JSON.stringify(backupData)
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data && data.length > 0) {
-                const latestData = data[0];
-                transactions = latestData.transactions || [];
-                investments = latestData.investments || [];
-                monthlyGoals = latestData.monthly_goals || {};
-                yearlyGoal = latestData.yearly_goal || 0;
-                
-                console.log('📥 Données chargées depuis Supabase');
+            if (response.ok) {
+                console.log('✅ Backup envoyé à Supabase');
                 return true;
             }
-            
-            console.log('ℹ️ Aucune donnée sur Supabase');
-            return false;
         } catch (error) {
-            console.error('❌ Erreur lors du chargement depuis Supabase:', error);
-            return false;
+            console.error('❌ Backup échoué:', error);
         }
+        return false;
     }
     
-    async function syncData() {
+    // Charger depuis Supabase
+    async function loadFromSupabase() {
+        const sessionId = getSessionId();
+        
         try {
-            console.log('🔄 Synchronisation des données...');
+            console.log('📥 Chargement depuis Supabase...');
             
-            // Essayer de charger depuis Supabase
-            const loaded = await loadFromSupabase();
+            // D'abord essayer la table principale
+            const response = await fetch(
+                `${supabaseUrl}/rest/v1/money_storage?session_id=eq.${sessionId}&order=last_updated.desc&limit=1`,
+                {
+                    method: 'GET',
+                    headers: supabaseHeaders
+                }
+            );
             
-            if (!loaded) {
-                // Si aucune donnée sur Supabase, sauvegarder les données locales
-                if (transactions.length > 0 || Object.keys(monthlyGoals).length > 0) {
-                    await saveToSupabase();
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    const latestData = data[0];
+                    
+                    // Récupérer les données
+                    transactions = JSON.parse(latestData.transactions || '[]');
+                    investments = JSON.parse(latestData.investments || '[]');
+                    monthlyGoals = JSON.parse(latestData.monthly_goals || '{}');
+                    yearlyGoal = latestData.yearly_goal || 0;
+                    
+                    console.log('✅ Données chargées depuis Supabase:');
+                    console.log('- Transactions:', transactions.length);
+                    console.log('- Dernière mise à jour:', latestData.last_updated);
+                    
+                    showNotification('✅ Données chargées depuis le cloud', 'success');
+                    return true;
                 }
             }
             
-            // Mettre à jour l'interface
+            console.log('ℹ️ Aucune donnée trouvée pour cette session');
+            return false;
+            
+        } catch (error) {
+            console.error('❌ Erreur de chargement Supabase:', error);
+            showNotification('❌ Impossible de charger depuis le cloud', 'error');
+            return false;
+        }
+    }
+    
+    // Synchronisation complète
+    async function syncWithSupabase() {
+        console.log('🔄 Synchronisation avec Supabase...');
+        
+        try {
+            // 1. Charger d'abord depuis Supabase
+            const loaded = await loadFromSupabase();
+            
+            // 2. Mettre à jour l'interface
             updateDashboard();
             
-            // Sauvegarder localement aussi
-            saveToLocalStorage();
+            // 3. Si on n'a pas pu charger, on sauvegarde les données actuelles
+            if (!loaded && (transactions.length > 0 || Object.keys(monthlyGoals).length > 0)) {
+                await saveAllToSupabase();
+            }
             
             console.log('✅ Synchronisation terminée');
+            
         } catch (error) {
             console.error('❌ Erreur de synchronisation:', error);
-            // En cas d'erreur, utiliser les données locales
-            loadFromLocalStorage();
-            updateDashboard();
         }
     }
     
-    function getDeviceId() {
-        // Générer un ID unique pour le périphérique
-        let deviceId = localStorage.getItem('device_id');
-        if (!deviceId) {
-            deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('device_id', deviceId);
-        }
-        return deviceId;
+    // Fonction utilitaire pour afficher les notifications
+    function showNotification(message, type = 'info') {
+        // Créer la notification
+        const notification = document.createElement('div');
+        notification.className = `supabase-notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            </div>
+            <button class="notification-close">&times;</button>
+        `;
+        
+        // Style de la notification
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? '#2ecc71' : '#e74c3c'};
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+            font-family: Arial, sans-serif;
+        `;
+        
+        // Style du contenu
+        notification.querySelector('.notification-content').style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        `;
+        
+        // Style du bouton fermer
+        notification.querySelector('.notification-close').style.cssText = `
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            margin-left: 15px;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        // Ajouter l'animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Fermer la notification
+        notification.querySelector('.notification-close').onclick = () => {
+            notification.style.animation = 'slideOut 0.3s ease forwards';
+            setTimeout(() => notification.remove(), 300);
+        };
+        
+        // Auto-fermer après 5 secondes
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 5000);
+        
+        // Ajouter au DOM
+        document.body.appendChild(notification);
     }
     
-    // Fonctions de stockage local (backup)
-    function saveToLocalStorage() {
-        try {
-            localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
-            localStorage.setItem('moneyManagerInvestments', JSON.stringify(investments));
-            localStorage.setItem('moneyManagerGoals', JSON.stringify(monthlyGoals));
-            localStorage.setItem('moneyManagerYearlyGoal', yearlyGoal.toString());
-            localStorage.setItem('moneyManagerLastSync', new Date().toISOString());
-        } catch (e) {
-            console.error("Erreur de sauvegarde locale:", e);
-        }
-    }
-    
-    function loadFromLocalStorage() {
-        try {
-            const savedTransactions = localStorage.getItem('moneyManagerTransactions');
-            const savedInvestments = localStorage.getItem('moneyManagerInvestments');
-            const savedGoals = localStorage.getItem('moneyManagerGoals');
-            const savedYearlyGoal = localStorage.getItem('moneyManagerYearlyGoal');
-            
-            if (savedTransactions) {
-                transactions = JSON.parse(savedTransactions);
-            }
-            
-            if (savedInvestments) {
-                investments = JSON.parse(savedInvestments);
-            }
-            
-            if (savedGoals) {
-                monthlyGoals = JSON.parse(savedGoals);
-            }
-            
-            if (savedYearlyGoal) {
-                yearlyGoal = parseFloat(savedYearlyGoal);
-            }
-            
-            console.log('📥 Données chargées depuis le stockage local');
-        } catch (e) {
-            console.error("Erreur de chargement local:", e);
-            transactions = [];
-            investments = [];
-            monthlyGoals = {};
-            yearlyGoal = 0;
-        }
-    }
+    // ============================================
+    // FONCTIONS DE L'APPLICATION
+    // ============================================
     
     function getMonthNames() {
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -273,10 +409,9 @@ document.addEventListener('DOMContentLoaded', function() {
         updateHorizontalBarGraph();
         updateLongTermSection();
         
-        // Sauvegarder localement et sur Supabase
-        saveToLocalStorage();
-        saveToSupabase().catch(error => {
-            console.error('Erreur Supabase (non bloquante):', error);
+        // SAUVEGARDE AUTOMATIQUE SUR SUPABASE
+        saveAllToSupabase().catch(error => {
+            console.error('Auto-save failed:', error);
         });
     }
     
@@ -1024,31 +1159,55 @@ document.addEventListener('DOMContentLoaded', function() {
         goalAllAmountInput.value = '';
     }
     
-    // Ajouter un bouton de synchronisation manuelle
-    function addSyncButton() {
-        const syncBtn = document.createElement('button');
-        syncBtn.id = 'syncButton';
-        syncBtn.className = 'sync-btn';
-        syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync';
-        syncBtn.title = 'Synchroniser avec Supabase';
+    // Ajouter un bouton de vérification Supabase
+    function addSupabaseStatusButton() {
+        const statusBtn = document.createElement('button');
+        statusBtn.id = 'supabaseStatusBtn';
+        statusBtn.className = 'supabase-status-btn';
+        statusBtn.innerHTML = '<i class="fas fa-cloud"></i> Supabase';
+        statusBtn.title = 'Vérifier la connexion à Supabase';
         
-        syncBtn.addEventListener('click', async function() {
-            syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
-            syncBtn.disabled = true;
+        statusBtn.addEventListener('click', async function() {
+            statusBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            statusBtn.disabled = true;
             
-            await syncData();
+            try {
+                // Test de connexion
+                const testResponse = await fetch(`${supabaseUrl}/rest/v1/money_storage?select=count`, {
+                    headers: { 'apikey': supabaseKey }
+                });
+                
+                if (testResponse.ok) {
+                    // Vérifier les données
+                    const dataResponse = await fetch(
+                        `${supabaseUrl}/rest/v1/money_storage?session_id=eq.${getSessionId()}&order=last_updated.desc&limit=1`,
+                        { headers: { 'apikey': supabaseKey } }
+                    );
+                    
+                    if (dataResponse.ok) {
+                        const data = await dataResponse.json();
+                        if (data.length > 0) {
+                            const lastUpdate = new Date(data[0].last_updated);
+                            alert(`✅ Supabase connecté !\n\n📊 Dernière sauvegarde: ${lastUpdate.toLocaleString()}\n📈 Transactions: ${JSON.parse(data[0].transactions).length}\n💾 Taille: ${Math.round(JSON.stringify(data[0]).length / 1024)} KB`);
+                        } else {
+                            alert('✅ Supabase connecté !\n\nℹ️ Aucune donnée sauvegardée pour cette session.');
+                        }
+                    }
+                } else {
+                    alert('❌ Impossible de se connecter à Supabase');
+                }
+            } catch (error) {
+                alert('❌ Erreur de connexion à Supabase');
+            }
             
-            syncBtn.innerHTML = '<i class="fas fa-check"></i> Synced!';
-            setTimeout(() => {
-                syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync';
-                syncBtn.disabled = false;
-            }, 2000);
+            statusBtn.innerHTML = '<i class="fas fa-cloud"></i> Supabase';
+            statusBtn.disabled = false;
         });
         
-        // Trouver un endroit approprié pour ajouter le bouton
+        // Ajouter au header
         const header = document.querySelector('.section-title:first-of-type');
         if (header) {
-            header.appendChild(syncBtn);
+            header.appendChild(statusBtn);
         }
     }
     
@@ -1117,35 +1276,52 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     async function initApp() {
-        console.log("Initialisation de l'application Money Management");
+        console.log("🚀 Initialisation de l'application Money Management");
         
-        // Ajouter le bouton de sync
-        addSyncButton();
-        
-        // Charger depuis le stockage local d'abord
-        loadFromLocalStorage();
+        // Ajouter le bouton de status Supabase
+        addSupabaseStatusButton();
         
         // Initialiser les graphiques
         if (typeof Chart === 'undefined') {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
-            script.onload = function() {
+            script.onload = async function() {
                 initCharts();
-                updateDashboard();
                 
-                // Synchroniser avec Supabase après le chargement
-                setTimeout(syncData, 1000);
+                // CHARGER DIRECTEMENT DEPUIS SUPABASE
+                console.log('⬇️ Chargement depuis Supabase...');
+                const loaded = await loadFromSupabase();
+                
+                if (!loaded) {
+                    console.log('ℹ️ Aucune donnée sur Supabase, démarrage avec données vides');
+                    transactions = [];
+                    investments = [];
+                    monthlyGoals = {};
+                    yearlyGoal = 0;
+                }
+                
+                updateDashboard();
             };
             document.head.appendChild(script);
         } else {
             initCharts();
-            updateDashboard();
             
-            // Synchroniser avec Supabase après le chargement
-            setTimeout(syncData, 1000);
+            // CHARGER DIRECTEMENT DEPUIS SUPABASE
+            console.log('⬇️ Chargement depuis Supabase...');
+            const loaded = await loadFromSupabase();
+            
+            if (!loaded) {
+                console.log('ℹ️ Aucune donnée sur Supabase, démarrage avec données vides');
+                transactions = [];
+                investments = [];
+                monthlyGoals = {};
+                yearlyGoal = 0;
+            }
+            
+            updateDashboard();
         }
         
-        console.log("Application Money Management initialisée");
+        console.log("✅ Application Money Management initialisée (100% Supabase)");
     }
     
     initApp();
@@ -1155,13 +1331,29 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(updateHorizontalBarGraph, 100);
     });
     
-    // Synchronisation automatique toutes les 5 minutes
-    setInterval(syncData, 5 * 60 * 1000);
+    // Sauvegarde automatique toutes les 30 secondes
+    setInterval(() => {
+        if (transactions.length > 0 || Object.keys(monthlyGoals).length > 0) {
+            saveAllToSupabase().catch(console.error);
+        }
+    }, 30000);
     
-    // Synchronisation quand la fenêtre devient visible
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            syncData();
+    // Sauvegarder avant de quitter la page
+    window.addEventListener('beforeunload', function() {
+        if (transactions.length > 0 || Object.keys(monthlyGoals).length > 0) {
+            // Sauvegarde synchrone (peut ralentir un peu)
+            navigator.sendBeacon(
+                `${supabaseUrl}/rest/v1/money_storage`,
+                JSON.stringify({
+                    session_id: getSessionId(),
+                    transactions: JSON.stringify(transactions),
+                    investments: JSON.stringify(investments),
+                    monthly_goals: JSON.stringify(monthlyGoals),
+                    yearly_goal: yearlyGoal,
+                    last_updated: new Date().toISOString(),
+                    exit_save: true
+                })
+            );
         }
     });
 });

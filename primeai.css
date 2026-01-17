@@ -1,10 +1,10 @@
         .chatting-container {
-            margin-top:100px;
+            margin-top: 60px;
             display: flex;
             gap: 20px;
+            align-items: flex-start;
             transition: all 0.3s ease;
             justify-content: center;
-            align-items: flex-start;
         }
 
         /* Chat principal - taille par défaut */
@@ -86,13 +86,13 @@
         }
 
         /* Zone de saisie */
-        .input-container {
+        .inputprime-container {
             padding: 20px;
             background: rgba(17, 18, 22, 0.95);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        #userInput {
+        .inputprime-container input {
             width: 95%;
             padding: 15px;
             border-radius: 30px;
@@ -105,18 +105,18 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        #userInput:focus {
+        .inputprime-container input:focus {
             background: rgba(255, 255, 255, 0.12);
             border-color: rgba(102, 126, 234, 0.5);
             box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
         }
 
-        #userInput::placeholder {
+        .inputprime-container input::placeholder {
             color: rgba(255, 255, 255, 0.5);
         }
 
         /* Conteneur de graphique - caché par défaut */
-        .graph-container {
+        .graphprime-container {
             width: 350px;
             height: 500px;
             background: white;
@@ -128,12 +128,12 @@
             border: 1px solid #e5e7eb;
         }
 
-        .graph-container.active {
+        .graphprime-container.active {
             display: flex;
         }
 
         /* Header du graphique */
-        .graph-header {
+        .graphprime-header {
             padding: 20px;
             border-bottom: 1px solid #e5e7eb;
             display: flex;
@@ -142,13 +142,13 @@
             background: white;
         }
 
-        .graph-title {
+        .graphprime-title {
             font-weight: 700;
             color: #111827;
             font-size: 16px;
         }
 
-        .graph-close {
+        .graphprime-close {
             background: none;
             border: none;
             font-size: 24px;
@@ -164,13 +164,13 @@
             transition: all 0.2s;
         }
 
-        .graph-close:hover {
+        .graphprime-close:hover {
             background: #f3f4f6;
             color: #111827;
         }
 
         /* Contenu du graphique */
-        .graph-content {
+        .graphprime-content {
             flex: 1;
             padding: 20px;
             display: flex;
@@ -354,7 +354,7 @@
                 height: 500px;
             }
             
-            .graph-container {
+            .graphprime-container {
                 width: 100%;
                 max-width: 700px;
                 height: 500px;

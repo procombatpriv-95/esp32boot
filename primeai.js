@@ -1,10 +1,10 @@
         const chatContainer = document.getElementById('chatContainer');
         const chatMessages = document.getElementById('chatMessages');
         const primechatInput = document.getElementById('primechatInput');
-        const graphContainer = document.getElementById('graphContainer');
-        const graphContent = document.getElementById('graphContent');
-        const graphTitle = document.getElementById('graphTitle');
-        const graphClose = document.getElementById('graphClose');
+        const graphprimeContainer = document.getElementById('graphprimeContainer');
+        const graphprimeContent = document.getElementById('graphprimeContent');
+        const graphprimeTitle = document.getElementById('graphprimeTitle');
+        const graphprimeClose = document.getElementById('graphprimeClose');
 
         // Configuration APIs
         const GROQ_API_KEY = "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";
@@ -20,17 +20,8 @@
         let conversationHistory = [];
         let displayedMessages = [];
 
-        // Types de graphiques disponibles
-        const GRAPH_TYPES = {
-            LINE: 'PRIME Line Chart',
-            BAR: 'PRIME Bar Chart',
-            PIE: 'PRIME Pie Chart',
-            DOUGHNUT: 'PRIME Doughnut Chart',
-            RADAR: 'PRIME Radar Chart',
-            POLAR: 'PRIME Polar Chart',
-            SCATTER: 'PRIME Scatter Chart',
-            BUBBLE: 'PRIME Bubble Chart'
-        };
+        // Variables pour les données du graphique
+        let currentChartData = null;
 
         // Charger l'historique depuis le localStorage
         function loadFromStorage() {
@@ -124,7 +115,7 @@
             if (type === 'ai' && hasGraph) {
                 const graphBadge = document.createElement('div');
                 graphBadge.className = 'graph-badge';
-                graphBadge.textContent = 'PRIME Graph généré';
+                graphBadge.textContent = 'Graphique généré';
                 chatMessages.appendChild(graphBadge);
             }
             
@@ -162,16 +153,15 @@
         function needsWebSearch(query) {
             const searchTriggers = [
                 'actualité', 'aujourd\'hui', 'maintenant', 'récent', 'nouveau',
-                '2024', '2025', '2026', '2023', '2022', '2021', '2020',
-                'dernière', 'mise à jour', 'en ce moment', 'cours', 'prix',
-                'bourse', 'météo', 'news', 'nouvelles', 'événement', 'concert',
-                'film', 'série', 'sortie', 'live', 'score', 'résultat',
-                'élection', 'sport', 'match', 'joueur', 'crypto', 'bitcoin',
-                'ethereum', 'actions', 'marché', 'trend', 'tendance',
-                'populaire', 'viral', 'vacances', 'férié', 'grève',
-                'manifestation', 'politique', 'économie', 'inflation',
-                'taux', 'intérêt', 'banque', 'définition', 'quoi', 'qui',
-                'quand', 'où', 'pourquoi', 'comment', 'combien'
+                '2023', '2024', '2025', '2026', 'dernière', 'mise à jour', 'en ce moment',
+                'cours', 'prix', 'bourse', 'météo', 'news', 'nouvelles',
+                'événement', 'concert', 'film', 'série', 'sortie', 'live',
+                'score', 'résultat', 'élection', 'sport', 'match', 'joueur',
+                'crypto', 'bitcoin', 'ethereum', 'actions', 'marché',
+                'trend', 'tendance', 'populaire', 'viral',
+                'vacances', 'férié', 'grève', 'manifestation', 'politique',
+                'économie', 'inflation', 'taux', 'intérêt', 'banque',
+                'définition', 'quoi', 'qui', 'quand', 'où', 'pourquoi', 'comment'
             ];
             
             const queryLower = query.toLowerCase();
@@ -189,7 +179,7 @@
                 's&p 500', 'sp500', 'bourse', 'indice', 'nasdaq', 'dow jones',
                 'cac 40', 'ftse', 'dax', 'statistique', 'donnée', 'données',
                 'chiffre', 'nombre', 'vente', 'vendu', 'production', 'croissance',
-                'décroissance', 'tendance', 'historique', 'performance',
+                'décroissance', 'tendance', 'évolution', 'historique', 'performance',
                 'comparaison', 'tableau', 'diagramme', 'histogramme', 'camembert',
                 'pomme', 'apple', 'iphone', 'macbook', 'produit', 'marché',
                 'part de marché', 'évolution du prix', 'cours de', 'prix de',
@@ -199,195 +189,138 @@
                 'température', 'climat', 'météo', 'précipitations',
                 'budget', 'finance', 'dépenses', 'revenus', 'économique',
                 'bitcoin', 'crypto', 'ethereum', 'solana', 'cardano',
-                'tesla', 'microsoft', 'google', 'amazon', 'meta', 'netflix'
+                'tesla', 'apple', 'microsoft', 'google', 'amazon', 'meta'
             ];
             
             const queryLower = query.toLowerCase();
             return chartTriggers.some(trigger => queryLower.includes(trigger));
         }
 
-        // Déterminer le type de graphique approprié
-        function determineGraphType(query, data) {
+        // Obtenir le type de graphique approprié
+        function getChartType(query) {
             const queryLower = query.toLowerCase();
             
-            if (queryLower.includes('camembert') || queryLower.includes('part de marché') || 
-                queryLower.includes('pourcentage') || queryLower.includes('répartition') ||
-                queryLower.includes('distribution')) {
+            if (queryLower.includes('camembert') || queryLower.includes('part de marché') || queryLower.includes('pourcentage') || queryLower.includes('répartition')) {
                 return 'pie';
-            } else if (queryLower.includes('histogramme') || queryLower.includes('barre') || 
-                       queryLower.includes('ventes') || queryLower.includes('comparaison') ||
-                       queryLower.includes('catégorie')) {
+            } else if (queryLower.includes('histogramme') || queryLower.includes('barre') || queryLower.includes('ventes') || queryLower.includes('comparaison')) {
                 return 'bar';
-            } else if (queryLower.includes('radar') || queryLower.includes('spider')) {
-                return 'radar';
-            } else if (queryLower.includes('polar') || queryLower.includes('circulaire')) {
-                return 'polarArea';
-            } else if (queryLower.includes('nuage de points') || queryLower.includes('scatter')) {
-                return 'scatter';
-            } else if (queryLower.includes('bulles') || queryLower.includes('bubble')) {
-                return 'bubble';
+            } else if (queryLower.includes('carte') || queryLower.includes('map') || queryLower.includes('géographique')) {
+                return 'doughnut';
             } else {
-                // Par défaut, utiliser line pour les séries temporelles
-                if (data && data.labels && data.labels.some(label => 
-                    /\d{4}/.test(label) || /jan|fév|mar|avr|mai|juin|juil|août|sep|oct|nov|déc/i.test(label))) {
-                    return 'line';
-                }
                 return 'line';
             }
         }
 
-        // Générer des données de graphique réalistes basées sur la requête
-        function generateChartData(query) {
+        // Fonction pour obtenir des données réalistes en fonction de la requête
+        function getRealisticData(query) {
             const queryLower = query.toLowerCase();
             
-            // Détecter l'année demandée
-            const yearMatch = queryLower.match(/(\d{4})/);
-            const targetYear = yearMatch ? parseInt(yearMatch[1]) : 2024;
-            
-            // Données pour Bitcoin
-            if (queryLower.includes('bitcoin') || queryLower.includes('crypto') || queryLower.includes('btc')) {
-                const labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-                let basePrice;
-                
-                // Ajuster le prix de base selon l'année
-                if (targetYear === 2023) {
-                    basePrice = 16500; // Début 2023
-                } else if (targetYear === 2024) {
-                    basePrice = 42000; // Début 2024
-                } else {
-                    basePrice = 30000; // Par défaut
-                }
-                
-                // Générer des données réalistes pour Bitcoin
-                const data = [];
-                for (let i = 0; i < 12; i++) {
-                    const variation = (Math.random() * 40 - 20); // Variation de -20% à +20%
-                    const monthPrice = basePrice * (1 + variation / 100);
-                    // Simuler une tendance à la hausse
-                    const trend = targetYear === 2023 ? 0.8 : 0.5; // Plus forte hausse en 2023
-                    const finalPrice = monthPrice * (1 + (i * trend) / 100);
-                    data.push(Math.round(finalPrice));
-                }
-                
+            // Données pour Bitcoin en 2023
+            if (queryLower.includes('bitcoin') && queryLower.includes('2023')) {
                 return {
+                    title: 'Cours du Bitcoin en 2023',
+                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                    data: [16500, 19500, 23500, 28500, 26500, 25500, 29500, 26000, 26500, 28500, 34500, 42000],
                     type: 'line',
-                    title: `Cours du Bitcoin ${targetYear} (USD)`,
-                    labels: labels,
-                    datasets: [{
-                        label: 'Bitcoin (USD)',
-                        data: data,
-                        borderColor: 'rgb(255, 205, 86)',
-                        backgroundColor: 'rgba(255, 205, 86, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 2
-                    }],
-                    description: `Évolution mensuelle du prix du Bitcoin en ${targetYear}`
+                    description: 'Évolution mensuelle du Bitcoin en 2023 (en USD)'
                 };
             }
             
             // Données pour S&P 500
-            else if (queryLower.includes('sp500') || queryLower.includes('s&p') || queryLower.includes('indice')) {
-                const labels = ['Q1', 'Q2', 'Q3', 'Q4'];
-                let baseValue;
-                
-                if (targetYear === 2023) {
-                    baseValue = 3800;
-                } else if (targetYear === 2024) {
-                    baseValue = 4800;
-                } else {
-                    baseValue = 4500;
-                }
-                
-                const data = [];
-                for (let i = 0; i < 4; i++) {
-                    const growth = 2 + (Math.random() * 3); // Croissance de 2-5% par trimestre
-                    baseValue = baseValue * (1 + growth / 100);
-                    data.push(Math.round(baseValue));
-                }
-                
+            else if (queryLower.includes('sp500') || queryLower.includes('s&p')) {
                 return {
+                    title: 'Performance du S&P 500 (2024)',
+                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                    data: [4760, 4850, 5100, 5050, 5200, 5350, 5400, 5300, 5450, 5500, 5600, 5700],
                     type: 'line',
-                    title: `S&P 500 ${targetYear} (points)`,
-                    labels: labels,
-                    datasets: [{
-                        label: 'S&P 500',
-                        data: data,
-                        borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 2
-                    }],
-                    description: `Performance trimestrielle du S&P 500 en ${targetYear}`
+                    description: 'Évolution mensuelle du S&P 500 en points'
                 };
             }
             
-            // Données pour ventes Apple
+            // Données pour Apple
             else if (queryLower.includes('apple') || queryLower.includes('iphone') || queryLower.includes('pomme')) {
-                const years = ['2020', '2021', '2022', '2023', '2024'];
-                const data = [195, 235, 225, 230, 245]; // Millions d'unités
-                
                 return {
+                    title: 'Ventes d\'iPhone (millions d\'unités)',
+                    labels: ['2019', '2020', '2021', '2022', '2023', '2024'],
+                    data: [195, 215, 240, 225, 235, 250],
                     type: 'bar',
-                    title: 'Ventes d\'iPhone par année (millions)',
-                    labels: years,
-                    datasets: [{
-                        label: 'Ventes (millions)',
-                        data: data,
-                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                        borderColor: 'rgb(255, 99, 132)',
-                        borderWidth: 1
-                    }],
                     description: 'Ventes annuelles d\'iPhone en millions d\'unités'
-                };
-            }
-            
-            // Données pour température
-            else if (queryLower.includes('température') || queryLower.includes('météo') || queryLower.includes('climat')) {
-                const labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-                const parisTemp = [5, 6, 10, 14, 18, 21, 24, 23, 20, 15, 9, 6];
-                
-                return {
-                    type: 'line',
-                    title: 'Températures moyennes à Paris (°C)',
-                    labels: labels,
-                    datasets: [{
-                        label: 'Température (°C)',
-                        data: parisTemp,
-                        borderColor: 'rgb(54, 162, 235)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 2
-                    }],
-                    description: 'Températures mensuelles moyennes à Paris'
                 };
             }
             
             // Données génériques
             else {
-                const labels = ['Donnée 1', 'Donnée 2', 'Donnée 3', 'Donnée 4', 'Donnée 5'];
-                const data = [];
-                
-                for (let i = 0; i < 5; i++) {
-                    data.push(Math.round(Math.random() * 100));
-                }
-                
+                const chartType = getChartType(query);
                 return {
-                    type: 'bar',
-                    title: 'PRIME Chart - Visualisation des données',
-                    labels: labels,
-                    datasets: [{
-                        label: 'Valeurs',
-                        data: data,
-                        backgroundColor: 'rgba(153, 102, 255, 0.5)',
-                        borderColor: 'rgb(153, 102, 255)',
-                        borderWidth: 1
-                    }],
-                    description: 'Visualisation de données basée sur votre requête'
+                    title: 'Visualisation des données',
+                    labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                    data: [45, 60, 55, 70],
+                    type: chartType,
+                    description: 'Données basées sur votre requête'
                 };
             }
+        }
+
+        // Créer des données de graphique basées sur la requête
+        function createChartDataFromQuery(query) {
+            const realisticData = getRealisticData(query);
+            const chartType = realisticData.type;
+            
+            // Couleurs basées sur le type de graphique
+            let borderColor, backgroundColor;
+            if (chartType === 'line') {
+                borderColor = 'rgb(102, 126, 234)';
+                backgroundColor = 'rgba(102, 126, 234, 0.1)';
+            } else if (chartType === 'bar') {
+                borderColor = 'rgb(139, 92, 246)';
+                backgroundColor = 'rgba(139, 92, 246, 0.2)';
+            } else if (chartType === 'pie' || chartType === 'doughnut') {
+                borderColor = [
+                    'rgb(255, 99, 132)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 206, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(153, 102, 255)',
+                    'rgb(255, 159, 64)'
+                ];
+                backgroundColor = [
+                    'rgba(255, 99, 132, 0.5)',
+                    'rgba(54, 162, 235, 0.5)',
+                    'rgba(255, 206, 86, 0.5)',
+                    'rgba(75, 192, 192, 0.5)',
+                    'rgba(153, 102, 255, 0.5)',
+                    'rgba(255, 159, 64, 0.5)'
+                ];
+            } else {
+                borderColor = 'rgb(59, 130, 246)';
+                backgroundColor = 'rgba(59, 130, 246, 0.2)';
+            }
+            
+            const datasetConfig = {
+                label: 'Valeurs',
+                data: realisticData.data,
+                borderColor: borderColor,
+                borderWidth: 2
+            };
+            
+            // Pour les graphiques à secteurs, on a besoin de backgroundColor comme tableau
+            if (chartType === 'pie' || chartType === 'doughnut') {
+                datasetConfig.backgroundColor = backgroundColor;
+            } else {
+                datasetConfig.backgroundColor = Array.isArray(backgroundColor) ? backgroundColor[0] : backgroundColor;
+                datasetConfig.fill = chartType === 'line';
+                if (chartType === 'line') {
+                    datasetConfig.tension = 0.4;
+                }
+            }
+            
+            return {
+                type: chartType,
+                title: realisticData.title,
+                labels: realisticData.labels,
+                datasets: [datasetConfig],
+                description: realisticData.description
+            };
         }
 
         // Afficher un graphique
@@ -396,43 +329,35 @@
             chatContainer.classList.add('with-graph');
             
             // Afficher le conteneur de graphique
-            graphContainer.classList.add('active');
-            graphTitle.textContent = chartData.title || '📊 PRIME Graph';
+            graphprimeContainer.classList.add('active');
+            graphprimeTitle.textContent = chartData.title || '📊 PRIME Graph';
+            
+            // Sauvegarder les données courantes
+            currentChartData = chartData;
             
             // Afficher le chargement
-            graphContent.innerHTML = `
+            graphprimeContent.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #6b7280; gap: 15px;">
                     <div style="width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <div>Création du PRIME Graph...</div>
+                    <div>Création du graphique...</div>
                 </div>
             `;
             
-            // Ajouter l'animation spin
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-            `;
-            document.head.appendChild(style);
-            
             try {
-                // Déterminer le type de graphique final
-                const finalType = determineGraphType(chartData.title, chartData);
-                
-                // Générer l'URL du graphique avec QuickChart
+                // Configuration pour QuickChart
                 const chartConfig = {
-                    type: finalType,
+                    type: chartData.type || 'line',
                     data: {
                         labels: chartData.labels || [],
                         datasets: chartData.datasets || []
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: true,
                         plugins: {
                             title: {
                                 display: true,
-                                text: chartData.title || 'PRIME Graph',
+                                text: chartData.title || 'Graphique',
                                 font: {
                                     size: 14,
                                     weight: 'bold'
@@ -444,67 +369,69 @@
                                 }
                             },
                             legend: {
-                                display: true,
+                                display: chartData.type !== 'pie' && chartData.type !== 'doughnut',
                                 position: 'top',
                                 labels: {
                                     font: {
                                         size: 11
                                     },
-                                    padding: 15
+                                    padding: 10
+                                }
+                            }
+                        }
+                    }
+                };
+                
+                // Ajustements spécifiques selon le type de graphique
+                if (chartData.type === 'line') {
+                    chartConfig.options.scales = {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
                                 }
                             }
                         },
-                        scales: finalType !== 'pie' && finalType !== 'doughnut' ? {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
-                                },
-                                ticks: {
-                                    font: {
-                                        size: 10
-                                    }
-                                }
+                        x: {
+                            grid: {
+                                display: false
                             },
-                            x: {
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    font: {
-                                        size: 10
-                                    }
+                            ticks: {
+                                font: {
+                                    size: 10
                                 }
                             }
-                        } : {}
-                    }
-                };
+                        }
+                    };
+                }
                 
                 const encodedConfig = encodeURIComponent(JSON.stringify(chartConfig));
                 const chartUrl = `https://quickchart.io/chart?c=${encodedConfig}&width=310&height=250&backgroundColor=white`;
                 
                 // Afficher le graphique
-                setTimeout(() => {
-                    graphContent.innerHTML = `
-                        <img src="${chartUrl}" alt="PRIME Graph" class="graph-image" style="animation: fadeIn 0.5s ease forwards;">
-                        <div class="graph-data">
-                            <h4>Données du PRIME Graph:</h4>
-                            <ul>
-                                ${chartData.labels.map((label, index) => {
-                                    const dataset = chartData.datasets[0];
-                                    const value = dataset?.data?.[index] || 'N/A';
-                                    const labelName = dataset?.label || 'Valeur';
-                                    return `<li><strong>${label}:</strong> ${labelName}: ${value}</li>`;
-                                }).join('')}
-                            </ul>
-                            ${chartData.description ? `<p style="margin-top: 10px; font-size: 12px; color: #6b7280;">${chartData.description}</p>` : ''}
-                        </div>
-                    `;
-                }, 800);
+                graphprimeContent.innerHTML = `
+                    <img src="${chartUrl}" alt="Graphique" class="graph-image" style="animation: fadeIn 0.5s ease forwards;">
+                    <div class="graph-data">
+                        <h4>Données du graphique:</h4>
+                        <ul>
+                            ${chartData.labels.map((label, index) => {
+                                const dataset = chartData.datasets[0];
+                                const value = dataset?.data?.[index] || 'N/A';
+                                const labelName = dataset?.label || 'Valeur';
+                                return `<li><strong>${label}:</strong> ${value}</li>`;
+                            }).join('')}
+                        </ul>
+                        ${chartData.description ? `<p style="margin-top: 10px; font-size: 12px; color: #6b7280; font-style: italic;">${chartData.description}</p>` : ''}
+                    </div>
+                `;
                 
             } catch (error) {
                 console.error('Erreur lors de la génération du graphique:', error);
-                graphContent.innerHTML = `
+                graphprimeContent.innerHTML = `
                     <div style="text-align: center; color: #6b7280; padding: 20px;">
                         <div style="font-size: 48px; margin-bottom: 10px;">📊</div>
                         <div style="font-size: 18px; margin: 10px 0; color: #111827; font-weight: 600;">${chartData.title}</div>
@@ -512,10 +439,10 @@
                             ${chartData.labels.map((label, index) => {
                                 const dataset = chartData.datasets[0];
                                 const value = dataset?.data?.[index] || 'N/A';
-                                const labelName = dataset?.label || 'Valeur';
-                                return `<div style="margin: 5px 0; padding: 3px 0; border-bottom: 1px solid #e5e7eb;"><strong>${label}:</strong> ${labelName}: ${value}</div>`;
+                                return `<div style="margin: 5px 0; padding: 3px 0; border-bottom: 1px solid #e5e7eb;"><strong>${label}:</strong> ${value}</div>`;
                             }).join('')}
                         </div>
+                        ${chartData.description ? `<p style="margin-top: 10px; font-size: 12px; color: #6b7280;">${chartData.description}</p>` : ''}
                     </div>
                 `;
             }
@@ -524,8 +451,9 @@
         // Cacher le graphique
         function hideChart() {
             chatContainer.classList.remove('with-graph');
-            graphContainer.classList.remove('active');
-            graphContent.innerHTML = '';
+            graphprimeContainer.classList.remove('active');
+            graphprimeContent.innerHTML = '';
+            currentChartData = null;
         }
 
         // Effectuer une recherche web
@@ -571,7 +499,7 @@
         }
 
         // Interroger l'API Groq
-        async function queryGroqAPI(userMessage, webSearch = false, webContext = "") {
+        async function queryGroqAPI(userMessage, webSearch = false, webContext = "", needsGraph = false) {
             try {
                 conversationHistory.push({
                     role: "user",
@@ -582,6 +510,11 @@
                 
                 if (webSearch && webContext) {
                     systemPrompt += `\n\nCONTEXTE DE RECHERCHE WEB:\n${webContext}\n\nUtilise ces informations pour répondre à l'utilisateur.`;
+                }
+                
+                // Si un graphique est nécessaire, demander à l'IA d'inclure des données numériques
+                if (needsGraph) {
+                    systemPrompt += `\n\nIMPORTANT: L'utilisateur veut un graphique. Fournis des données numériques précises et mentionne les années/chiffres spécifiques dans ta réponse.`;
                 }
 
                 const payload = {
@@ -627,7 +560,8 @@
 
                     return {
                         response: aiResponse,
-                        webSearch: webSearch && webContext
+                        webSearch: webSearch && webContext,
+                        needsGraph: needsGraph
                     };
                 } else {
                     throw new Error("Format de réponse invalide");
@@ -637,7 +571,8 @@
                 console.error('Erreur Groq API:', error);
                 return {
                     response: "Désolé, une erreur s'est produite. Veuillez réessayer.",
-                    webSearch: false
+                    webSearch: false,
+                    needsGraph: false
                 };
             }
         }
@@ -665,17 +600,17 @@
                 }
                 
                 // Obtenir la réponse de l'IA
-                const result = await queryGroqAPI(query, needsWeb, webContext);
+                const result = await queryGroqAPI(query, needsWeb, webContext, needsGraph);
                 
                 // Supprimer l'indicateur de frappe
                 removeTypingIndicator();
                 
                 // Afficher la réponse de l'IA
-                addMessage(result.response, 'ai', result.webSearch, needsGraph);
+                addMessage(result.response, 'ai', result.webSearch, result.needsGraph);
                 
                 // Afficher un graphique si nécessaire
                 if (needsGraph) {
-                    const chartData = generateChartData(query);
+                    const chartData = createChartDataFromQuery(query);
                     await showChart(chartData);
                 } else {
                     hideChart();
@@ -696,7 +631,7 @@
             }
         });
 
-        graphClose.addEventListener('click', hideChart);
+        graphprimeClose.addEventListener('click', hideChart);
 
         // Effacer l'historique
         function clearHistory() {
@@ -709,7 +644,7 @@
             console.log('Historique effacé');
             
             setTimeout(() => {
-                addMessage("👋 **PRIME AI - Assistant Intelligent**\n\nBonjour ! Je suis PRIME AI, votre assistant personnel ultra-performant.\n\nJe peux :\n• Répondre à toutes vos questions avec précision\n• Rechercher des informations en temps réel\n• Générer des PRIME Graphs intelligents\n• Analyser et visualiser des données complexes\n\nExemples de questions avec PRIME Graphs :\n• \"Graphique du Bitcoin en 2023\"\n• \"Évolution du S&P 500\"\n• \"Ventes d'iPhone par année\"\n• \"Températures à Paris\"\n• \"Population mondiale par continent\"", 'ai', false, false);
+                addMessage("👋 **PRIME AI - Assistant Intelligent**\n\nBonjour ! Je suis PRIME AI, votre assistant personnel ultra-performant.\n\nJe peux :\n• Répondre à toutes vos questions avec précision\n• Rechercher des informations en temps réel\n• Générer des graphiques intelligents basés sur mes réponses\n• Analyser et visualiser des données complexes\n\nExemples de questions avec graphiques :\n• \"Évolution du Bitcoin en 2023\"\n• \"Performance du S&P 500 cette année\"\n• \"Ventes d'iPhone par trimestre\"\n• \"Températures moyennes à Paris\"\n• \"Croissance démographique en Europe\"", 'ai', false, false);
             }, 500);
         }
 
@@ -719,31 +654,31 @@
             
             if (displayedMessages.length === 0) {
                 setTimeout(() => {
-                    addMessage("👋 **PRIME AI - Assistant Intelligent**\n\nBonjour ! Je suis PRIME AI, votre assistant personnel ultra-performant.\n\nJe peux :\n• Répondre à toutes vos questions avec précision\n• Rechercher des informations en temps réel\n• Générer des PRIME Graphs intelligents\n• Analyser et visualiser des données complexes\n\nExemples de questions avec PRIME Graphs :\n• \"Graphique du Bitcoin en 2023\"\n• \"Évolution du S&P 500\"\n• \"Ventes d'iPhone par année\"\n• \"Températures à Paris\"\n• \"Population mondiale par continent\"", 'ai', false, false);
+                    addMessage("👋 **PRIME AI - Assistant Intelligent**\n\nBonjour ! Je suis PRIME AI, votre assistant personnel ultra-performant.\n\nJe peux :\n• Répondre à toutes vos questions avec précision\n• Rechercher des informations en temps réel\n• Générer des graphiques intelligents basés sur mes réponses\n• Analyser et visualiser des données complexes\n\nExemples de questions avec graphiques :\n• \"Évolution du Bitcoin en 2023\"\n• \"Performance du S&P 500 cette année\"\n• \"Ventes d'iPhone par trimestre\"\n• \"Températures moyennes à Paris\"\n• \"Croissance démographique en Europe\"", 'ai', false, false);
                 }, 500);
             }
             
             console.log('✅ PRIME AI initialisé !');
-            console.log('📊 Graphiques: PRIME Line Chart, PRIME Bar Chart, PRIME Pie Chart, etc.');
-            console.log('💡 Utilisez #primechatInput pour poser vos questions');
+            console.log('📊 Graphiques: PRIME Graph, Graph classique, Graphique camembert');
+            console.log('💡 Tapez votre question et appuyez sur Entrée');
         });
 
         // Exposer des fonctions utiles
         window.clearHistory = clearHistory;
-        window.showPRIMEGraph = function() {
+        window.showGraph = function() {
             const chartData = {
+                title: 'Graphique de démonstration PRIME AI',
                 type: 'line',
-                title: 'PRIME Line Chart de démonstration',
                 labels: ['2020', '2021', '2022', '2023', '2024'],
                 datasets: [{
-                    label: 'Croissance PRIME',
+                    label: 'Croissance',
                     data: [100, 120, 115, 140, 160],
                     borderColor: 'rgb(102, 126, 234)',
                     backgroundColor: 'rgba(102, 126, 234, 0.1)',
                     fill: true,
                     tension: 0.4
                 }],
-                description: 'Exemple de PRIME Graph Line Chart'
+                description: 'Exemple de visualisation de données PRIME Graph'
             };
             showChart(chartData);
         };

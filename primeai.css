@@ -1,8 +1,7 @@
         .chatting-container {
-            margin-top: 60px;
             display: flex;
-            gap: 20px;
-            align-items: center;
+            gap: 10px;
+            align-items: flex-start;
             transition: all 0.3s ease;
             justify-content: center;
         }
@@ -11,7 +10,7 @@
         .chat-container {
             width: 700px;
             height: 500px;
-            background: rgba(17, 18, 22, 0.98);
+            background: rgba(17, 18, 22, 0.6);
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             display: flex;
@@ -29,7 +28,7 @@
         /* Header du chat */
         .chat-header {
             padding: 20px;
-            background: rgba(17, 18, 22, 0.95);
+            background: rgba(17, 18, 22, 0.7);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: space-between;
@@ -88,7 +87,7 @@
         /* Zone de saisie */
         .inputprime-container {
             padding: 20px;
-            background: rgba(17, 18, 22, 0.95);
+            background: rgba(17, 18, 22, 0.7);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 

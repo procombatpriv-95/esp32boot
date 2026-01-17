@@ -1,8 +1,9 @@
         .chating-container {
             display: flex;
             gap: 20px;
-            align-items: flex-start;
             transition: all 0.3s ease;
+            justify-content: center;
+            align-items: center;
         }
 
         /* Chat principal - taille par défaut */

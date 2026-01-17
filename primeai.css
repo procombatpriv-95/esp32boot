@@ -1,0 +1,358 @@
+        .chating-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            transition: all 0.3s ease;
+        }
+
+        /* Chat principal - taille par défaut */
+        .chat-container {
+            width: 700px;
+            height: 500px;
+            background: rgba(17, 18, 22, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Chat réduit quand graphique affiché */
+        .chat-container.with-graph {
+            width: 350px;
+        }
+
+        /* Header du chat */
+        .chat-header {
+            padding: 20px;
+            background: rgba(17, 18, 22, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Zone de messages */
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Message utilisateur */
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 80%;
+            border-bottom-right-radius: 5px;
+            word-wrap: break-word;
+            line-height: 1.4;
+            animation: messageAppear 0.3s ease forwards;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Message IA */
+        .ai-message {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 80%;
+            border-bottom-left-radius: 5px;
+            word-wrap: break-word;
+            line-height: 1.5;
+            animation: messageAppear 0.3s ease forwards;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Zone de saisie */
+        .input-container {
+            padding: 20px;
+            background: rgba(17, 18, 22, 0.95);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-container input {
+            width: 95%;
+            padding: 15px;
+            border-radius: 30px;
+            border: none;
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-container input:focus {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(102, 126, 234, 0.5);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .input-container input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Conteneur de graphique - caché par défaut */
+        .graph-container {
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        .graph-container.active {
+            display: flex;
+        }
+
+        /* Header du graphique */
+        .graph-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
+
+        .graph-title {
+            font-weight: 700;
+            color: #111827;
+            font-size: 16px;
+        }
+
+        .graph-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .graph-close:hover {
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        /* Contenu du graphique */
+        .graph-content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Supprimer le scroll */
+        }
+
+        /* Graphique généré */
+        .graph-image {
+            width: 100%;
+            height: 250px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            object-fit: contain;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+
+        /* Données de graphique */
+        .graph-data {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            max-height: 180px; /* Limiter la hauteur */
+            overflow: hidden; /* Pas de scroll */
+        }
+
+        .graph-data h4 {
+            margin: 0 0 10px 0;
+            color: #111827;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .graph-data ul {
+            margin: 0;
+            padding-left: 20px;
+            max-height: 120px;
+            overflow: hidden;
+        }
+
+        .graph-data li {
+            color: #4b5563;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        /* Indicateur de chargement */
+        .typing-indicator {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 12px 18px;
+            border-radius: 18px;
+            border-bottom-left-radius: 5px;
+            font-style: italic;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: messageAppear 0.3s ease forwards;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dot {
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        /* Badge recherche web */
+        .web-search-badge {
+            align-self: flex-start;
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            max-width: fit-content;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .web-search-badge::before {
+            content: "🔍";
+            font-size: 10px;
+        }
+
+        /* Badge graphique */
+        .graph-badge {
+            align-self: flex-start;
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            max-width: fit-content;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .graph-badge::before {
+            content: "📊";
+            font-size: 10px;
+        }
+
+        /* Animations */
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        @keyframes messageAppear {
+            from { 
+                opacity: 0; 
+                transform: translateY(10px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Barre de défilement seulement pour le chat */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .chat-container {
+                width: 100%;
+                max-width: 700px;
+            }
+            
+            .chat-container.with-graph {
+                width: 100%;
+                height: 500px;
+            }
+            
+            .graph-container {
+                width: 100%;
+                max-width: 700px;
+                height: 500px;
+            }
+            
+
+        }

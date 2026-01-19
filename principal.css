@@ -222,7 +222,7 @@
   display: flex;
   border-radius: 20px;
   overflow: hidden;
-  width: 260px; /* élargi pour 3 boutons */
+  width: 300px; /* élargi pour 3 boutons */
   height: 25px;
   z-index: 1200 !important;
   margin-top: 25px;
@@ -260,7 +260,7 @@
 }
 
 .menu-switch.menu-6 .menu-highlight {
-  transform: translateX(400%);
+  transform: translateX(500%);
 }
 
 
@@ -301,7 +301,7 @@
 #menu3Content { transform: translateX(200%); }
 #menu4Content { transform: translateX(300%); }
 #menu5Content { transform: translateX(400%); }
-#menu5Content { transform: translateX(500%); }
+#menu6Content { transform: translateX(500%); }
 
 /* Quand menu 2 est actif */
 .mega.menu-2 #menu1Content { transform: translateX(-100%); }

@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const goalAllAmountInput = document.getElementById('goalAllAmount');
     const transactionTypeSelect = document.getElementById('transactionType');
     const categorySelect = document.getElementById('category');
-    const savingTypeSelect = document.getElementById('savingType'); // NOUVEAU
+    const savingTypeSelect = document.getElementById('savingType');
     const allBtn = document.getElementById('allBtn');
     const monthlyBtn = document.getElementById('monthlyBtn');
     const recentTransactionsTitle = document.getElementById('recentTransactionsTitle');
@@ -545,7 +545,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.deleteTransaction = function(id) {
         if (confirm('Are you sure you want to delete this transaction?')) {
             transactions = transactions.filter(t => t.id !== id);
-            saveData();
             updateDashboard();
         }
     }
@@ -578,16 +577,21 @@ document.addEventListener('DOMContentLoaded', function() {
             
         const balance = totalIncome - totalExpenses;
         
-        if (document.getElementById('recentIncome')) {
-            document.getElementById('recentIncome').textContent = '£' + totalIncome.toFixed(2);
+        // CORRECTION : Mettre à jour les éléments HTML avec les ID corrects
+        const recentIncomeElem = document.getElementById('recentIncome');
+        const recentExpensesElem = document.getElementById('recentExpenses');
+        const recentBalanceElem = document.getElementById('recentBalance');
+        
+        if (recentIncomeElem) {
+            recentIncomeElem.textContent = '£' + totalIncome.toFixed(2);
         }
         
-        if (document.getElementById('recentExpenses')) {
-            document.getElementById('recentExpenses').textContent = '£' + totalExpenses.toFixed(2);
+        if (recentExpensesElem) {
+            recentExpensesElem.textContent = '£' + totalExpenses.toFixed(2);
         }
         
-        if (document.getElementById('recentBalance')) {
-            document.getElementById('recentBalance').textContent = '£' + balance.toFixed(2);
+        if (recentBalanceElem) {
+            recentBalanceElem.textContent = '£' + balance.toFixed(2);
         }
     }
     
@@ -598,7 +602,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.')) {
             transactions = [];
-            saveData();
             updateDashboard();
         }
     }
@@ -606,12 +609,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateSummary() {
         const balance = calculateTotalBalance();
 
-        if (document.getElementById('currentBalanceControl')) {
-            document.getElementById('currentBalanceControl').textContent = '£' + balance.toFixed(2);
+        const currentBalanceControl = document.getElementById('currentBalanceControl');
+        const totalTransactionsElem = document.getElementById('totalTransactions');
+        
+        if (currentBalanceControl) {
+            currentBalanceControl.textContent = '£' + balance.toFixed(2);
         }
         
-        if (document.getElementById('totalTransactions')) {
-            document.getElementById('totalTransactions').textContent = transactions.length;
+        if (totalTransactionsElem) {
+            totalTransactionsElem.textContent = transactions.length;
         }
     }
     
@@ -621,6 +627,11 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(initCharts, 100);
             return;
         }
+        
+        // Détruire les anciens graphiques s'ils existent
+        if (expensePieChart) expensePieChart.destroy();
+        if (incomePieChart) incomePieChart.destroy();
+        if (monthlyBarChart) monthlyBarChart.destroy();
         
         const expensePieCanvas = document.getElementById('expensePieChart');
         if (expensePieCanvas) {
@@ -636,7 +647,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             display: false
@@ -660,7 +671,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             display: false
@@ -721,7 +732,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
+                    maintainAspectRatio: false,
                     interaction: {
                         mode: 'index',
                         intersect: false
@@ -778,7 +789,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateCharts() {
-        // Inclure TOUTES les transactions dans les graphiques (même les saving)
         if (expensePieChart) {
             const expenses = transactions.filter(t => t.type === 'expense');
             const expenseCategories = {};
@@ -871,9 +881,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const date = dateInput.value;
         const type = transactionTypeSelect.value;
         const category = categorySelect.value;
-        const saving = savingTypeSelect.value; // NOUVEAU
+        const saving = savingTypeSelect.value;
         
-        if (!amount || amount <= 0) {
+        if (!amount || amount <= 0 || isNaN(amount)) {
             alert('Please enter a valid amount');
             return;
         }
@@ -895,22 +905,23 @@ document.addEventListener('DOMContentLoaded', function() {
             description: description,
             date: date,
             type: type,
-            saving: saving, // NOUVEAU
+            saving: saving,
             timestamp: new Date().getTime()
         };
         
         transactions.push(transaction);
         updateDashboard();
         
+        // Réinitialiser les champs
         amountInput.value = '';
         descriptionInput.value = '';
-        savingTypeSelect.value = 'normal'; // Réinitialiser à normal
+        savingTypeSelect.value = 'normal';
     }
     
     function setGoal() {
         const amount = parseFloat(goalAmountInput.value);
         
-        if (!amount || amount <= 0) {
+        if (!amount || amount <= 0 || isNaN(amount)) {
             alert('Please enter a valid goal amount');
             return;
         }
@@ -929,7 +940,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function setAllGoals() {
         const amount = parseFloat(goalAllAmountInput.value);
         
-        if (!amount || amount <= 0) {
+        if (!amount || amount <= 0 || isNaN(amount)) {
             alert('Please enter a valid goal amount');
             return;
         }
@@ -940,6 +951,7 @@ document.addEventListener('DOMContentLoaded', function() {
         goalAllAmountInput.value = '';
     }
     
+    // Initialiser les événements
     const addTransactionBtn = document.getElementById('addTransactionBtn');
     const setGoalBtn = document.getElementById('setGoalBtn');
     const setAllGoalBtn = document.getElementById('setAllGoalBtn');
@@ -1004,10 +1016,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // Initialiser l'application
     function initApp() {
         console.log("Initialisation de l'application Money Management");
         loadData();
         
+        // Attendre que Chart.js soit chargé
         if (typeof Chart === 'undefined') {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
@@ -1026,6 +1040,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     initApp();
     
+    // Redimensionnement de la fenêtre
     window.addEventListener('resize', function() {
         setTimeout(updateCharts, 100);
         setTimeout(updateHorizontalBarGraph, 100);

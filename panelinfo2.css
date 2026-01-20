@@ -328,6 +328,58 @@ a, button, .clickable {
   color: #e74c3c;
 }
 
+/* SAVINGS SECTION - NOUVEAU */
+.savings-container {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.saving-item {
+  background: rgba(30, 31, 35, 0.8);
+  border-radius: 30px;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.saving-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.saving-amount {
+  font-size: 14px;
+  font-weight: bold;
+  color: #3498db;
+}
+
+.saving-add-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.saving-add-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.saving-add-btn:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+}
+
 /* Message par défaut */
 .kinfopaneltous-default {
   width: 100%;
@@ -340,98 +392,4 @@ a, button, .clickable {
   font-weight: bold;
   text-align: center;
   padding: 20px;
-}
-
-/* === STYLES POUR LES SAVINGS === */
-.savings-section {
-  margin-top: 15px;
-  width: 100%;
-}
-
-.savings-title {
-  font-size: 14px;
-  font-weight: bold;
-  color: #3498db;
-  margin-bottom: 10px;
-  text-align: center;
-  border-bottom: 1px solid rgba(52, 152, 219, 0.3);
-  padding-bottom: 5px;
-}
-
-.savings-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.saving-item {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 30px !important;
-  padding: 10px 15px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.3s;
-}
-
-.saving-item:hover {
-  background: rgba(0, 0, 0, 0.4);
-  transform: translateY(-2px);
-}
-
-.saving-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-.saving-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: #3498db;
-}
-
-.saving-amount {
-  font-size: 16px;
-  font-weight: bold;
-  color: white;
-}
-
-.add-saving-btn {
-  background: #3498db;
-  color: white;
-  border: none;
-  border-radius: 20px;
-  padding: 6px 12px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 60px;
-  justify-content: center;
-}
-
-.add-saving-btn:hover {
-  background: #2980b9;
-  transform: scale(1.05);
-}
-
-.add-saving-btn:active {
-  transform: scale(0.95);
-}
-
-.saving-empty {
-  text-align: center;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
 }

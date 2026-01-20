@@ -273,7 +273,7 @@ a, button, .clickable {
 .indicators-container {
   display: flex;
   gap: 15px;
-  margin-top: 1px;
+  margin-top: -25px;
 }
 
 .indicator-box {
@@ -330,7 +330,7 @@ a, button, .clickable {
 
 /* SAVINGS SECTION - NOUVEAU */
 .savings-container {
-  margin-top: 10px;
+  margin-top: -15px;
   display: flex;
   flex-direction: column;
   gap: 3px;

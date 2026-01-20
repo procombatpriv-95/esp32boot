@@ -187,7 +187,7 @@ a, button, .clickable {
 
 .progress-section {
   width: 100%;
-  margin-bottom: 40px;
+  margin-bottom: 55px;
 }
 
 .progress-header {
@@ -273,7 +273,7 @@ a, button, .clickable {
 .indicators-container {
   display: flex;
   gap: 15px;
-  margin-top: -50px;
+  margin-top: -60px;
 }
 
 .indicator-box {

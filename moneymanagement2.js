@@ -99,6 +99,22 @@ document.addEventListener('DOMContentLoaded', function() {
         return totalIncome - totalExpenses;
     }
     
+    function calculateTotalSavings() {
+        let totalSaving = 0;
+        
+        transactions.forEach(t => {
+            if (t.saving === 'saving1' || t.saving === 'saving2' || t.saving === 'saving3') {
+                if (t.type === 'income') {
+                    totalSaving += t.amount;
+                } else if (t.type === 'expense') {
+                    totalSaving -= t.amount;
+                }
+            }
+        });
+        
+        return totalSaving;
+    }
+    
     function calculateSavingsTotal() {
         const savings = { saving1: 0, saving2: 0, saving3: 0 };
         
@@ -518,7 +534,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const sign = transaction.type === 'income' ? '+' : '-';
             const amountClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
             const savingBadge = transaction.saving !== 'normal' ? 
-                `<span style="font-size: 8px; background: rgba(52, 152, 219, 0.3); padding: 1px 4px; border-radius: 3px; margin-left: 5px;">${transaction.saving}</span>` : '';
+                `<span style="font-size: 8px; background: rgba(155, 89, 182, 0.3); padding: 1px 4px; border-radius: 3px; margin-left: 5px; color: #9b59b6;">${transaction.saving}</span>` : '';
             
             html += `
                 <div class="transaction-item" data-id="${transaction.id}">
@@ -564,7 +580,7 @@ document.addEventListener('DOMContentLoaded', function() {
             filtered = transactions;
         }
         
-        // Calculer seulement les transactions normales pour le summary
+        // Calculer seulement les transactions normales pour income/expenses/balance
         const normalTransactions = filtered.filter(t => t.saving === 'normal');
         
         const totalIncome = normalTransactions
@@ -577,9 +593,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
         const balance = totalIncome - totalExpenses;
         
+        // Calculer le total des saving (tous les saving1, saving2, saving3)
+        const totalSaving = calculateTotalSavings();
+        
         // CORRECTION : Mettre à jour les éléments HTML avec les ID corrects
         const recentIncomeElem = document.getElementById('recentIncome');
         const recentExpensesElem = document.getElementById('recentExpenses');
+        const recentSavingElem = document.getElementById('recentSaving');
         const recentBalanceElem = document.getElementById('recentBalance');
         
         if (recentIncomeElem) {
@@ -588,6 +608,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (recentExpensesElem) {
             recentExpensesElem.textContent = '£' + totalExpenses.toFixed(2);
+        }
+        
+        if (recentSavingElem) {
+            recentSavingElem.textContent = '£' + Math.max(totalSaving, 0).toFixed(2);
         }
         
         if (recentBalanceElem) {

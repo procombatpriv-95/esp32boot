@@ -1,9 +1,3 @@
-
-
-// ============================================
-// GÉOLOCALISATION ET FUSEAU HORAIRE
-// ============================================
-
 async function getAddress(lat, lon) {
   try {
     const res = await fetch(
@@ -109,22 +103,111 @@ let resultPanelData = {
   yearlyGoal: 0,
   monthlyIncome: 0,
   yearlyIncome: 0,
-  monthlyExpenses: 0,
-  yearlyExpenses: 0,
-  savings: {
-    saving1: 0,
-    saving2: 0,
-    saving3: 0
-  },
   highestTransaction: { amount: 0, category: '' },
-  lowestTransaction: { amount: 0, category: '' }
+  lowestTransaction: { amount: 0, category: '' },
+  savings: { saving1: 0, saving2: 0, saving3: 0 }
 };
+
+// ============================================
+// FONCTIONS POUR CALCULER LES SAVINGS
+// ============================================
+
+function calculateSavings() {
+  try {
+    const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
+    const savings = { saving1: 0, saving2: 0, saving3: 0 };
+    
+    transactions.forEach(t => {
+      if (t.saving === 'saving1') {
+        if (t.type === 'income') savings.saving1 += t.amount;
+        else if (t.type === 'expense') savings.saving1 -= t.amount;
+      } else if (t.saving === 'saving2') {
+        if (t.type === 'income') savings.saving2 += t.amount;
+        else if (t.type === 'expense') savings.saving2 -= t.amount;
+      } else if (t.saving === 'saving3') {
+        if (t.type === 'income') savings.saving3 += t.amount;
+        else if (t.type === 'expense') savings.saving3 -= t.amount;
+      }
+    });
+    
+    // Mettre à jour les données globales
+    resultPanelData.savings = savings;
+    
+    return savings;
+  } catch (e) {
+    console.error('Erreur calcul savings:', e);
+    return { saving1: 0, saving2: 0, saving3: 0 };
+  }
+}
+
+// ============================================
+// FONCTION POUR TRANSFÉRER UN SAVING
+// ============================================
+
+function transferSaving(savingType) {
+  try {
+    const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
+    const savings = calculateSavings();
+    const amount = savings[savingType];
+    
+    if (amount <= 0) {
+      alert('Cannot transfer zero or negative saving amount.');
+      return;
+    }
+    
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const newId = Date.now();
+    
+    // 1. Créer une transaction normale (income) pour ajouter à la balance
+    const normalTransaction = {
+      id: newId,
+      amount: amount,
+      category: 'Saving Release',
+      description: `Transfer from ${savingType}`,
+      date: dateStr,
+      type: 'income',
+      saving: 'normal',
+      timestamp: now.getTime()
+    };
+    
+    // 2. Créer une transaction expense dans le saving (pour le vider)
+    const savingTransaction = {
+      id: newId + 1,
+      amount: amount,
+      category: 'Saving Release',
+      description: `Transfer to normal from ${savingType}`,
+      date: dateStr,
+      type: 'expense',
+      saving: savingType,
+      timestamp: now.getTime() + 1
+    };
+    
+    // 3. Ajouter les deux transactions
+    transactions.push(normalTransaction, savingTransaction);
+    
+    // 4. Sauvegarder
+    localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
+    
+    // 5. Mettre à jour l'affichage
+    setTimeout(() => {
+      getMoneyManagementData();
+      showResultPanel();
+    }, 100);
+    
+    // 6. Déclencher la mise à jour du tableau de bord (Bloc 1)
+    window.dispatchEvent(new Event('storage'));
+    
+  } catch (e) {
+    console.error('Erreur transfer saving:', e);
+    alert('Error transferring saving: ' + e.message);
+  }
+}
 
 // ============================================
 // FONCTIONS POUR LE PANEL RESULTAT (MENU 4)
 // ============================================
 
-// Fonction pour récupérer et calculer les données du money management
 function getMoneyManagementData(period = null) {
   try {
     // Utiliser la période passée en paramètre ou celle stockée
@@ -137,9 +220,6 @@ function getMoneyManagementData(period = null) {
     const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
     const yearlyGoal = parseFloat(localStorage.getItem('moneyManagerYearlyGoal') || '0');
     
-    // Récupérer les savings
-    const savings = JSON.parse(localStorage.getItem('moneyManagerSavings') || '{"saving1":0,"saving2":0,"saving3":0}');
-    
     // Date actuelle
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -149,55 +229,48 @@ function getMoneyManagementData(period = null) {
     // Calculer l'objectif mensuel actuel
     const monthlyGoal = monthlyGoals[monthKey] || 0;
     
-    // Filtrer les transactions par mois et année
-    const monthlyTransactions = transactions.filter(t => {
+    // Filtrer les transactions par mois et année (normales seulement)
+    const monthlyNormalTransactions = transactions.filter(t => {
       const tDate = new Date(t.date);
       return tDate.getFullYear() === currentYear && 
-             tDate.getMonth() + 1 === parseInt(currentMonth);
+             tDate.getMonth() + 1 === parseInt(currentMonth) &&
+             t.saving === 'normal';
     });
     
-    const yearlyTransactions = transactions.filter(t => {
+    const yearlyNormalTransactions = transactions.filter(t => {
       const tDate = new Date(t.date);
-      return tDate.getFullYear() === currentYear;
+      return tDate.getFullYear() === currentYear &&
+             t.saving === 'normal';
     });
     
-    // Calculer les revenus
-    const monthlyIncome = monthlyTransactions
+    // Calculer les revenus (normaux seulement)
+    const monthlyIncome = monthlyNormalTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    const yearlyIncome = yearlyTransactions
+    const yearlyIncome = yearlyNormalTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    // Calculer les dépenses
-    const monthlyExpenses = monthlyTransactions
+    // CALCULER LES DÉPENSES (normales seulement)
+    const monthlyExpenses = monthlyNormalTransactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    const yearlyExpenses = yearlyTransactions
+    const yearlyExpenses = yearlyNormalTransactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    // Calculer les savings
-    const monthlySavings = monthlyTransactions
-      .filter(t => t.type === 'saving')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const yearlySavings = yearlyTransactions
-      .filter(t => t.type === 'saving')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    // Trouver les transactions les plus hautes et basses pour CHAQUE période
+    // Trouver les transactions les plus hautes et basses pour CHAQUE période (normales seulement)
     let monthlyHighest = { amount: 0, category: '' };
     let monthlyLowest = { amount: 0, category: '' };
     let yearlyHighest = { amount: 0, category: '' };
     let yearlyLowest = { amount: 0, category: '' };
     
-    // Pour le mois
-    if (monthlyTransactions.length > 0) {
-      const monthlyIncomes = monthlyTransactions.filter(t => t.type === 'income');
-      const monthlyExpensesList = monthlyTransactions.filter(t => t.type === 'expense');
+    // Pour le mois (normales seulement)
+    if (monthlyNormalTransactions.length > 0) {
+      const monthlyIncomes = monthlyNormalTransactions.filter(t => t.type === 'income');
+      const monthlyExpensesList = monthlyNormalTransactions.filter(t => t.type === 'expense');
       
       if (monthlyIncomes.length > 0) {
         monthlyHighest = monthlyIncomes.reduce((max, t) => 
@@ -212,10 +285,10 @@ function getMoneyManagementData(period = null) {
       }
     }
     
-    // Pour l'année
-    if (yearlyTransactions.length > 0) {
-      const yearlyIncomes = yearlyTransactions.filter(t => t.type === 'income');
-      const yearlyExpensesList = yearlyTransactions.filter(t => t.type === 'expense');
+    // Pour l'année (normales seulement)
+    if (yearlyNormalTransactions.length > 0) {
+      const yearlyIncomes = yearlyNormalTransactions.filter(t => t.type === 'income');
+      const yearlyExpensesList = yearlyNormalTransactions.filter(t => t.type === 'expense');
       
       if (yearlyIncomes.length > 0) {
         yearlyHighest = yearlyIncomes.reduce((max, t) => 
@@ -230,6 +303,9 @@ function getMoneyManagementData(period = null) {
       }
     }
     
+    // Calculer les savings
+    const savings = calculateSavings();
+    
     // Mettre à jour les données
     resultPanelData.monthlyGoal = monthlyGoal;
     resultPanelData.yearlyGoal = yearlyGoal;
@@ -237,11 +313,11 @@ function getMoneyManagementData(period = null) {
     resultPanelData.yearlyIncome = yearlyIncome;
     resultPanelData.monthlyExpenses = monthlyExpenses;
     resultPanelData.yearlyExpenses = yearlyExpenses;
-    resultPanelData.monthlySavings = monthlySavings;
-    resultPanelData.yearlySavings = yearlySavings;
-    resultPanelData.savings = savings;
+    resultPanelData.monthlyTransactions = monthlyNormalTransactions;
+    resultPanelData.yearlyTransactions = yearlyNormalTransactions;
     resultPanelData.highestTransaction = currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest;
     resultPanelData.lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
+    resultPanelData.savings = savings;
     
     return {
       monthlyGoal,
@@ -250,11 +326,11 @@ function getMoneyManagementData(period = null) {
       yearlyIncome,
       monthlyExpenses,
       yearlyExpenses,
-      monthlySavings,
-      yearlySavings,
-      savings,
+      monthlyTransactions: monthlyNormalTransactions,
+      yearlyTransactions: yearlyNormalTransactions,
       highestTransaction: currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest,
       lowestTransaction: currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest,
+      savings,
       currentPeriod
     };
     
@@ -282,14 +358,14 @@ function showResultPanel() {
     ? resultPanelData.monthlyGoal 
     : resultPanelData.yearlyGoal;
 
-  // Calculer la BALANCE au lieu de juste les revenus
+  // Calculer la BALANCE (normales seulement)
   const currentIncome = resultPanelData.currentPeriod === 'monthly'
     ? resultPanelData.monthlyIncome
     : resultPanelData.yearlyIncome;
 
   const currentExpenses = resultPanelData.currentPeriod === 'monthly'
-    ? resultPanelData.monthlyExpenses
-    : resultPanelData.yearlyExpenses;
+    ? (resultPanelData.monthlyExpenses || 0)
+    : (resultPanelData.yearlyExpenses || 0);
 
   const currentBalance = Math.max(0, currentIncome - currentExpenses);
   
@@ -302,13 +378,16 @@ function showResultPanel() {
   const isGoalReached = percentage >= 100;
   
   // Pour l'affichage du montant sur la barre verte
-  const showAmountOnBar = percentage > 10; // Afficher si > 10% pour les deux périodes
+  const showAmountOnBar = percentage > 10;
   
-  // CORRECTION CRITIQUE: Quand percentage est 0, on force width à 0 et on ajoute une classe spéciale
+  // CORRECTION: Quand percentage est 0
   const progressFilledClass = percentage === 0 ? 'progress-filled empty' : 'progress-filled';
   const progressFilledStyle = percentage === 0 
     ? 'width: 0%; min-width: 0; padding-right: 0;' 
     : `width: ${percentage}%`;
+  
+  // Récupérer les savings
+  const savings = resultPanelData.savings || { saving1: 0, saving2: 0, saving3: 0 };
   
   resultPanel.innerHTML = `
     <div class="period-selector">
@@ -359,10 +438,22 @@ function showResultPanel() {
       </div>
     </div>
     
-    <div class="savings-section">
-      <div class="savings-title">Savings</div>
-      <div class="savings-container" id="savingsList">
-        <!-- Les savings seront ajoutés ici par JavaScript -->
+    <!-- SAVINGS SECTION -->
+    <div class="savings-container">
+      <div class="saving-item">
+        <span class="saving-label">Saving 1:</span>
+        <span class="saving-amount">£${savings.saving1.toFixed(2)}</span>
+        <button class="saving-add-btn" data-saving="saving1" ${savings.saving1 <= 0 ? 'disabled' : ''}>Add</button>
+      </div>
+      <div class="saving-item">
+        <span class="saving-label">Saving 2:</span>
+        <span class="saving-amount">£${savings.saving2.toFixed(2)}</span>
+        <button class="saving-add-btn" data-saving="saving2" ${savings.saving2 <= 0 ? 'disabled' : ''}>Add</button>
+      </div>
+      <div class="saving-item">
+        <span class="saving-label">Saving 3:</span>
+        <span class="saving-amount">£${savings.saving3.toFixed(2)}</span>
+        <button class="saving-add-btn" data-saving="saving3" ${savings.saving3 <= 0 ? 'disabled' : ''}>Add</button>
       </div>
     </div>
   `;
@@ -390,118 +481,33 @@ function showResultPanel() {
     });
   });
   
-  // Afficher les savings
-  updateSavingsDisplay();
-}
-
-// Fonction pour afficher les savings
-function updateSavingsDisplay() {
-  const savingsList = document.getElementById('savingsList');
-  if (!savingsList) return;
-  
-  const savings = resultPanelData.savings;
-  const savingTypes = ['saving1', 'saving2', 'saving3'];
-  
-  savingsList.innerHTML = '';
-  
-  savingTypes.forEach(savingType => {
-    const amount = savings[savingType] || 0;
-    
-    const savingItem = document.createElement('div');
-    savingItem.className = 'saving-item';
-    
-    savingItem.innerHTML = `
-      <div class="saving-info">
-        <div class="saving-name">${savingType.charAt(0).toUpperCase() + savingType.slice(1)}</div>
-        <div class="saving-amount">£${amount.toFixed(2)}</div>
-      </div>
-      <button class="add-saving-btn" data-saving="${savingType}">
-        <i class="fas fa-plus"></i> Add
-      </button>
-    `;
-    
-    savingsList.appendChild(savingItem);
-  });
-  
-  // Ajouter les événements aux boutons Add
-  const addButtons = savingsList.querySelectorAll('.add-saving-btn');
-  addButtons.forEach(btn => {
+  // Ajouter les événements aux boutons de saving
+  const savingBtns = resultPanel.querySelectorAll('.saving-add-btn');
+  savingBtns.forEach(btn => {
     btn.addEventListener('click', function() {
       const savingType = this.getAttribute('data-saving');
-      releaseSaving(savingType);
+      transferSaving(savingType);
     });
   });
-}
-
-// Fonction pour libérer un saving (appelée depuis le bouton Add)
-function releaseSaving(savingType) {
-  const savings = JSON.parse(localStorage.getItem('moneyManagerSavings') || '{"saving1":0,"saving2":0,"saving3":0}');
-  const amount = savings[savingType] || 0;
-  
-  if (amount <= 0) {
-    alert(`No savings in ${savingType}`);
-    return;
-  }
-  
-  if (confirm(`Release £${amount.toFixed(2)} from ${savingType} to your balance?`)) {
-    // Vérifier si window.releaseSaving existe (fonction du bloc 1)
-    if (typeof window.releaseSaving === 'function') {
-      window.releaseSaving(savingType);
-    } else {
-      // Fallback: créer la transaction manuellement
-      const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
-      
-      const transaction = {
-        id: Date.now(),
-        amount: amount,
-        category: 'Saving Released',
-        description: `${savingType} released to balance`,
-        date: new Date().toISOString().split('T')[0],
-        type: 'income',
-        savingType: 'normal',
-        timestamp: new Date().getTime()
-      };
-      
-      transactions.push(transaction);
-      savings[savingType] = 0;
-      
-      localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
-      localStorage.setItem('moneyManagerSavings', JSON.stringify(savings));
-      
-      // Émettre des événements pour mettre à jour les interfaces
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new Event('savingsUpdated'));
-    }
-    
-    // Mettre à jour l'affichage
-    getMoneyManagementData();
-    updateSavingsDisplay();
-    
-    alert(`£${amount.toFixed(2)} released from ${savingType} to your balance`);
-  }
 }
 
 // ============================================
 // SYSTÈME DE SURVEILLANCE EN TEMPS RÉEL
 // ============================================
 
-// Stocker le dernier état connu des données
-let lastTransactionCount = 0;
 let lastTransactionHash = '';
 let lastGoalHash = '';
 let lastSavingsHash = '';
 let autoUpdateInterval = null;
 
-// Fonction pour calculer un hash simple des transactions
 function calculateTransactionHash() {
   try {
     const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
-    // Créer un hash simple basé sur le nombre et le montant total
     let hash = transactions.length.toString();
     let totalAmount = 0;
     transactions.forEach(t => {
       totalAmount += t.amount;
-      hash += t.id + t.amount + t.type;
+      hash += t.id + t.amount + t.type + t.saving;
     });
     return hash + totalAmount.toString();
   } catch (e) {
@@ -509,7 +515,6 @@ function calculateTransactionHash() {
   }
 }
 
-// Fonction pour calculer un hash simple des objectifs
 function calculateGoalHash() {
   try {
     const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
@@ -520,73 +525,59 @@ function calculateGoalHash() {
   }
 }
 
-// Fonction pour calculer un hash simple des savings
 function calculateSavingsHash() {
   try {
-    const savings = JSON.parse(localStorage.getItem('moneyManagerSavings') || '{"saving1":0,"saving2":0,"saving3":0}');
+    const savings = calculateSavings();
     return JSON.stringify(savings);
   } catch (e) {
     return '';
   }
 }
 
-// Fonction pour vérifier les changements et mettre à jour
 function checkForUpdates() {
-  // Vérifier si nous sommes dans le menu 4 et pas en mode selected view
   if (window.currentMenuPage !== 'menu-4' || window.isInSelectedView) {
     return;
   }
   
-  // Calculer les hashs actuels
   const currentTransactionHash = calculateTransactionHash();
   const currentGoalHash = calculateGoalHash();
   const currentSavingsHash = calculateSavingsHash();
   
-  // Vérifier si quelque chose a changé
   if (currentTransactionHash !== lastTransactionHash || 
-      currentGoalHash !== lastGoalHash || 
+      currentGoalHash !== lastGoalHash ||
       currentSavingsHash !== lastSavingsHash) {
+    
     console.log('Changement détecté, mise à jour du panel...');
     
-    // Mettre à jour les hashs
     lastTransactionHash = currentTransactionHash;
     lastGoalHash = currentGoalHash;
     lastSavingsHash = currentSavingsHash;
     
-    // Mettre à jour les données
     getMoneyManagementData();
-    
-    // Mettre à jour l'affichage
     showResultPanel();
     
-    // Forcer un reflow pour s'assurer que l'affichage est actualisé
     const panel = document.querySelector('.kinfopaneltous-container');
     if (panel) {
       panel.style.display = 'none';
-      panel.offsetHeight; // Force reflow
+      panel.offsetHeight;
       panel.style.display = 'flex';
     }
   }
 }
 
-// Démarrer la surveillance automatique
 function startAutoUpdate() {
-  // Initialiser les hashs
   lastTransactionHash = calculateTransactionHash();
   lastGoalHash = calculateGoalHash();
   lastSavingsHash = calculateSavingsHash();
   
-  // Vérifier toutes les 500ms (très réactif)
   if (autoUpdateInterval) {
     clearInterval(autoUpdateInterval);
   }
   
   autoUpdateInterval = setInterval(checkForUpdates, 500);
-  
   console.log('Surveillance automatique démarrée');
 }
 
-// Arrêter la surveillance
 function stopAutoUpdate() {
   if (autoUpdateInterval) {
     clearInterval(autoUpdateInterval);
@@ -598,17 +589,13 @@ function stopAutoUpdate() {
 // SURCHARGE DU LOCALSTORAGE POUR DÉTECTION IMMÉDIATE
 // ============================================
 
-// Surcharger localStorage.setItem pour détecter les changements immédiatement
 const originalSetItem = localStorage.setItem;
 localStorage.setItem = function(key, value) {
-  // Appeler la méthode originale
   originalSetItem.apply(this, arguments);
   
-  // Vérifier si c'est une clé du money management
   if (key && key.includes('moneyManager')) {
     console.log(`Changement détecté dans localStorage: ${key}`);
     
-    // Mettre à jour immédiatement si dans le menu 4
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
       setTimeout(() => {
         getMoneyManagementData();
@@ -618,7 +605,6 @@ localStorage.setItem = function(key, value) {
   }
 };
 
-// Surcharger localStorage.removeItem
 const originalRemoveItem = localStorage.removeItem;
 localStorage.removeItem = function(key) {
   originalRemoveItem.apply(this, arguments);
@@ -635,7 +621,6 @@ localStorage.removeItem = function(key) {
   }
 };
 
-// Surcharger localStorage.clear
 const originalClear = localStorage.clear;
 localStorage.clear = function() {
   originalClear.apply(this, arguments);
@@ -654,7 +639,6 @@ localStorage.clear = function() {
 // ÉVÉNEMENTS GLOBAUX POUR LA MISE À JOUR
 // ============================================
 
-// Écouter les événements storage (pour les changements depuis d'autres onglets)
 window.addEventListener('storage', function(e) {
   if (e.key && e.key.includes('moneyManager')) {
     console.log(`Événement storage détecté: ${e.key}`);
@@ -668,17 +652,6 @@ window.addEventListener('storage', function(e) {
   }
 });
 
-// Écouter les événements savingsUpdated
-window.addEventListener('savingsUpdated', function() {
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    setTimeout(() => {
-      getMoneyManagementData();
-      showResultPanel();
-    }, 100);
-  }
-});
-
-// Créer un événement personnalisé pour les mises à jour
 window.addEventListener('transactionUpdated', function() {
   if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
     setTimeout(() => {
@@ -1180,4 +1153,167 @@ document.addEventListener('DOMContentLoaded', function() {
         
         setTimeout(() => {
             currentAssets.forEach(asset => {
-                const widgetId =
+                const widgetId = `${asset.id}_carousel_widget`;
+                tvWidgets[asset.id] = createTradingViewWidget(
+                    widgetId,
+                    asset.tradingViewSymbol,
+                    asset.id,
+                    true
+                );
+            });
+            
+            setTimeout(removeAllTooltips, 2000);
+            initCarouselClicks();
+        }, 1000);
+    }
+
+    // === INITIALISATION DES CLICS DU CAROUSEL ===
+    function initCarouselClicks() {
+        document.querySelectorAll('.carousel-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const assetId = this.getAttribute('data-asset-id');
+                selectAsset(assetId);
+            });
+        });
+    }
+
+    // === SÉLECTION D'ACTIF ===
+    function selectAsset(assetId) {
+        selectedAsset = currentAssets.find(c => c.id === assetId);
+        if (!selectedAsset) return;
+
+        // Activer le mode Selected View
+        isInSelectedView = true;
+        
+        // Animation et transition
+        carousel.classList.add('carousel-paused');
+        carouselScene.classList.add('hidden');
+        sideMenu.classList.add('hidden');
+        selectedView.classList.add('active');
+        backBtn.classList.remove('hidden');
+        loader.classList.remove('hidden');
+
+        // Mettre à jour le panel info (afficher les news)
+        updatePanelInfo();
+
+        // Préparer le graphique TradingView
+        const tvContainer = document.getElementById('tradingview_selected');
+        if (tvContainer) {
+            tvContainer.innerHTML = '';
+        }
+
+        setTimeout(() => {
+            if (selectedTVWidget) {
+                window.removeEventListener('beforeunload', () => {});
+            }
+            
+            selectedTVWidget = createTradingViewWidget(
+                'tradingview_selected',
+                selectedAsset.tradingViewSymbol,
+                selectedAsset.id,
+                false
+            );
+            
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                removeAllTooltips();
+            }, 1500);
+        }, 500);
+    }
+
+    // === RETOUR AU CAROUSEL (MANUEL SEULEMENT) ===
+    backBtn.addEventListener('click', function() {
+        // Désactiver le mode Selected View
+        isInSelectedView = false;
+        
+        selectedView.classList.remove('active');
+        carouselScene.classList.remove('hidden');
+        backBtn.classList.add('hidden');
+        sideMenu.classList.remove('hidden');
+        carousel.classList.remove('carousel-paused');
+        
+        // Mettre à jour le panel info selon la page active
+        updatePanelInfo();
+        
+        removeAllTooltips();
+    });
+
+    // === SURVEILLANCE DU CHANGEMENT DE MENU ===
+    const observerMenuChange = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'class') {
+                // Mettre à jour la page active
+                updateCurrentMenuPage();
+                
+                // Mettre à jour le panel info seulement si Selected View n'est PAS actif
+                if (!isInSelectedView) {
+                    updatePanelInfo();
+                }
+                // Si Selected View est actif, on NE CHANGE RIEN - les news restent
+            }
+        });
+    });
+    
+    observerMenuChange.observe(megaBox, {
+        attributes: true,
+        attributeFilter: ['class']
+    });
+
+    // DÉMARRER L'APPLICATION
+    init();
+
+    window.addEventListener('resize', function() {
+        sideMenu.style.top = '50%';
+        sideMenu.style.transform = 'translateY(-50%)';
+    });
+    
+    // Stocker les widgets dans l'objet global pour pouvoir les mettre à jour
+    window.tvWidgets = tvWidgets;
+    window.selectedTVWidget = selectedTVWidget;
+    window.isInSelectedView = isInSelectedView;
+    window.currentMenuPage = currentMenuPage;
+    window.getMoneyManagementData = getMoneyManagementData;
+    window.showResultPanel = showResultPanel;
+    window.calculateSavings = calculateSavings;
+    window.transferSaving = transferSaving;
+    
+    // ============================================
+    // DÉMARRER LA SURVEILLANCE AUTOMATIQUE
+    // ============================================
+    
+    // Démarrer la surveillance immédiatement
+    setTimeout(() => {
+        startAutoUpdate();
+        
+        // Vérifier toutes les 2 secondes en backup
+        setInterval(() => {
+            if (currentMenuPage === 'menu-4' && !isInSelectedView) {
+                getMoneyManagementData();
+                showResultPanel();
+            }
+        }, 1000);
+    }, 1000);
+});
+
+// Polling global de secours toutes les secondes
+setInterval(() => {
+  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+    if (window.getMoneyManagementData && window.showResultPanel) {
+      window.getMoneyManagementData();
+      window.showResultPanel();
+    }
+  }
+}, 300);
+
+// Mettre à jour immédiatement au chargement de la page
+window.addEventListener('load', function() {
+  setTimeout(() => {
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      if (window.getMoneyManagementData && window.showResultPanel) {
+        window.getMoneyManagementData();
+        window.showResultPanel();
+      }
+    }
+  }, 300);
+});

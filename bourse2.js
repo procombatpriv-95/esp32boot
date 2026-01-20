@@ -1,53 +1,5 @@
 
-  setInterval(() => {
-    fetch('/pingMohamed?token=' + token);
-  }, 2000);
-  
-  // Vérifier l'état de Fahim toutes les 2 secondes
-  setInterval(() => {
-    fetch('/checkFahimStatus')
-      .then(response => response.text())
-      .then(data => {
-        const dot = document.getElementById('fahimDot');
-        if (data === 'active') {
-          dot.style.backgroundColor = '#00FF00';
-          dot.style.boxShadow = '0 0 10px #00FF00';
-        } else {
-          dot.style.backgroundColor = '#FF0000';
-          dot.style.boxShadow = '0 0 10px #FF0000';
-        }
-      });
-  }, 2000);
-  
-  // Quand on quitte la page
-  window.addEventListener('beforeunload', function() {
-    fetch('/logoutMohamed?token=' + token);
-  });
-  
-  function logout() {
-    fetch('/logoutMohamed?token=' + token);
-    window.location.href = '/';
-  }
-</script>
 
-<div class="panelinfo" id="panelInfo">
-  <div class="status-container">
-    <div style="display: flex; align-items: center; gap: 5px;">
-      <span class="status-text">F.S</span>
-      <div id="fahimDot" class="status-dot" style="background-color: #00FF00;"></div>
-    </div>
-  </div>
-
-  <!-- DEUXIÈME DIV: Kinfopaneltous Container -->
-  <div class="kinfopaneltous-container" id="kinfopaneltousContainer">
-    <div class="kinfopaneltous-header" id="kinfopaneltousHeader" style="display: none;"></div>
-    <div class="kinfopaneltous-content" id="kinfopaneltousContent">
-      <div class="kinfopaneltous-default">Bonjour Mohamed</div>
-    </div>
-  </div>
-</div>
-
-<script>
 // ============================================
 // GÉOLOCALISATION ET FUSEAU HORAIRE
 // ============================================

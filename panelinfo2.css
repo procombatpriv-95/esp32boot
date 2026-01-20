@@ -273,7 +273,7 @@ a, button, .clickable {
 .indicators-container {
   display: flex;
   gap: 15px;
-  margin-top: -35px;
+  margin-top: -50px;
 }
 
 .indicator-box {

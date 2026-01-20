@@ -187,7 +187,8 @@ a, button, .clickable {
 
 .progress-section {
   width: 100%;
-  margin-bottom: 75px;
+  margin-top:-10px;
+  margin-bottom: 55px;
 }
 
 .progress-header {
@@ -273,7 +274,7 @@ a, button, .clickable {
 .indicators-container {
   display: flex;
   gap: 15px;
-  margin-top: -60px;
+  margin-top: -70px;
 }
 
 .indicator-box {
@@ -330,7 +331,7 @@ a, button, .clickable {
 
 /* SAVINGS SECTION - NOUVEAU */
 .savings-container {
-  margin-top: -5px;
+  margin-top: -15px;
   display: flex;
   flex-direction: column;
   gap: 3px;

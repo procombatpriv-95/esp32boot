@@ -188,7 +188,7 @@ a, button, .clickable {
 .progress-section {
   width: 100%;
   margin-top:-10px;
-  margin-bottom: 45px;
+  margin-bottom: 55px;
 }
 
 .progress-header {
@@ -331,7 +331,7 @@ a, button, .clickable {
 
 /* SAVINGS SECTION - NOUVEAU */
 .savings-container {
-  margin-top: -8px;
+  margin-top: 5px;
   display: flex;
   flex-direction: column;
   gap: 3px;

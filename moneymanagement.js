@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentFilter = 'all';
     let currentYearView = 'current';
     let longTermOffset = 0;
+    let currentTransactionForSaving = null;
     
     const amountInput = document.getElementById('amount');
     const descriptionInput = document.getElementById('description');
@@ -27,8 +28,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const longTermContent = document.getElementById('longTermContent');
     const prevDaysBtn = document.getElementById('prevDaysBtn');
     const nextDaysBtn = document.getElementById('nextDaysBtn');
+    const savingPopupOverlay = document.getElementById('savingPopupOverlay');
+    const closePopupBtn = document.getElementById('closePopupBtn');
+    const savingSelect = document.getElementById('savingSelect');
+    const transferAmountInput = document.getElementById('transferAmount');
+    const selectedSavingText = document.getElementById('selectedSavingText');
+    const errorMessage = document.getElementById('errorMessage');
+    const confirmTransferBtn = document.getElementById('confirmTransferBtn');
     
-    let expensePieChart, incomePieChart, monthlyBarChart;
+    let monthlyBarChart, categoryBarVerticalChart;
     
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -280,16 +288,20 @@ document.addEventListener('DOMContentLoaded', function() {
             categoryIncome[cat] = 0;
         });
         
-        // Inclure TOUTES les transactions pour les graphiques (même les saving)
+        // Ne prendre en compte que les transactions normales (pas les saving)
+        // ET exclure les transactions qui sont des transferts vers saving
         transactions.forEach(transaction => {
             const transDate = new Date(transaction.date);
             const transYear = transDate.getFullYear();
             
-            if (transYear === selectedYear) {
-                if (transaction.type === 'expense') {
-                    categoryExpenses[transaction.category] += transaction.amount;
-                } else if (transaction.type === 'income') {
-                    categoryIncome[transaction.category] += transaction.amount;
+            if (transYear === selectedYear && transaction.saving === 'normal') {
+                // Exclure les transactions de transfert (celles avec "Transfer to" dans la description)
+                if (!transaction.description.includes('Transfer to Saving')) {
+                    if (transaction.type === 'expense') {
+                        categoryExpenses[transaction.category] += transaction.amount;
+                    } else if (transaction.type === 'income') {
+                        categoryIncome[transaction.category] += transaction.amount;
+                    }
                 }
             }
         });
@@ -318,6 +330,52 @@ document.addEventListener('DOMContentLoaded', function() {
             categories: validCategories,
             expenses: expensesData,
             income: incomeData
+        };
+    }
+    
+    function calculateCategoryBarChartData() {
+        const categories = [
+            'General', 'Trading', 'Food', 'Order', 
+            'Shopping', 'Investment', 'Salary', 'Bills', 'Other'
+        ];
+        
+        const categoryBalances = {};
+        
+        // Initialiser toutes les catégories
+        categories.forEach(cat => {
+            categoryBalances[cat] = 0;
+        });
+        
+        // Calculer le solde (income - expenses) pour chaque catégorie
+        // Ne prendre en compte que les transactions normales
+        // ET exclure les transactions de transfert
+        transactions.forEach(transaction => {
+            if (transaction.saving === 'normal' && categoryBalances.hasOwnProperty(transaction.category)) {
+                // Exclure les transactions de transfert
+                if (!transaction.description.includes('Transfer to Saving')) {
+                    if (transaction.type === 'income') {
+                        categoryBalances[transaction.category] += transaction.amount;
+                    } else if (transaction.type === 'expense') {
+                        categoryBalances[transaction.category] -= transaction.amount;
+                    }
+                }
+            }
+        });
+        
+        // Filtrer les catégories qui ont des transactions (solde non nul)
+        const validCategories = [];
+        const balances = [];
+        
+        categories.forEach(cat => {
+            if (categoryBalances[cat] !== 0) {
+                validCategories.push(cat);
+                balances.push(categoryBalances[cat]);
+            }
+        });
+        
+        return {
+            categories: validCategories,
+            amounts: balances // Ce sont maintenant des soldes, pas des sommes
         };
     }
     
@@ -547,6 +605,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${sign}£${transaction.amount.toFixed(2)}
                     </div>
                     <div class="transaction-actions">
+                        <button class="add-btn" onclick="showSavingPopup(${transaction.id})">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
                         <button class="trash-icon-btn" onclick="deleteTransaction(${transaction.id})">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -556,6 +617,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         list.innerHTML = html;
+    }
+    
+    window.showSavingPopup = function(transactionId) {
+        const transaction = transactions.find(t => t.id === transactionId);
+        if (!transaction) return;
+        
+        currentTransactionForSaving = transaction;
+        
+        // Réinitialiser le popup
+        transferAmountInput.value = '';
+        errorMessage.textContent = '';
+        savingSelect.value = 'saving1';
+        selectedSavingText.textContent = 'Saving 1';
+        
+        // Afficher le popup
+        savingPopupOverlay.style.display = 'flex';
+    }
+    
+    function applySavingToTransaction(savingType) {
+        if (!currentTransactionForSaving) return;
+        
+        // Mettre à jour le type de saving de la transaction
+        currentTransactionForSaving.saving = savingType;
+        
+        // Mettre à jour le tableau de bord
+        updateDashboard();
+        
+        // Fermer le popup
+        savingPopupOverlay.style.display = 'none';
+        currentTransactionForSaving = null;
     }
     
     window.deleteTransaction = function(id) {
@@ -653,58 +744,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Détruire les anciens graphiques s'ils existent
-        if (expensePieChart) expensePieChart.destroy();
-        if (incomePieChart) incomePieChart.destroy();
         if (monthlyBarChart) monthlyBarChart.destroy();
+        if (categoryBarVerticalChart) categoryBarVerticalChart.destroy();
         
-        const expensePieCanvas = document.getElementById('expensePieChart');
-        if (expensePieCanvas) {
-            const expensePieCtx = expensePieCanvas.getContext('2d');
-            expensePieChart = new Chart(expensePieCtx, {
-                type: 'pie',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        data: [],
-                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
-        }
-        
-        const incomePieCanvas = document.getElementById('incomePieChart');
-        if (incomePieCanvas) {
-            const incomePieCtx = incomePieCanvas.getContext('2d');
-            incomePieChart = new Chart(incomePieCtx, {
-                type: 'pie',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        data: [],
-                        backgroundColor: ['#2ecc71', '#3498db', '#9b59b6', '#1abc9c', '#34495e', '#f1c40f']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
-        }
-        
+        // Monthly Bar Chart
         const monthlyBarCanvas = document.getElementById('monthlyBarChart');
         if (monthlyBarCanvas) {
             const monthlyBarCtx = monthlyBarCanvas.getContext('2d');
@@ -757,6 +800,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    aspectRatio: 1.52, 
                     interaction: {
                         mode: 'index',
                         intersect: false
@@ -786,7 +830,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 color: 'white',
                                 callback: function(value) {
                                     return '£' + value;
-                                }
+                                },
+                                stepSize: 5
                             },
                             grid: {
                                 color: 'rgba(255, 255, 255, 0.1)'
@@ -810,39 +855,111 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+        
+        // Category Bar Chart Vertical - MODIFIÉ pour enlever le grillage
+        const categoryBarVerticalCanvas = document.getElementById('categoryBarChartVertical');
+        if (categoryBarVerticalCanvas) {
+            const categoryBarVerticalCtx = categoryBarVerticalCanvas.getContext('2d');
+            categoryBarVerticalChart = new Chart(categoryBarVerticalCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Amount',
+                        data: [],
+                        backgroundColor: '#FFA500', // Orange color
+                        borderColor: '#FF8C00',
+                        borderWidth: 1,
+                        borderRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: 'white',
+                                font: {
+                                    size: 8
+                                },
+                                maxRotation: 0,
+                                minRotation: 0
+                            },
+                            grid: {
+                                display: false, // Désactivé
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'white',
+                                font: {
+                                    size: 8
+                                },
+                                callback: function(value) {
+                                    return '£' + value;
+                                },
+                                stepSize: 20
+                            },
+                            grid: {
+                                display: false, // Désactivé
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            titleColor: 'white',
+                            bodyColor: 'white',
+                            borderColor: '#FFA500',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    const sign = value >= 0 ? '+' : '';
+                                    return `Balance: ${sign}£${value.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
     
+    function updateCategoryBarChart() {
+        if (!categoryBarVerticalChart) return;
+        
+        const categoryData = calculateCategoryBarChartData();
+        
+        // Limiter à 6 catégories maximum pour une meilleure lisibilité
+        const maxCategories = 10;
+        const categories = categoryData.categories.slice(0, maxCategories);
+        const amounts = categoryData.amounts.slice(0, maxCategories);
+        
+        categoryBarVerticalChart.data.labels = categories;
+        categoryBarVerticalChart.data.datasets[0].data = amounts;
+        
+        // Définir l'échelle Y avec un max arrondi au multiple de 20 supérieur
+        const maxValue = Math.max(...amounts, 30);
+        const maxTick = Math.ceil(maxValue / 30) * 30;
+        
+        // Mettre à jour les options du graphique
+        categoryBarVerticalChart.options.scales.y.max = maxTick;
+        categoryBarVerticalChart.options.scales.y.ticks.stepSize = 30; // Échelle de 20 en 20
+        
+        categoryBarVerticalChart.update();
+    }
     function updateCharts() {
-        if (expensePieChart) {
-            const expenses = transactions.filter(t => t.type === 'expense');
-            const expenseCategories = {};
-            expenses.forEach(expense => {
-                if (!expenseCategories[expense.category]) {
-                    expenseCategories[expense.category] = 0;
-                }
-                expenseCategories[expense.category] += expense.amount;
-            });
-            
-            expensePieChart.data.labels = Object.keys(expenseCategories);
-            expensePieChart.data.datasets[0].data = Object.values(expenseCategories);
-            expensePieChart.update();
-        }
-        
-        if (incomePieChart) {
-            const incomes = transactions.filter(t => t.type === 'income');
-            const incomeCategories = {};
-            incomes.forEach(income => {
-                if (!incomeCategories[income.category]) {
-                    incomeCategories[income.category] = 0;
-                }
-                incomeCategories[income.category] += income.amount;
-            });
-            
-            incomePieChart.data.labels = Object.keys(incomeCategories);
-            incomePieChart.data.datasets[0].data = Object.values(incomeCategories);
-            incomePieChart.update();
-        }
-        
+        // Monthly Bar Chart
         if (monthlyBarChart) {
             const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
             monthlyBarChart.data.labels = monthData.labels;
@@ -862,13 +979,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     return tDate >= monthStart && tDate <= monthEnd;
                 });
                 
-                // Inclure TOUTES les transactions pour les graphiques
+                // Inclure seulement les transactions normales pour les revenus et dépenses
+                // ET exclure les transactions de transfert
                 const monthIncome = monthTransactions
-                    .filter(t => t.type === 'income')
+                    .filter(t => t.type === 'income' && t.saving === 'normal' && !t.description.includes('Transfer to Saving'))
                     .reduce((sum, t) => sum + t.amount, 0);
                     
                 const monthExpense = monthTransactions
-                    .filter(t => t.type === 'expense')
+                    .filter(t => t.type === 'expense' && t.saving === 'normal' && !t.description.includes('Transfer to Saving'))
                     .reduce((sum, t) => sum + t.amount, 0);
                 
                 incomeData.push(monthIncome);
@@ -895,8 +1013,18 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyBarChart.data.datasets[1].data = incomeData;
             monthlyBarChart.data.datasets[2].data = expenseData;
             monthlyBarChart.data.datasets[3].data = balanceTrendData;
+            
+            // Définir l'échelle Y avec un max arrondi au multiple de 5 supérieur
+            const allData = [...goalData, ...incomeData, ...expenseData];
+            const maxValue = Math.max(...allData, 5);
+            const maxTick = Math.ceil(maxValue / 5) * 5;
+            monthlyBarChart.options.scales.y.max = maxTick;
+            
             monthlyBarChart.update();
         }
+        
+        // Category Bar Chart Vertical
+        updateCategoryBarChart();
     }
     
     function addTransaction() {
@@ -1019,6 +1147,91 @@ document.addEventListener('DOMContentLoaded', function() {
                 longTermOffset--;
                 updateLongTermSection();
             }
+        });
+    }
+    
+    if (closePopupBtn) {
+        closePopupBtn.addEventListener('click', function() {
+            savingPopupOverlay.style.display = 'none';
+            currentTransactionForSaving = null;
+        });
+    }
+    
+    // Fermer le popup en cliquant en dehors
+    savingPopupOverlay.addEventListener('click', function(e) {
+        if (e.target === savingPopupOverlay) {
+            savingPopupOverlay.style.display = 'none';
+            currentTransactionForSaving = null;
+        }
+    });
+    
+    // Mettre à jour le texte du saving sélectionné
+    if (savingSelect) {
+        savingSelect.addEventListener('change', function() {
+            const savingText = this.options[this.selectedIndex].text;
+            selectedSavingText.textContent = savingText;
+        });
+    }
+    
+    // Valider le montant de transfert
+    if (transferAmountInput) {
+        transferAmountInput.addEventListener('input', function() {
+            const amount = parseFloat(this.value) || 0;
+            const transactionAmount = currentTransactionForSaving ? currentTransactionForSaving.amount : 0;
+            
+            if (amount > transactionAmount) {
+                errorMessage.textContent = 'Not enough money in this transaction';
+                confirmTransferBtn.disabled = true;
+            } else {
+                errorMessage.textContent = '';
+                confirmTransferBtn.disabled = false;
+            }
+        });
+    }
+    
+
+    if (confirmTransferBtn) {
+        confirmTransferBtn.addEventListener('click', function() {
+            if (!currentTransactionForSaving) return;
+            
+            const amount = parseFloat(transferAmountInput.value) || 0;
+            const transactionAmount = currentTransactionForSaving.amount;
+            const savingType = savingSelect.value;
+            
+            if (amount > transactionAmount || amount <= 0) {
+                errorMessage.textContent = 'Invalid amount';
+                return;
+            }
+            
+            // Créer une nouvelle transaction pour le saving (type income)
+            const savingTransaction = {
+                id: Date.now(),
+                amount: amount,
+                category: currentTransactionForSaving.category,
+                description: `Transfer to ${savingSelect.options[savingSelect.selectedIndex].text}`,
+                date: currentTransactionForSaving.date,
+                type: 'income', // Changé de 'expense' à 'income' pour le saving
+                saving: savingType,
+                timestamp: new Date().getTime()
+            };
+            
+            // Ajouter la transaction de saving
+            transactions.push(savingTransaction);
+            
+            // Mettre à jour le montant de la transaction originale
+            currentTransactionForSaving.amount -= amount;
+            
+            // Si le montant devient 0, supprimer la transaction
+            if (currentTransactionForSaving.amount <= 0) {
+                transactions = transactions.filter(t => t.id !== currentTransactionForSaving.id);
+            }
+            
+            // Mettre à jour le tableau de bord
+            updateDashboard();
+            
+            // Fermer le popup
+            savingPopupOverlay.style.display = 'none';
+            currentTransactionForSaving = null;
         });
     }
     

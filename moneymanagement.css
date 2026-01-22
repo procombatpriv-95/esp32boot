@@ -1,3 +1,5 @@
+
+
 .board-container * {
     box-sizing: border-box;
 }
@@ -44,35 +46,35 @@
 
 .pie-charts-section {
     grid-area: pie-charts;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
     max-height: 280px;
 }
 
-.pie-chart-container {
+.single-chart-container {
     background: rgba(30, 31, 35, 0.8);
     border-radius: 10px;
-    padding: 6px;
+    padding: 12px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-    height: 90px;
+    height: 168px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
 }
 
-.pie-chart-container .chart-title {
+.single-chart-container .chart-title {
     font-size: 11px;
-    margin-bottom: 3px;
+    margin-bottom: 8px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: white;
 }
 
-.pie-chart-container .chart-wrapper {
-    height: 70px;
+.single-chart-container .chart-wrapper {
+    height: 140px;
     flex: 1;
     min-height: 0;
 }
@@ -85,7 +87,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 280px;
+    height: 270px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
     width: 90%;
@@ -247,7 +249,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 280px;
+    height: 290px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
     width: 90%;
@@ -341,8 +343,8 @@
     border-radius: 8px;
     margin-bottom: 5px;
     position: relative;
+    min-height: 50px;
 }
-
 .transaction-item:last-child {
     border-bottom: none;
     margin-bottom: 0;
@@ -350,7 +352,7 @@
 
 .transaction-info {
     flex: 1;
-    padding-right: 40px;
+    padding-right: 140px; /* Espace pour le montant et les boutons */
 }
 
 .transaction-category {
@@ -373,9 +375,14 @@
 
 .transaction-amount {
     font-weight: 600;
-    margin-right: 20px;
     font-size: 12px;
+    position: absolute;
+    right: 100px; /* Positionné à gauche des boutons */
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
 }
+
 
 .transaction-income {
     color: #2ecc71;
@@ -388,11 +395,33 @@
 .transaction-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
     position: absolute;
-    right: 12px;
+    right: 15px; /* Positionné tout à droite */
     top: 50%;
     transform: translateY(-50%);
+    z-index: 2;
+}
+
+.add-btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 30px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 24px;
+}
+
+.add-btn:hover {
+    background: #2980b9;
+    transform: scale(1.05);
 }
 
 .trash-icon-btn {
@@ -409,14 +438,15 @@
     width: 24px;
     height: 24px;
     border-radius: 4px;
-    margin-right:-10px;
 }
 
 .trash-icon-btn:hover {
-    transform: scale(1.2);
+    transform: scale(1);
     color: #ff0000;
     background: rgba(231, 76, 60, 0.1);
+        border-radius: 30px;
 }
+
 
 .no-data {
     display: flex;
@@ -445,7 +475,7 @@
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
     overflow-y: auto;
-    max-height: 465px;
+    max-height: 411px;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -604,7 +634,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 280px;
+    height: 290px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
     width: 109%;
@@ -620,7 +650,7 @@
 .bar-chart-container {
     flex: 1;
     position: relative;
-    height: 210px;
+    height: 220px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     padding: 10px;
@@ -634,7 +664,7 @@
     border-radius: 15px;
     padding: 15px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    height: 280px;
+    height: 270px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
     width: 113%;
@@ -662,7 +692,7 @@
 
 .graph-container {
     display: flex;
-    height: 170px;
+    height: 190px;
     width: 100%;
     position: relative;
     margin-bottom: 5px;
@@ -914,4 +944,193 @@ canvas {
 
 .board-container {
     animation: fadeIn 0.5s ease-out;
+}
+.transaction-summary-saving {
+    color: #9b59b6; /* Violet */
+}
+
+/* Popup Styles - MODIFIÉ pour être dans .board-container */
+.saving-popup-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 6999;
+    border-radius: 25px;
+}
+
+.saving-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(30, 31, 35, 0.95);
+    backdrop-filter: blur(15px);
+    border-radius: 25px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 280px;
+    text-align: center;
+    z-index: 7000;
+}
+
+.popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+.popup-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+}
+
+.close-popup {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+}
+
+.close-popup:hover {
+    color: #27ae60;
+}
+
+.saving-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 30px;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    margin-bottom: 15px;
+    outline: none;
+}
+
+.saving-select:focus {
+    border-color: #3498db;
+}
+
+.amount-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 30px;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    margin-bottom: 15px;
+    outline: none;
+    text-align: center;
+}
+
+.amount-input:focus {
+    border-color: #3498db;
+}
+
+/* NOUVEAU STYLE pour le conteneur de balance */
+.balance-display-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 15px 0;
+    padding: 15px;
+    border-radius: 15px;
+    width: 100%;
+
+}
+
+.balance-label-container {
+    background: rgba(52, 152, 219, 0.2);
+    border: 2px solid #3498db;
+    border-radius: 12px;
+    padding: 10px 20px;
+    margin-bottom: 15px;
+    width: 100%;
+    color:#3498db;
+}
+
+.balance-label {
+    font-size: 16px;
+    font-weight: bold;
+    color:#3498db;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.arrow-container {
+    font-size: 32px;
+    color: #3498db;
+    margin: 10px 0;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.arrow-container i {
+    font-size: 24px;
+    margin: 0 5px;
+}
+
+.saving-display-container {
+    background: rgba(155, 89, 182, 0.2);
+    border: 2px solid #9b59b6;
+    border-radius: 12px;
+    padding: 10px 20px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.saving-display-text {
+    font-size: 14px;
+    font-weight: bold;
+    color: #9b59b6;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.error-message {
+    color: #e74c3c;
+    font-size: 11px;
+    margin-top: 5px;
+    min-height: 16px;
+}
+
+.confirm-btn {
+    background: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 10px 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 120px;
+    margin-top: 10px;
+}
+
+.confirm-btn:hover {
+    background: #27ae60;
+}
+
+.confirm-btn:disabled {
+    background: #7f8c8d;
+    cursor: not-allowed;
 }

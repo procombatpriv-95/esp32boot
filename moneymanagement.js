@@ -379,183 +379,199 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
     
-    function updateHorizontalBarGraph() {
-        const yAxis = document.getElementById('yAxis');
-        const barsContainer = document.getElementById('barsContainer');
-        const xAxisSpectrum = document.getElementById('xAxisSpectrum');
-        
-        if (!yAxis || !barsContainer || !xAxisSpectrum) return;
-        
-        const categoryData = calculateCategoryData();
-        const categories = categoryData.categories;
-        const expensesData = categoryData.expenses;
-        const incomeData = categoryData.income;
-        
-        if (leftLegendText && rightLegendText) {
-            const yearText = currentYearView === 'current' ? 'Current Year' : 'Previous Year';
-            leftLegendText.textContent = `${yearText} Expenses`;
-            rightLegendText.textContent = `${yearText} Income`;
-        }
-        
-        yAxis.innerHTML = '';
-        barsContainer.innerHTML = '';
-        xAxisSpectrum.innerHTML = '';
-        
-        if (categories.length === 0) {
-            const noDataMessage = document.createElement('div');
-            noDataMessage.className = 'no-data';
-            noDataMessage.innerHTML = `
-                <i class="fas fa-chart-bar"></i>
-                <div>No data available for selected year</div>
-            `;
-            barsContainer.appendChild(noDataMessage);
-            
-            const zeroLabel = document.createElement('div');
-            zeroLabel.className = 'spectrum-label';
-            zeroLabel.textContent = '0';
-            zeroLabel.style.left = '50%';
-            xAxisSpectrum.appendChild(zeroLabel);
-            
-            return;
-        }
-        
-        const maxExpense = Math.max(...expensesData);
-        const maxIncome = Math.max(...incomeData);
-        const maxValue = Math.max(maxExpense, maxIncome);
-        
-        let maxDisplayValue;
-        if (maxValue === 0) {
-            maxDisplayValue = 1000;
-        } else {
-            if (maxValue < 500) {
-                maxDisplayValue = Math.ceil(maxValue / 100) * 100;
-            } else if (maxValue < 2000) {
-                maxDisplayValue = Math.ceil(maxValue / 500) * 500;
-            } else {
-                maxDisplayValue = Math.ceil(maxValue / 1000) * 1000;
-            }
-        }
-        
-        maxDisplayValue = Math.max(maxDisplayValue, 1000);
-        
-        const numIntervals = 4;
-        const intervalValue = maxDisplayValue / numIntervals;
-        const pixelsPerValue = 50 / maxDisplayValue;
-        
-        categories.forEach((category, index) => {
-            const categoryLabel = document.createElement('div');
-            categoryLabel.className = 'category-label';
-            categoryLabel.textContent = category;
-            categoryLabel.style.height = `${100 / categories.length}%`;
-            categoryLabel.style.display = 'flex';
-            categoryLabel.style.alignItems = 'center';
-            categoryLabel.style.justifyContent = 'flex-end';
-            yAxis.appendChild(categoryLabel);
-            
-            const barGroup = document.createElement('div');
-            barGroup.className = 'bar-group';
-            
-            const topPercentage = (index * 100) / categories.length;
-            barGroup.style.top = `${topPercentage}%`;
-            barGroup.style.height = `${100 / categories.length}%`;
-            barGroup.style.display = 'flex';
-            barGroup.style.alignItems = 'center';
-            
-            const expenseValue = expensesData[index];
-            const incomeValue = incomeData[index];
-            
-            const expenseWidth = Math.min(expenseValue * pixelsPerValue, 50);
-            const incomeWidth = Math.min(incomeValue * pixelsPerValue, 50);
-            
-            if (expenseValue > 0) {
-                const leftBar = document.createElement('div');
-                leftBar.className = 'bar left-bar';
-                leftBar.style.width = '0%';
-                leftBar.style.right = '50%';
-                leftBar.style.height = '70%';
-                
-                if (expenseValue >= 1000) {
-                    leftBar.textContent = `£${(expenseValue / 1000).toFixed(1)}k`;
-                } else {
-                    leftBar.textContent = `£${expenseValue.toFixed(0)}`;
-                }
-                barGroup.appendChild(leftBar);
-                
-                setTimeout(() => {
-                    leftBar.style.width = `${expenseWidth}%`;
-                }, 50 + (index * 100));
-            }
-            
-            if (incomeValue > 0) {
-                const rightBar = document.createElement('div');
-                rightBar.className = 'bar right-bar';
-                rightBar.style.width = '0%';
-                rightBar.style.left = '50%';
-                rightBar.style.height = '70%';
-                
-                if (incomeValue >= 1000) {
-                    rightBar.textContent = `£${(incomeValue / 1000).toFixed(1)}k`;
-                } else {
-                    rightBar.textContent = `£${incomeValue.toFixed(0)}`;
-                }
-                barGroup.appendChild(rightBar);
-                
-                setTimeout(() => {
-                    rightBar.style.width = `${incomeWidth}%`;
-                }, 50 + (index * 100));
-            }
-            
-            barsContainer.appendChild(barGroup);
-        });
-        
-        for (let i = 1; i <= numIntervals; i++) {
-            const value = i * intervalValue;
-            
-            const leftTick = document.createElement('div');
-            leftTick.className = 'spectrum-tick';
-            const leftPosition = 50 - (value * pixelsPerValue);
-            leftTick.style.left = `${leftPosition}%`;
-            xAxisSpectrum.appendChild(leftTick);
-            
-            const leftLabel = document.createElement('div');
-            leftLabel.className = 'spectrum-label';
-            if (value >= 1000) {
-                leftLabel.textContent = `-£${(value / 1000).toFixed(1)}k`;
-            } else {
-                leftLabel.textContent = `-£${Math.round(value)}`;
-            }
-            leftLabel.style.left = `${leftPosition}%`;
-            xAxisSpectrum.appendChild(leftLabel);
-            
-            const rightTick = document.createElement('div');
-            rightTick.className = 'spectrum-tick';
-            const rightPosition = 50 + (value * pixelsPerValue);
-            rightTick.style.left = `${rightPosition}%`;
-            xAxisSpectrum.appendChild(rightTick);
-            
-            const rightLabel = document.createElement('div');
-            rightLabel.className = 'spectrum-label';
-            if (value >= 1000) {
-                rightLabel.textContent = `£${(value / 1000).toFixed(1)}k`;
-            } else {
-                rightLabel.textContent = `£${Math.round(value)}`;
-            }
-            rightLabel.style.left = `${rightPosition}%`;
-            xAxisSpectrum.appendChild(rightLabel);
-        }
-        
-        const zeroTick = document.createElement('div');
-        zeroTick.className = 'spectrum-tick zero-tick';
-        zeroTick.style.left = '50%';
-        xAxisSpectrum.appendChild(zeroTick);
+  function updateHorizontalBarGraph() {
+    const yAxis = document.getElementById('yAxis');
+    const barsContainer = document.getElementById('barsContainer');
+    const xAxisSpectrum = document.getElementById('xAxisSpectrum');
+    
+    if (!yAxis || !barsContainer || !xAxisSpectrum) return;
+    
+    const categoryData = calculateCategoryData();
+    const categories = categoryData.categories;
+    const expensesData = categoryData.expenses;
+    const incomeData = categoryData.income;
+    
+    if (leftLegendText && rightLegendText) {
+        const yearText = currentYearView === 'current' ? 'Current Year' : 'Previous Year';
+        leftLegendText.textContent = `${yearText} Expenses`;
+        rightLegendText.textContent = `${yearText} Income`;
+    }
+    
+    yAxis.innerHTML = '';
+    barsContainer.innerHTML = '';
+    xAxisSpectrum.innerHTML = '';
+    
+    if (categories.length === 0) {
+        const noDataMessage = document.createElement('div');
+        noDataMessage.className = 'no-data';
+        noDataMessage.innerHTML = `
+            <i class="fas fa-chart-bar"></i>
+            <div>No data available for selected year</div>
+        `;
+        barsContainer.appendChild(noDataMessage);
         
         const zeroLabel = document.createElement('div');
         zeroLabel.className = 'spectrum-label';
         zeroLabel.textContent = '0';
         zeroLabel.style.left = '50%';
-        zeroLabel.style.transform = 'translateX(-50%)';
         xAxisSpectrum.appendChild(zeroLabel);
+        
+        return;
     }
+    
+    const maxExpense = Math.max(...expensesData);
+    const maxIncome = Math.max(...incomeData);
+    const maxValue = Math.max(maxExpense, maxIncome);
+    
+    let maxDisplayValue;
+    if (maxValue === 0) {
+        maxDisplayValue = 100; // Valeur par défaut plus petite
+    } else {
+        // Calculer un maxDisplayValue adapté aux données
+        if (maxValue < 10) {
+            // Pour les très petites valeurs (< 10)
+            maxDisplayValue = Math.ceil(maxValue / 1) * 1;
+        } else if (maxValue < 50) {
+            // Pour les petites valeurs (10-50)
+            maxDisplayValue = Math.ceil(maxValue / 10) * 10;
+        } else if (maxValue < 100) {
+            // Pour les valeurs moyennes (50-100)
+            maxDisplayValue = Math.ceil(maxValue / 20) * 20;
+        } else if (maxValue < 500) {
+            // Pour les valeurs plus grandes (100-500)
+            maxDisplayValue = Math.ceil(maxValue / 100) * 100;
+        } else if (maxValue < 2000) {
+            // Pour les grandes valeurs (500-2000)
+            maxDisplayValue = Math.ceil(maxValue / 500) * 500;
+        } else {
+            // Pour les très grandes valeurs
+            maxDisplayValue = Math.ceil(maxValue / 1000) * 1000;
+        }
+    }
+    
+    // S'assurer que maxDisplayValue est au moins 10% plus grand que maxValue pour un peu d'espace
+    maxDisplayValue = Math.max(maxDisplayValue, Math.ceil(maxValue * 1.1));
+    
+    // Limiter le nombre d'intervalles pour éviter trop de labels
+    const numIntervals = Math.min(4, Math.ceil(maxDisplayValue / 50)); // Moins d'intervalles pour petites valeurs
+    
+    const intervalValue = maxDisplayValue / numIntervals;
+    const pixelsPerValue = 50 / maxDisplayValue;
+    
+    categories.forEach((category, index) => {
+        const categoryLabel = document.createElement('div');
+        categoryLabel.className = 'category-label';
+        categoryLabel.textContent = category;
+        categoryLabel.style.height = `${100 / categories.length}%`;
+        categoryLabel.style.display = 'flex';
+        categoryLabel.style.alignItems = 'center';
+        categoryLabel.style.justifyContent = 'flex-end';
+        yAxis.appendChild(categoryLabel);
+        
+        const barGroup = document.createElement('div');
+        barGroup.className = 'bar-group';
+        
+        const topPercentage = (index * 100) / categories.length;
+        barGroup.style.top = `${topPercentage}%`;
+        barGroup.style.height = `${100 / categories.length}%`;
+        barGroup.style.display = 'flex';
+        barGroup.style.alignItems = 'center';
+        
+        const expenseValue = expensesData[index];
+        const incomeValue = incomeData[index];
+        
+        const expenseWidth = Math.min(expenseValue * pixelsPerValue, 50);
+        const incomeWidth = Math.min(incomeValue * pixelsPerValue, 50);
+        
+        if (expenseValue > 0) {
+            const leftBar = document.createElement('div');
+            leftBar.className = 'bar left-bar';
+            leftBar.style.width = '0%';
+            leftBar.style.right = '50%';
+            leftBar.style.height = '70%';
+            
+            if (expenseValue >= 1000) {
+                leftBar.textContent = `£${(expenseValue / 1000).toFixed(1)}k`;
+            } else {
+                leftBar.textContent = `£${expenseValue.toFixed(0)}`;
+            }
+            barGroup.appendChild(leftBar);
+            
+            setTimeout(() => {
+                leftBar.style.width = `${expenseWidth}%`;
+            }, 50 + (index * 100));
+        }
+        
+        if (incomeValue > 0) {
+            const rightBar = document.createElement('div');
+            rightBar.className = 'bar right-bar';
+            rightBar.style.width = '0%';
+            rightBar.style.left = '50%';
+            rightBar.style.height = '70%';
+            
+            if (incomeValue >= 1000) {
+                rightBar.textContent = `£${(incomeValue / 1000).toFixed(1)}k`;
+            } else {
+                rightBar.textContent = `£${incomeValue.toFixed(0)}`;
+            }
+            barGroup.appendChild(rightBar);
+            
+            setTimeout(() => {
+                rightBar.style.width = `${incomeWidth}%`;
+            }, 50 + (index * 100));
+        }
+        
+        barsContainer.appendChild(barGroup);
+    });
+    
+    for (let i = 1; i <= numIntervals; i++) {
+        const value = i * intervalValue;
+        
+        const leftTick = document.createElement('div');
+        leftTick.className = 'spectrum-tick';
+        const leftPosition = 50 - (value * pixelsPerValue);
+        leftTick.style.left = `${leftPosition}%`;
+        xAxisSpectrum.appendChild(leftTick);
+        
+        const leftLabel = document.createElement('div');
+        leftLabel.className = 'spectrum-label';
+        if (value >= 1000) {
+            leftLabel.textContent = `-£${(value / 1000).toFixed(1)}k`;
+        } else {
+            leftLabel.textContent = `-£${Math.round(value)}`;
+        }
+        leftLabel.style.left = `${leftPosition}%`;
+        xAxisSpectrum.appendChild(leftLabel);
+        
+        const rightTick = document.createElement('div');
+        rightTick.className = 'spectrum-tick';
+        const rightPosition = 50 + (value * pixelsPerValue);
+        rightTick.style.left = `${rightPosition}%`;
+        xAxisSpectrum.appendChild(rightTick);
+        
+        const rightLabel = document.createElement('div');
+        rightLabel.className = 'spectrum-label';
+        if (value >= 1000) {
+            rightLabel.textContent = `£${(value / 1000).toFixed(1)}k`;
+        } else {
+            rightLabel.textContent = `£${Math.round(value)}`;
+        }
+        rightLabel.style.left = `${rightPosition}%`;
+        xAxisSpectrum.appendChild(rightLabel);
+    }
+    
+    const zeroTick = document.createElement('div');
+    zeroTick.className = 'spectrum-tick zero-tick';
+    zeroTick.style.left = '50%';
+    xAxisSpectrum.appendChild(zeroTick);
+    
+    const zeroLabel = document.createElement('div');
+    zeroLabel.className = 'spectrum-label';
+    zeroLabel.textContent = '0';
+    zeroLabel.style.left = '50%';
+    zeroLabel.style.transform = 'translateX(-50%)';
+    xAxisSpectrum.appendChild(zeroLabel);
+}
     
     function updateView() {
         const list = document.getElementById('transactionsList');

@@ -109,32 +109,30 @@ let resultPanelData = {
   savings: { saving1: 0, saving2: 0, saving3: 0 }
 };
 
+// Cache pour éviter les mises à jour inutiles
+let lastDataHash = '';
+let isPanelVisible = false;
+
 // ============================================
 // FONCTIONS COMMUNICATION ESP32
 // ============================================
 
 async function loadMoneyDataFromESP32() {
   try {
-    console.log('📥 Chargement données depuis ESP32...');
     const response = await fetch('/loadMoneyManager');
     
     if (response.ok) {
       const data = await response.json();
-      console.log('✅ Données chargées depuis ESP32');
       return data;
-    } else {
-      console.error('❌ Erreur chargement ESP32');
-      return null;
     }
   } catch (error) {
-    console.error('❌ Erreur réseau ESP32:', error);
-    return null;
+    console.error('❌ Erreur chargement ESP32:', error);
   }
+  return null;
 }
 
 async function saveMoneyDataToESP32(moneyData) {
   try {
-    console.log('💾 Sauvegarde données sur ESP32...');
     const response = await fetch('/saveMoneyManager?data=' + 
                                encodeURIComponent(JSON.stringify(moneyData)), {
       method: 'GET'
@@ -142,16 +140,12 @@ async function saveMoneyDataToESP32(moneyData) {
     
     if (response.ok) {
       const result = await response.json();
-      console.log('✅ Données sauvegardées sur ESP32');
       return result;
-    } else {
-      console.error('❌ Erreur sauvegarde ESP32');
-      return { success: false };
     }
   } catch (error) {
-    console.error('❌ Erreur réseau sauvegarde ESP32:', error);
-    return { success: false };
+    console.error('❌ Erreur sauvegarde ESP32:', error);
   }
+  return { success: false };
 }
 
 // ============================================
@@ -175,9 +169,7 @@ function calculateSavings(transactions) {
       }
     });
     
-    // Mettre à jour les données globales
     resultPanelData.savings = savings;
-    
     return savings;
   } catch (e) {
     console.error('Erreur calcul savings:', e);
@@ -191,10 +183,9 @@ function calculateSavings(transactions) {
 
 async function transferSaving(savingType) {
   try {
-    // 1. Charger les données actuelles depuis l'ESP32
     const data = await loadMoneyDataFromESP32();
     if (!data || !data.transactions) {
-      alert('Impossible de charger les données depuis l\'ESP32');
+      alert('Impossible de charger les données');
       return;
     }
     
@@ -211,7 +202,6 @@ async function transferSaving(savingType) {
     const dateStr = now.toISOString().split('T')[0];
     const newId = Date.now();
     
-    // 2. Créer une transaction normale (income) pour ajouter à la balance
     const normalTransaction = {
       id: newId,
       amount: amount,
@@ -223,7 +213,6 @@ async function transferSaving(savingType) {
       timestamp: now.getTime()
     };
     
-    // 3. Créer une transaction expense dans le saving (pour le vider)
     const savingTransaction = {
       id: newId + 1,
       amount: amount,
@@ -235,10 +224,8 @@ async function transferSaving(savingType) {
       timestamp: now.getTime() + 1
     };
     
-    // 4. Ajouter les deux transactions
     transactions.push(normalTransaction, savingTransaction);
     
-    // 5. Sauvegarder sur l'ESP32
     const moneyData = {
       transactions: transactions,
       investments: data.investments || [],
@@ -250,18 +237,15 @@ async function transferSaving(savingType) {
     const result = await saveMoneyDataToESP32(moneyData);
     
     if (result && result.success) {
-      // 6. Mettre à jour l'affichage
-      setTimeout(async () => {
-        await getMoneyManagementData();
-        showResultPanel();
-      }, 100);
+      // Forcer une mise à jour complète
+      lastDataHash = '';
+      await getMoneyManagementData();
+      await updateResultPanel();
       
-      // 7. Déclencher la mise à jour du tableau de bord
       window.dispatchEvent(new CustomEvent('moneyDataUpdated'));
-      
       alert(`✅ £${amount.toFixed(2)} transféré depuis ${savingType}`);
     } else {
-      alert('❌ Erreur lors de la sauvegarde sur l\'ESP32');
+      alert('❌ Erreur lors de la sauvegarde');
     }
     
   } catch (e) {
@@ -276,32 +260,24 @@ async function transferSaving(savingType) {
 
 async function getMoneyManagementData(period = null) {
   try {
-    // Utiliser la période passée en paramètre ou celle stockée
     const currentPeriod = period || resultPanelData.currentPeriod;
-    
-    // 1. Récupérer les données depuis l'ESP32
     const data = await loadMoneyDataFromESP32();
     
     if (!data) {
-      console.log('⚠️ Aucune donnée trouvée sur l\'ESP32');
       return resultPanelData;
     }
     
-    // 2. Extraire les données
     const transactions = data.transactions || [];
     const monthlyGoals = data.monthlyGoals || {};
     const yearlyGoal = parseFloat(data.yearlyGoal || '0');
     
-    // 3. Date actuelle
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
     const monthKey = `${currentYear}-${currentMonth}`;
     
-    // 4. Calculer l'objectif mensuel actuel
     const monthlyGoal = monthlyGoals[monthKey] || 0;
     
-    // 5. Filtrer les transactions par mois et année (normales seulement)
     const monthlyNormalTransactions = transactions.filter(t => {
       const tDate = new Date(t.date);
       return tDate.getFullYear() === currentYear && 
@@ -315,7 +291,6 @@ async function getMoneyManagementData(period = null) {
              t.saving === 'normal';
     });
     
-    // 6. Calculer les revenus (normaux seulement)
     const monthlyIncome = monthlyNormalTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
@@ -324,7 +299,6 @@ async function getMoneyManagementData(period = null) {
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    // 7. CALCULER LES DÉPENSES (normales seulement)
     const monthlyExpenses = monthlyNormalTransactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
@@ -333,13 +307,11 @@ async function getMoneyManagementData(period = null) {
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    // 8. Trouver les transactions les plus hautes et basses pour CHAQUE période (normales seulement)
     let monthlyHighest = { amount: 0, category: '' };
     let monthlyLowest = { amount: 0, category: '' };
     let yearlyHighest = { amount: 0, category: '' };
     let yearlyLowest = { amount: 0, category: '' };
     
-    // Pour le mois (normales seulement)
     if (monthlyNormalTransactions.length > 0) {
       const monthlyIncomes = monthlyNormalTransactions.filter(t => t.type === 'income');
       const monthlyExpensesList = monthlyNormalTransactions.filter(t => t.type === 'expense');
@@ -357,7 +329,6 @@ async function getMoneyManagementData(period = null) {
       }
     }
     
-    // Pour l'année (normales seulement)
     if (yearlyNormalTransactions.length > 0) {
       const yearlyIncomes = yearlyNormalTransactions.filter(t => t.type === 'income');
       const yearlyExpensesList = yearlyNormalTransactions.filter(t => t.type === 'expense');
@@ -375,10 +346,8 @@ async function getMoneyManagementData(period = null) {
       }
     }
     
-    // 9. Calculer les savings
     const savings = calculateSavings(transactions);
     
-    // 10. Mettre à jour les données
     resultPanelData.monthlyGoal = monthlyGoal;
     resultPanelData.yearlyGoal = yearlyGoal;
     resultPanelData.monthlyIncome = monthlyIncome;
@@ -389,15 +358,27 @@ async function getMoneyManagementData(period = null) {
     resultPanelData.lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
     resultPanelData.savings = savings;
     
-    return {
+    // Calculer un hash pour détecter les changements
+    const currentHash = JSON.stringify({
       monthlyGoal,
       yearlyGoal,
       monthlyIncome,
       yearlyIncome,
       monthlyExpenses,
       yearlyExpenses,
-      monthlyTransactions: monthlyNormalTransactions,
-      yearlyTransactions: yearlyNormalTransactions,
+      highest: resultPanelData.highestTransaction,
+      lowest: resultPanelData.lowestTransaction,
+      savings
+    });
+    
+    return {
+      hash: currentHash,
+      monthlyGoal,
+      yearlyGoal,
+      monthlyIncome,
+      yearlyIncome,
+      monthlyExpenses,
+      yearlyExpenses,
       highestTransaction: currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest,
       lowestTransaction: currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest,
       savings,
@@ -405,84 +386,31 @@ async function getMoneyManagementData(period = null) {
     };
     
   } catch (e) {
-    console.error('Erreur lors de la récupération des données:', e);
-    return resultPanelData;
+    console.error('Erreur récupération données:', e);
+    return { hash: 'error' };
   }
 }
 
-// Afficher le panel résultat
-async function showResultPanel() {
-  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-  if (!kinfopaneltousContent) return;
-  
-  kinfopaneltousContent.innerHTML = '';
-  
-  const resultPanel = document.createElement('div');
-  resultPanel.className = 'result-panel';
-  
-  // Récupérer les données à jour
-  const data = await getMoneyManagementData();
-  
-  // Déterminer l'objectif et la BALANCE (revenus - dépenses) selon la période
-  const currentGoal = resultPanelData.currentPeriod === 'monthly' 
-    ? resultPanelData.monthlyGoal 
-    : resultPanelData.yearlyGoal;
-
-  // Calculer la BALANCE (normales seulement)
-  const currentIncome = resultPanelData.currentPeriod === 'monthly'
-    ? resultPanelData.monthlyIncome
-    : resultPanelData.yearlyIncome;
-
-  const currentExpenses = resultPanelData.currentPeriod === 'monthly'
-    ? (resultPanelData.monthlyExpenses || 0)
-    : (resultPanelData.yearlyExpenses || 0);
-
-  const currentBalance = Math.max(0, currentIncome - currentExpenses);
-  
-  // Calculer le pourcentage (max 100%) - BASÉ SUR LA BALANCE
-  const percentage = currentGoal > 0 
-    ? Math.min((currentBalance / currentGoal) * 100, 100) 
-    : 0;
-  
-  // Déterminer si le goal est atteint ou dépassé
-  const isGoalReached = percentage >= 100;
-  
-  // Pour l'affichage du montant sur la barre verte
-  const showAmountOnBar = percentage > 10;
-  
-  // CORRECTION: Quand percentage est 0
-  const progressFilledClass = percentage === 0 ? 'progress-filled empty' : 'progress-filled';
-  const progressFilledStyle = percentage === 0 
-    ? 'width: 0%; min-width: 0; padding-right: 0;' 
-    : `width: ${percentage}%`;
-  
-  // Récupérer les savings
-  const savings = resultPanelData.savings || { saving1: 0, saving2: 0, saving3: 0 };
-  
-  resultPanel.innerHTML = `
+// Fonction pour créer le panel une seule fois
+function createResultPanel() {
+  const panel = document.createElement('div');
+  panel.className = 'result-panel';
+  panel.innerHTML = `
     <div class="period-selector">
-      <button class="period-btn ${resultPanelData.currentPeriod === 'monthly' ? 'active' : ''}" 
-              data-period="monthly">Monthly</button>
-      <button class="period-btn ${resultPanelData.currentPeriod === 'yearly' ? 'active' : ''}" 
-              data-period="yearly">Yearly</button>
+      <button class="period-btn monthly" data-period="monthly">Monthly</button>
+      <button class="period-btn yearly" data-period="yearly">Yearly</button>
     </div>
     
     <div class="progress-section">
       <div class="progress-header">
-        <span class="period-label">${resultPanelData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly'}</span>
-        <span class="percentage-label">${percentage.toFixed(1)}%</span>
+        <span class="period-label">Monthly</span>
+        <span class="percentage-label">0%</span>
       </div>
       
       <div class="progress-bar-container">
         <div class="progress-bar">
-          <div class="${progressFilledClass}" style="${progressFilledStyle}">
-            ${showAmountOnBar ? `£${currentBalance.toFixed(0)}` : ''}
-          </div>
-          ${!isGoalReached ? `
-            <div class="progress-remaining">
-              ${percentage < 90 ? `£${Math.max(0, currentGoal - currentBalance).toFixed(0)}` : ''}
-            </div>
-          ` : ''}
+          <div class="progress-filled"></div>
+          <div class="progress-remaining"></div>
         </div>
       </div>
     </div>
@@ -493,8 +421,8 @@ async function showResultPanel() {
           <i class="fas fa-arrow-up"></i> Highest
         </div>
         <div class="indicator-value">
-          £${resultPanelData.highestTransaction.amount.toFixed(2)}
-          ${resultPanelData.highestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.highestTransaction.category}</div>` : ''}
+          £0.00
+          <div class="indicator-category"></div>
         </div>
       </div>
       <div class="indicator-box indicator-lowest">
@@ -502,57 +430,205 @@ async function showResultPanel() {
           <i class="fas fa-arrow-down"></i> Lowest
         </div>
         <div class="indicator-value">
-          £${resultPanelData.lowestTransaction.amount.toFixed(2)}
-          ${resultPanelData.lowestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.lowestTransaction.category}</div>` : ''}
+          £0.00
+          <div class="indicator-category"></div>
         </div>
       </div>
     </div>
     
-    <!-- SAVINGS SECTION -->
     <div class="savings-container">
-      <div class="saving-item">
+      <div class="saving-item saving1">
         <span class="saving-label">Saving 1:</span>
-        <span class="saving-amount">£${savings.saving1.toFixed(2)}</span>
-        <button class="saving-add-btn" data-saving="saving1" ${savings.saving1 <= 0 ? 'disabled' : ''}>Add</button>
+        <span class="saving-amount">£0.00</span>
+        <button class="saving-add-btn" data-saving="saving1">Add</button>
       </div>
-      <div class="saving-item">
+      <div class="saving-item saving2">
         <span class="saving-label">Saving 2:</span>
-        <span class="saving-amount">£${savings.saving2.toFixed(2)}</span>
-        <button class="saving-add-btn" data-saving="saving2" ${savings.saving2 <= 0 ? 'disabled' : ''}>Add</button>
+        <span class="saving-amount">£0.00</span>
+        <button class="saving-add-btn" data-saving="saving2">Add</button>
       </div>
-      <div class="saving-item">
+      <div class="saving-item saving3">
         <span class="saving-label">Saving 3:</span>
-        <span class="saving-amount">£${savings.saving3.toFixed(2)}</span>
-        <button class="saving-add-btn" data-saving="saving3" ${savings.saving3 <= 0 ? 'disabled' : ''}>Add</button>
+        <span class="saving-amount">£0.00</span>
+        <button class="saving-add-btn" data-saving="saving3">Add</button>
       </div>
     </div>
   `;
   
-  kinfopaneltousContent.appendChild(resultPanel);
+  return panel;
+}
+
+// Fonction pour mettre à jour le panel sans le recréer
+async function updateResultPanel() {
+  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+  if (!kinfopaneltousContent) return;
   
-  // Ajouter Font Awesome si nécessaire
-  if (!document.querySelector('link[href*="font-awesome"]')) {
-    const faLink = document.createElement('link');
-    faLink.rel = 'stylesheet';
-    faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
-    document.head.appendChild(faLink);
+  // Récupérer les données
+  const data = await getMoneyManagementData();
+  
+  // Vérifier si les données ont changé
+  if (data.hash === lastDataHash && isPanelVisible) {
+    return; // Pas de changement, on ne fait rien
   }
   
-  // Ajouter les événements aux boutons de période
-  const periodBtns = resultPanel.querySelectorAll('.period-btn');
+  lastDataHash = data.hash;
+  isPanelVisible = true;
+  
+  // Trouver ou créer le panel
+  let resultPanel = kinfopaneltousContent.querySelector('.result-panel');
+  if (!resultPanel) {
+    resultPanel = createResultPanel();
+    kinfopaneltousContent.appendChild(resultPanel);
+    
+    // Ajouter Font Awesome si nécessaire
+    if (!document.querySelector('link[href*="font-awesome"]')) {
+      const faLink = document.createElement('link');
+      faLink.rel = 'stylesheet';
+      faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
+      document.head.appendChild(faLink);
+    }
+    
+    // Attacher les événements une seule fois
+    attachPanelEvents(resultPanel);
+  }
+  
+  // Mettre à jour les données sans recréer le DOM
+  const currentGoal = resultPanelData.currentPeriod === 'monthly' 
+    ? resultPanelData.monthlyGoal 
+    : resultPanelData.yearlyGoal;
+  
+  const currentIncome = resultPanelData.currentPeriod === 'monthly'
+    ? resultPanelData.monthlyIncome
+    : resultPanelData.yearlyIncome;
+  
+  const currentExpenses = resultPanelData.currentPeriod === 'monthly'
+    ? (resultPanelData.monthlyExpenses || 0)
+    : (resultPanelData.yearlyExpenses || 0);
+  
+  const currentBalance = Math.max(0, currentIncome - currentExpenses);
+  const percentage = currentGoal > 0 
+    ? Math.min((currentBalance / currentGoal) * 100, 100) 
+    : 0;
+  
+  const isGoalReached = percentage >= 100;
+  const showAmountOnBar = percentage > 10;
+  
+  // Mettre à jour les éléments
+  const periodLabel = resultPanel.querySelector('.period-label');
+  const percentageLabel = resultPanel.querySelector('.percentage-label');
+  const progressFilled = resultPanel.querySelector('.progress-filled');
+  const progressRemaining = resultPanel.querySelector('.progress-remaining');
+  const highestAmount = resultPanel.querySelector('.indicator-highest .indicator-value');
+  const highestCategory = resultPanel.querySelector('.indicator-highest .indicator-category');
+  const lowestAmount = resultPanel.querySelector('.indicator-lowest .indicator-value');
+  const lowestCategory = resultPanel.querySelector('.indicator-lowest .indicator-category');
+  const saving1Amount = resultPanel.querySelector('.saving1 .saving-amount');
+  const saving2Amount = resultPanel.querySelector('.saving2 .saving-amount');
+  const saving3Amount = resultPanel.querySelector('.saving3 .saving-amount');
+  const saving1Btn = resultPanel.querySelector('.saving1 .saving-add-btn');
+  const saving2Btn = resultPanel.querySelector('.saving2 .saving-add-btn');
+  const saving3Btn = resultPanel.querySelector('.saving3 .saving-add-btn');
+  
+  if (periodLabel) {
+    periodLabel.textContent = resultPanelData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly';
+  }
+  
+  if (percentageLabel) {
+    percentageLabel.textContent = `${percentage.toFixed(1)}%`;
+  }
+  
+  if (progressFilled) {
+    progressFilled.style.width = `${percentage}%`;
+    progressFilled.innerHTML = showAmountOnBar ? `£${currentBalance.toFixed(0)}` : '';
+    progressFilled.className = percentage === 0 ? 'progress-filled empty' : 'progress-filled';
+  }
+  
+  if (progressRemaining) {
+    if (!isGoalReached && percentage < 90) {
+      progressRemaining.textContent = `£${Math.max(0, currentGoal - currentBalance).toFixed(0)}`;
+      progressRemaining.style.display = 'block';
+    } else {
+      progressRemaining.style.display = 'none';
+    }
+  }
+  
+  if (highestAmount) {
+    highestAmount.firstChild.textContent = `£${resultPanelData.highestTransaction.amount.toFixed(2)}`;
+  }
+  
+  if (highestCategory) {
+    highestCategory.textContent = resultPanelData.highestTransaction.category || '';
+    highestCategory.style.display = resultPanelData.highestTransaction.category ? 'block' : 'none';
+  }
+  
+  if (lowestAmount) {
+    lowestAmount.firstChild.textContent = `£${resultPanelData.lowestTransaction.amount.toFixed(2)}`;
+  }
+  
+  if (lowestCategory) {
+    lowestCategory.textContent = resultPanelData.lowestTransaction.category || '';
+    lowestCategory.style.display = resultPanelData.lowestTransaction.category ? 'block' : 'none';
+  }
+  
+  if (saving1Amount) {
+    saving1Amount.textContent = `£${resultPanelData.savings.saving1.toFixed(2)}`;
+  }
+  
+  if (saving2Amount) {
+    saving2Amount.textContent = `£${resultPanelData.savings.saving2.toFixed(2)}`;
+  }
+  
+  if (saving3Amount) {
+    saving3Amount.textContent = `£${resultPanelData.savings.saving3.toFixed(2)}`;
+  }
+  
+  if (saving1Btn) {
+    saving1Btn.disabled = resultPanelData.savings.saving1 <= 0;
+  }
+  
+  if (saving2Btn) {
+    saving2Btn.disabled = resultPanelData.savings.saving2 <= 0;
+  }
+  
+  if (saving3Btn) {
+    saving3Btn.disabled = resultPanelData.savings.saving3 <= 0;
+  }
+  
+  // Mettre à jour les boutons de période
+  const monthlyBtn = resultPanel.querySelector('.period-btn.monthly');
+  const yearlyBtn = resultPanel.querySelector('.period-btn.yearly');
+  
+  if (monthlyBtn) {
+    monthlyBtn.className = resultPanelData.currentPeriod === 'monthly' 
+      ? 'period-btn monthly active' 
+      : 'period-btn monthly';
+  }
+  
+  if (yearlyBtn) {
+    yearlyBtn.className = resultPanelData.currentPeriod === 'yearly' 
+      ? 'period-btn yearly active' 
+      : 'period-btn yearly';
+  }
+}
+
+// Fonction pour attacher les événements
+function attachPanelEvents(panel) {
+  // Boutons de période
+  const periodBtns = panel.querySelectorAll('.period-btn');
   periodBtns.forEach(btn => {
     btn.addEventListener('click', async function() {
       const period = this.getAttribute('data-period');
       resultPanelData.currentPeriod = period;
       
-      // Mettre à jour immédiatement avec la nouvelle période
+      // Forcer une mise à jour
+      lastDataHash = '';
       await getMoneyManagementData(period);
-      showResultPanel();
+      await updateResultPanel();
     });
   });
   
-  // Ajouter les événements aux boutons de saving
-  const savingBtns = resultPanel.querySelectorAll('.saving-add-btn');
+  // Boutons de saving
+  const savingBtns = panel.querySelectorAll('.saving-add-btn');
   savingBtns.forEach(btn => {
     btn.addEventListener('click', async function() {
       const savingType = this.getAttribute('data-saving');
@@ -561,121 +637,68 @@ async function showResultPanel() {
   });
 }
 
-// ============================================
-// SYSTÈME DE SURVEILLANCE EN TEMPS RÉEL
-// ============================================
-
-let lastTransactionHash = '';
-let lastGoalHash = '';
-let lastSavingsHash = '';
-let autoUpdateInterval = null;
-
-async function calculateTransactionHash() {
-  try {
-    const data = await loadMoneyDataFromESP32();
-    if (!data || !data.transactions) return '';
-    
-    const transactions = data.transactions;
-    let hash = transactions.length.toString();
-    let totalAmount = 0;
-    transactions.forEach(t => {
-      totalAmount += t.amount;
-      hash += t.id + t.amount + t.type + t.saving;
-    });
-    return hash + totalAmount.toString();
-  } catch (e) {
-    return '';
-  }
-}
-
-async function calculateGoalHash() {
-  try {
-    const data = await loadMoneyDataFromESP32();
-    if (!data) return '';
-    
-    const monthlyGoals = data.monthlyGoals || {};
-    const yearlyGoal = data.yearlyGoal || 0;
-    return JSON.stringify(monthlyGoals) + yearlyGoal;
-  } catch (e) {
-    return '';
-  }
-}
-
-async function calculateSavingsHash() {
-  try {
-    const data = await loadMoneyDataFromESP32();
-    if (!data || !data.transactions) return '';
-    
-    const savings = calculateSavings(data.transactions);
-    return JSON.stringify(savings);
-  } catch (e) {
-    return '';
-  }
-}
-
-async function checkForUpdates() {
+// Afficher le panel résultat
+async function showResultPanel() {
+  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+  if (!kinfopaneltousContent) return;
+  
+  // Vérifier si on est dans le menu 4
   if (window.currentMenuPage !== 'menu-4' || window.isInSelectedView) {
+    // Si on n'est pas dans le menu 4, cacher le panel
+    const existingPanel = kinfopaneltousContent.querySelector('.result-panel');
+    if (existingPanel) {
+      existingPanel.style.display = 'none';
+      isPanelVisible = false;
+    }
     return;
   }
   
-  const currentTransactionHash = await calculateTransactionHash();
-  const currentGoalHash = await calculateGoalHash();
-  const currentSavingsHash = await calculateSavingsHash();
-  
-  if (currentTransactionHash !== lastTransactionHash || 
-      currentGoalHash !== lastGoalHash ||
-      currentSavingsHash !== lastSavingsHash) {
-    
-    console.log('Changement détecté, mise à jour du panel...');
-    
-    lastTransactionHash = currentTransactionHash;
-    lastGoalHash = currentGoalHash;
-    lastSavingsHash = currentSavingsHash;
-    
-    await getMoneyManagementData();
-    showResultPanel();
-    
-    const panel = document.querySelector('.kinfopaneltous-container');
-    if (panel) {
-      panel.style.display = 'none';
-      panel.offsetHeight;
-      panel.style.display = 'flex';
-    }
+  // Si on est dans le menu 4, afficher le panel
+  const existingPanel = kinfopaneltousContent.querySelector('.result-panel');
+  if (existingPanel) {
+    existingPanel.style.display = 'block';
+    isPanelVisible = true;
   }
+  
+  // Mettre à jour les données
+  await updateResultPanel();
 }
 
-async function startAutoUpdate() {
-  lastTransactionHash = await calculateTransactionHash();
-  lastGoalHash = await calculateGoalHash();
-  lastSavingsHash = await calculateSavingsHash();
-  
-  if (autoUpdateInterval) {
-    clearInterval(autoUpdateInterval);
+// ============================================
+// SYSTÈME DE SURVEILLANCE OPTIMISÉ
+// ============================================
+
+let updateInterval = null;
+
+function startAutoUpdate() {
+  if (updateInterval) {
+    clearInterval(updateInterval);
   }
   
-  autoUpdateInterval = setInterval(checkForUpdates, 2000); // Vérifier toutes les 2 secondes
-  console.log('✅ Surveillance automatique démarrée');
+  // Mettre à jour toutes les 3 secondes (assez rapide mais pas trop)
+  updateInterval = setInterval(async () => {
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      await updateResultPanel();
+    }
+  }, 3000);
 }
 
 function stopAutoUpdate() {
-  if (autoUpdateInterval) {
-    clearInterval(autoUpdateInterval);
-    autoUpdateInterval = null;
+  if (updateInterval) {
+    clearInterval(updateInterval);
+    updateInterval = null;
   }
 }
 
 // ============================================
-// ÉVÉNEMENTS GLOBAUX POUR LA MISE À JOUR
+// ÉVÉNEMENTS GLOBAUX
 // ============================================
 
 window.addEventListener('moneyDataUpdated', async function() {
   if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    console.log('Événement moneyDataUpdated détecté');
-    
-    setTimeout(async () => {
-      await getMoneyManagementData();
-      showResultPanel();
-    }, 100);
+    lastDataHash = ''; // Forcer une mise à jour
+    await getMoneyManagementData();
+    await updateResultPanel();
   }
 });
 
@@ -684,7 +707,6 @@ window.addEventListener('moneyDataUpdated', async function() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Configuration des actifs avec symboles TradingView
     const assetTypes = {
         crypto: [
             {
@@ -737,7 +759,6 @@ document.addEventListener('DOMContentLoaded', function() {
                displayName: 'NASDAQ',
                kinfopaneltousSymbol: 'NASDAQ:IXIC'
             },
-
             {
                 id: 'apple',
                 name: 'Apple (AAPL)',
@@ -746,7 +767,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayName: 'Apple',
                 kinfopaneltousSymbol: 'NASDAQ:AAPL'
             },
-
             {
                 id: 'GameStop',
                 name: 'GameStop (GME)',
@@ -836,7 +856,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let isInSelectedView = false;
     let currentMenuPage = 'menu-1';
     
-    // Fuseau horaire par défaut (sera mis à jour par géolocalisation)
     if (!window.appTimezone) {
         window.appTimezone = "Europe/London";
     }
@@ -853,7 +872,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
     const megaBox = document.getElementById('megaBox');
 
-    // === SUPPRESSION DES TOOLTIPS ===
     function removeAllTooltips() {
         const elements = document.querySelectorAll('[title]');
         elements.forEach(el => {
@@ -876,7 +894,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, true);
     }
 
-    // === AFFICHER LE MESSAGE PAR DÉFAUT (Menu 1) ===
     function showDefaultMessage() {
         kinfopaneltousContent.innerHTML = '';
         
@@ -899,7 +916,6 @@ document.addEventListener('DOMContentLoaded', function() {
         kinfopaneltousContent.appendChild(messageDiv);
     }
 
-    // === CHARGEMENT DES KINFOPANELTOUS POUR LES ACTUALITÉS ===
     function loadKinfopaneltousNews(asset) {
         kinfopaneltousContent.innerHTML = '';
         
@@ -947,29 +963,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
 
-    // === GESTION DU PANEL INFO EN FONCTION DE L'ÉTAT ===
     function updatePanelInfo() {
         kinfopaneltousContainer.classList.add('active');
         
-        // PRIORITÉ 1: Si Selected View est ouvert, TOUJOURS afficher les news
         if (isInSelectedView && selectedAsset) {
             loadKinfopaneltousNews(selectedAsset);
-        } 
-        // PRIORITÉ 2: Sinon, afficher selon la page active
-        else {
+        } else {
             if (currentMenuPage === 'menu-1') {
                 showDefaultMessage();
             } else if (currentMenuPage === 'menu-4') {
-                // Toujours charger les données à jour et afficher le panel
                 showResultPanel();
             } else {
-                // Pour les autres pages
                 showDefaultMessage();
             }
         }
     }
 
-    // === DÉTECTION DE LA PAGE ACTIVE ===
     function updateCurrentMenuPage() {
         const classes = megaBox.classList;
         if (classes.contains('menu-1')) currentMenuPage = 'menu-1';
@@ -979,14 +988,12 @@ document.addEventListener('DOMContentLoaded', function() {
         else if (classes.contains('menu-5')) currentMenuPage = 'menu-5';
     }
 
-    // === INITIALISATION ===
     async function init() {
         const saved = localStorage.getItem('chartStates');
         if (saved) {
             try {
                 chartStates = JSON.parse(saved);
             } catch (e) {
-                console.error('Erreur lors du chargement des états:', e);
                 chartStates = {};
             }
         }
@@ -1007,7 +1014,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         updateCarousel();
         
-        // Détecter la page initiale
         updateCurrentMenuPage();
         updatePanelInfo();
         
@@ -1027,19 +1033,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // === CRÉATION DES WIDGETS TRADINGVIEW ===
     function createTradingViewWidget(containerId, symbol, assetId, isCarousel = false) {
         if (!window.TradingView) {
-            console.error('Bibliothèque TradingView non chargée');
             setTimeout(() => createTradingViewWidget(containerId, symbol, assetId, isCarousel), 100);
             return null;
         }
 
         const container = document.getElementById(containerId);
-        if (!container) {
-            console.error('Conteneur non trouvé:', containerId);
-            return null;
-        }
+        if (!container) return null;
 
         const widgetConfig = {
             width: isCarousel ? '400' : '1000',
@@ -1130,9 +1131,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     chartStates[`chart_${selectedAsset.id}`] = state;
                                     localStorage.setItem('chartStates', JSON.stringify(chartStates));
                                 });
-                            } catch (e) {
-                                console.error('Erreur sauvegarde:', e);
-                            }
+                            } catch (e) {}
                         }
                     }, 30000);
                 });
@@ -1140,12 +1139,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return widget;
         } catch (error) {
-            console.error('Erreur création widget TradingView:', error);
             return null;
         }
     }
 
-    // === MISE À JOUR DU CAROUSEL ===
     function updateCarousel() {
         carousel.innerHTML = '';
         
@@ -1184,7 +1181,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
 
-    // === INITIALISATION DES CLICS DU CAROUSEL ===
     function initCarouselClicks() {
         document.querySelectorAll('.carousel-overlay').forEach(overlay => {
             overlay.addEventListener('click', function(e) {
@@ -1195,15 +1191,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // === SÉLECTION D'ACTIF ===
     function selectAsset(assetId) {
         selectedAsset = currentAssets.find(c => c.id === assetId);
         if (!selectedAsset) return;
 
-        // Activer le mode Selected View
         isInSelectedView = true;
         
-        // Animation et transition
         carousel.classList.add('carousel-paused');
         carouselScene.classList.add('hidden');
         sideMenu.classList.add('hidden');
@@ -1211,10 +1204,8 @@ document.addEventListener('DOMContentLoaded', function() {
         backBtn.classList.remove('hidden');
         loader.classList.remove('hidden');
 
-        // Mettre à jour le panel info (afficher les news)
         updatePanelInfo();
 
-        // Préparer le graphique TradingView
         const tvContainer = document.getElementById('tradingview_selected');
         if (tvContainer) {
             tvContainer.innerHTML = '';
@@ -1239,9 +1230,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
 
-    // === RETOUR AU CAROUSEL (MANUEL SEULEMENT) ===
     backBtn.addEventListener('click', function() {
-        // Désactiver le mode Selected View
         isInSelectedView = false;
         
         selectedView.classList.remove('active');
@@ -1250,24 +1239,19 @@ document.addEventListener('DOMContentLoaded', function() {
         sideMenu.classList.remove('hidden');
         carousel.classList.remove('carousel-paused');
         
-        // Mettre à jour le panel info selon la page active
         updatePanelInfo();
         
         removeAllTooltips();
     });
 
-    // === SURVEILLANCE DU CHANGEMENT DE MENU ===
     const observerMenuChange = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.attributeName === 'class') {
-                // Mettre à jour la page active
                 updateCurrentMenuPage();
                 
-                // Mettre à jour le panel info seulement si Selected View n'est PAS actif
                 if (!isInSelectedView) {
                     updatePanelInfo();
                 }
-                // Si Selected View est actif, on NE CHANGE RIEN - les news restent
             }
         });
     });
@@ -1277,7 +1261,6 @@ document.addEventListener('DOMContentLoaded', function() {
         attributeFilter: ['class']
     });
 
-    // DÉMARRER L'APPLICATION
     init();
 
     window.addEventListener('resize', function() {
@@ -1285,7 +1268,6 @@ document.addEventListener('DOMContentLoaded', function() {
         sideMenu.style.transform = 'translateY(-50%)';
     });
     
-    // Stocker les widgets dans l'objet global pour pouvoir les mettre à jour
     window.tvWidgets = tvWidgets;
     window.selectedTVWidget = selectedTVWidget;
     window.isInSelectedView = isInSelectedView;
@@ -1295,42 +1277,17 @@ document.addEventListener('DOMContentLoaded', function() {
     window.calculateSavings = calculateSavings;
     window.transferSaving = transferSaving;
     
-    // ============================================
-    // DÉMARRER LA SURVEILLANCE AUTOMATIQUE
-    // ============================================
-    
-    // Démarrer la surveillance immédiatement
+    // Démarrer la surveillance
     setTimeout(async () => {
-        await startAutoUpdate();
-        
-        // Vérifier toutes les 5 secondes en backup
-        setInterval(async () => {
-            if (currentMenuPage === 'menu-4' && !isInSelectedView) {
-                await getMoneyManagementData();
-                showResultPanel();
-            }
-        }, 5000);
+        startAutoUpdate();
     }, 1000);
 });
 
-// Polling global de secours toutes les 5 secondes
-setInterval(async () => {
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    if (window.getMoneyManagementData && window.showResultPanel) {
-      await window.getMoneyManagementData();
-      window.showResultPanel();
-    }
-  }
-}, 5000);
-
-// Mettre à jour immédiatement au chargement de la page
+// Mettre à jour au chargement
 window.addEventListener('load', async function() {
   setTimeout(async () => {
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-      if (window.getMoneyManagementData && window.showResultPanel) {
-        await window.getMoneyManagementData();
-        window.showResultPanel();
-      }
+      await showResultPanel();
     }
   }, 1000);
 });

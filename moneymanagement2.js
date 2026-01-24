@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const menu4Content = document.getElementById('menu4Content');
     if (!menu4Content) return;
     
+    // ===== VARIABLES DE DONNÉES =====
     let transactions = [];
     let investments = [];
     let monthlyGoals = {};
@@ -39,151 +40,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let monthlyBarChart, categoryBarVerticalChart;
     
-    // Date d'aujourd'hui
+    // ===== CONFIGURATION =====
+    // Date du jour
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
     
-    // ===== CONFIGURATION SERVEUR =====
-    // REMPLACER 192.168.1.XXX par l'IP de votre Mac
-    const MAC_SERVER = "http://192.168.1.XXX:5000";
-    const ESP_SERVER = window.location.origin;
-    
-    // ===== FONCTIONS COMMUNICATION SERVEUR =====
-    async function saveMoneyDataToServer(data) {
-        console.log('💾 Sauvegarde Money Manager...');
-        
-        try {
-            // Essayer d'abord le Mac
-            const response = await fetch(`${MAC_SERVER}/api/saveMoneyManager`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            });
-            
-            if (response.ok) {
-                console.log('✅ Sauvegardé sur Mac');
-                
-                // Synchroniser avec ESP32
-                try {
-                    await fetch(`${ESP_SERVER}/syncMoneyFromMac`);
-                    console.log('🔄 Synchronisé avec ESP32');
-                } catch (syncError) {
-                    console.log('⚠️ Synchronisation ESP32 échouée');
-                }
-                
-                return await response.json();
-            }
-        } catch (error) {
-            console.log('❌ Mac inaccessible, sauvegarde locale');
-        }
-        
-        // Fallback: sauvegarder sur ESP32
-        try {
-            const response = await fetch(`${ESP_SERVER}/saveMoneyManager?data=` + 
-                                       encodeURIComponent(JSON.stringify(data)), {
-                method: 'GET'
-            });
-            
-            if (response.ok) {
-                console.log('✅ Sauvegardé sur ESP32');
-                return await response.json();
-            }
-        } catch (error) {
-            console.error('❌ Erreur sauvegarde ESP32:', error);
-        }
-        
-        return {success: false};
-    }
-    
-    async function loadMoneyDataFromServer() {
-        console.log('📥 Chargement Money Manager...');
-        
-        // Essayer d'abord le Mac
-        try {
-            const response = await fetch(`${MAC_SERVER}/api/loadMoneyManager`);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Chargé depuis Mac');
-                return data;
-            }
-        } catch (error) {
-            console.log('❌ Mac inaccessible, chargement local');
-        }
-        
-        // Fallback: charger depuis ESP32
-        try {
-            const response = await fetch(`${ESP_SERVER}/loadMoneyManager`);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Chargé depuis ESP32');
-                return data;
-            }
-        } catch (error) {
-            console.error('❌ Erreur chargement ESP32:', error);
-        }
-        
-        return null;
-    }
-    
-    // ===== FONCTIONS DE DONNÉES MODIFIÉES =====
-    function loadData() {
-        console.log('🔄 Chargement des données...');
-        
-        loadMoneyDataFromServer().then(data => {
-            if (data) {
-                if (data.transactions) transactions = data.transactions;
-                if (data.investments) investments = data.investments;
-                if (data.monthlyGoals) monthlyGoals = data.monthlyGoals;
-                if (data.yearlyGoal !== undefined) yearlyGoal = data.yearlyGoal;
-                
-                console.log(`✅ ${transactions.length} transactions chargées`);
-                console.log(`✅ Objectifs mensuels: ${Object.keys(monthlyGoals).length}`);
-                console.log(`💰 Objectif annuel: £${yearlyGoal}`);
-            } else {
-                console.log('⚠️ Aucune donnée trouvée sur serveur');
-                // Données par défaut
-                transactions = [];
-                investments = [];
-                monthlyGoals = {};
-                yearlyGoal = 0;
-            }
-            
-            // Mettre à jour l'interface
-            updateDashboard();
-            
-        }).catch(error => {
-            console.error('❌ Erreur chargement:', error);
-        });
-    }
-    
-    function saveData() {
-        console.log('💾 Sauvegarde des données...');
-        
-        const moneyData = {
-            transactions: transactions,
-            investments: investments,
-            monthlyGoals: monthlyGoals,
-            yearlyGoal: yearlyGoal,
-            lastUpdated: new Date().toISOString()
-        };
-        
-        saveMoneyDataToServer(moneyData).then(result => {
-            if (result && result.success) {
-                console.log('✅ Données sauvegardées');
-            } else {
-                console.error('❌ Échec sauvegarde');
-            }
-        }).catch(error => {
-            console.error('❌ Erreur sauvegarde:', error);
-        });
-    }
-    
-    // ===== FONCTIONS UTILITAIRES (inchangées) =====
+    // ===== FONCTIONS UTILITAIRES =====
     function getMonthNames() {
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     }
@@ -286,6 +151,101 @@ document.addEventListener('DOMContentLoaded', function() {
         return colors[index % colors.length];
     }
     
+    // ===== FONCTIONS COMMUNICATION SERVEUR =====
+    async function saveMoneyDataToServer(data) {
+        console.log('💾 Sauvegarde des données sur le serveur Mac...');
+        
+        try {
+            const response = await fetch('/saveMoneyManager?data=' + encodeURIComponent(JSON.stringify(data)), {
+                method: 'GET'
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Données sauvegardées sur le Mac');
+                return result;
+            } else {
+                throw new Error('Erreur HTTP: ' + response.status);
+            }
+        } catch (error) {
+            console.error('❌ Erreur sauvegarde:', error);
+            showNotification('⚠️ Impossible de sauvegarder sur le serveur Mac', 'warning');
+            return { success: false, error: error.message };
+        }
+    }
+    
+    async function loadMoneyDataFromServer() {
+        console.log('📥 Chargement des données depuis le serveur Mac...');
+        
+        try {
+            const response = await fetch('/loadMoneyManager');
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Données chargées depuis le Mac');
+                return data;
+            } else {
+                throw new Error('Erreur HTTP: ' + response.status);
+            }
+        } catch (error) {
+            console.error('❌ Erreur chargement:', error);
+            showNotification('⚠️ Impossible de charger depuis le serveur Mac', 'warning');
+            return {
+                transactions: [],
+                investments: [],
+                monthlyGoals: {},
+                yearlyGoal: 0
+            };
+        }
+    }
+    
+    // ===== FONCTIONS DE GESTION DES DONNÉES =====
+    async function loadData() {
+        console.log('🔄 Chargement des données...');
+        
+        const data = await loadMoneyDataFromServer();
+        
+        if (data) {
+            transactions = data.transactions || [];
+            investments = data.investments || [];
+            monthlyGoals = data.monthlyGoals || {};
+            yearlyGoal = data.yearlyGoal || 0;
+            
+            console.log(`✅ ${transactions.length} transactions chargées`);
+            console.log(`✅ Objectifs mensuels: ${Object.keys(monthlyGoals).length}`);
+            console.log(`💰 Objectif annuel: £${yearlyGoal}`);
+        } else {
+            console.log('⚠️ Aucune donnée chargée, utilisation des valeurs par défaut');
+            transactions = [];
+            investments = [];
+            monthlyGoals = {};
+            yearlyGoal = 0;
+        }
+        
+        // Mettre à jour l'interface
+        updateDashboard();
+    }
+    
+    async function saveData() {
+        console.log('💾 Sauvegarde des données...');
+        
+        const moneyData = {
+            transactions: transactions,
+            investments: investments,
+            monthlyGoals: monthlyGoals,
+            yearlyGoal: yearlyGoal,
+            lastUpdated: new Date().toISOString()
+        };
+        
+        const result = await saveMoneyDataToServer(moneyData);
+        
+        if (result && result.success) {
+            console.log('✅ Données sauvegardées avec succès');
+        } else {
+            console.error('❌ Échec de la sauvegarde');
+        }
+    }
+    
     // ===== FONCTIONS D'AFFICHAGE =====
     function updateDashboard() {
         updateView();
@@ -294,7 +254,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCharts();
         updateHorizontalBarGraph();
         updateLongTermSection();
-        saveData(); // Sauvegarder après chaque modification
     }
     
     function updateLongTermSection() {
@@ -725,16 +684,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!currentTransactionForSaving) return;
         
         currentTransactionForSaving.saving = savingType;
-        updateDashboard();
+        updateAndSaveDashboard();
         savingPopupOverlay.style.display = 'none';
         currentTransactionForSaving = null;
     }
     
-    window.deleteTransaction = function(id) {
+    window.deleteTransaction = async function(id) {
         if (confirm('Are you sure you want to delete this transaction?')) {
             transactions = transactions.filter(t => t.id !== id);
-            updateDashboard();
+            await updateAndSaveDashboard();
         }
+    }
+    
+    async function updateAndSaveDashboard() {
+        updateDashboard();
+        await saveData();
     }
     
     function updateRecentTransactionsSummary() {
@@ -787,14 +751,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function clearAllTransactions() {
+    async function clearAllTransactions() {
         if (transactions.length === 0) {
             return;
         }
         
         if (confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.')) {
             transactions = [];
-            updateDashboard();
+            await updateAndSaveDashboard();
         }
     }
     
@@ -1091,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCategoryBarChart();
     }
     
-    function addTransaction() {
+    async function addTransaction() {
         const amount = parseFloat(amountInput.value);
         const description = descriptionInput.value.trim();
         const date = dateInput.value;
@@ -1126,14 +1090,14 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         transactions.push(transaction);
-        updateDashboard();
+        await updateAndSaveDashboard();
         
         amountInput.value = '';
         descriptionInput.value = '';
         savingTypeSelect.value = 'normal';
     }
     
-    function setGoal() {
+    async function setGoal() {
         const amount = parseFloat(goalAmountInput.value);
         
         if (!amount || amount <= 0 || isNaN(amount)) {
@@ -1147,12 +1111,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const goalKey = `${currentYear}-${currentMonth}`;
         
         monthlyGoals[goalKey] = amount;
-        updateDashboard();
+        await updateAndSaveDashboard();
         
         goalAmountInput.value = '';
     }
     
-    function setAllGoals() {
+    async function setAllGoals() {
         const amount = parseFloat(goalAllAmountInput.value);
         
         if (!amount || amount <= 0 || isNaN(amount)) {
@@ -1161,12 +1125,88 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         yearlyGoal = amount;
-        updateDashboard();
+        await updateAndSaveDashboard();
         
         goalAllAmountInput.value = '';
     }
     
-    // ===== ÉVÉNEMENTS =====
+    // ===== NOTIFICATION SYSTEM =====
+    function showNotification(message, type = 'info') {
+        // Créer une notification
+        const notification = document.createElement('div');
+        notification.className = 'server-notification';
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: ${type === 'warning' ? '#e74c3c' : type === 'success' ? '#2ecc71' : '#3498db'};
+            color: white;
+            border-radius: 8px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+        `;
+        
+        notification.innerHTML = `
+            <span style="font-size: 20px;">
+                ${type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️'}
+            </span>
+            <span>${message}</span>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Supprimer après 5 secondes
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    document.body.removeChild(notification);
+                }
+            }, 300);
+        }, 5000);
+    }
+    
+    // Ajouter les styles d'animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // ===== TEST DE CONNEXION =====
+    async function testServerConnection() {
+        try {
+            const response = await fetch('/checkMac');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'connected') {
+                    console.log('✅ Serveur Mac connecté');
+                    showNotification('✅ Connecté au serveur Mac', 'success');
+                } else {
+                    console.log('⚠️ Serveur Mac déconnecté');
+                    showNotification('⚠️ Serveur Mac non connecté', 'warning');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Impossible de vérifier le serveur Mac:', error);
+            showNotification('❌ Impossible de se connecter au serveur', 'warning');
+        }
+    }
+    
+    // ===== INITIALISATION DES ÉVÉNEMENTS =====
     const addTransactionBtn = document.getElementById('addTransactionBtn');
     const setGoalBtn = document.getElementById('setGoalBtn');
     const setAllGoalBtn = document.getElementById('setAllGoalBtn');
@@ -1250,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (confirmTransferBtn) {
-        confirmTransferBtn.addEventListener('click', function() {
+        confirmTransferBtn.addEventListener('click', async function() {
             if (!currentTransactionForSaving) return;
             
             const amount = parseFloat(transferAmountInput.value) || 0;
@@ -1280,7 +1320,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 transactions = transactions.filter(t => t.id !== currentTransactionForSaving.id);
             }
             
-            updateDashboard();
+            await updateAndSaveDashboard();
             savingPopupOverlay.style.display = 'none';
             currentTransactionForSaving = null;
         });
@@ -1304,11 +1344,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // ===== INITIALISATION =====
-    function initApp() {
+    // ===== INITIALISATION DE L'APPLICATION =====
+    async function initApp() {
         console.log("💰 Initialisation Money Management");
-        loadData(); // Charger les données depuis le serveur
         
+        // Tester la connexion au serveur
+        await testServerConnection();
+        
+        // Charger les données
+        await loadData();
+        
+        // Initialiser les graphiques
         if (typeof Chart === 'undefined') {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
@@ -1324,9 +1370,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("✅ Money Management initialisé");
     }
     
+    // Démarrer l'application
     initApp();
     
-    // Redimensionnement
+    // Redimensionnement de la fenêtre
     window.addEventListener('resize', function() {
         setTimeout(updateCharts, 100);
         setTimeout(updateHorizontalBarGraph, 100);
@@ -1336,27 +1383,18 @@ document.addEventListener('DOMContentLoaded', function() {
     window.debugMoneyManager = {
         syncData: async function() {
             console.log('🔄 Synchronisation manuelle...');
-            const data = await loadMoneyDataFromServer();
-            if (data) {
-                if (data.transactions) transactions = data.transactions;
-                if (data.investments) investments = data.investments;
-                if (data.monthlyGoals) monthlyGoals = data.monthlyGoals;
-                if (data.yearlyGoal !== undefined) yearlyGoal = data.yearlyGoal;
-                updateDashboard();
-                alert('✅ Données synchronisées');
-            } else {
-                alert('❌ Aucune donnée disponible');
-            }
+            await loadData();
+            showNotification('✅ Données synchronisées depuis le serveur', 'success');
         },
-        clearAll: function() {
-            if (confirm('Effacer TOUTES les données?')) {
+        clearAll: async function() {
+            if (confirm('Effacer TOUTES les données ?')) {
                 transactions = [];
                 investments = [];
                 monthlyGoals = {};
                 yearlyGoal = 0;
-                saveData();
+                await saveData();
                 updateDashboard();
-                alert('✅ Données effacées');
+                showNotification('✅ Toutes les données ont été effacées', 'success');
             }
         },
         showData: function() {
@@ -1365,6 +1403,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`Objectifs mensuels: ${Object.keys(monthlyGoals).length}`);
             console.log(`Objectif annuel: £${yearlyGoal}`);
             console.log('============================');
+        },
+        testConnection: async function() {
+            await testServerConnection();
         }
     };
     

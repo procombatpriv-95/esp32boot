@@ -232,6 +232,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Forcer le z-index constamment
     setInterval(enforceZIndexRappel, 100);
 });
-    // Forcer le z-index constamment
-    setInterval(enforceZIndexRappel, 100);
-});

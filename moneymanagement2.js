@@ -23,8 +23,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const savingTypeSelect = document.getElementById('savingType');
     const allBtn = document.getElementById('allBtn');
     const monthlyBtn = document.getElementById('monthlyBtn');
-    const recentTransactionsTitle = document.getElementById('recentTransactionsTitle');
-    const transactionsSummary = document.getElementById('transactionsSummary');
     const leftLegendText = document.getElementById('leftLegendText');
     const rightLegendText = document.getElementById('rightLegendText');
     const longTermContent = document.getElementById('longTermContent');
@@ -38,11 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorMessage = document.getElementById('errorMessage');
     const confirmTransferBtn = document.getElementById('confirmTransferBtn');
     
-    // ===== VARIABLES DES GRAPHIQUES =====
     let monthlyBarChart = null;
     let categoryBarVerticalChart = null;
     
-    // ===== CONFIGURATION =====
     // Date du jour
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -97,10 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${day} ${month} ${year}`;
     }
     
-    function getDayName(date) {
-        return date.toLocaleDateString('en-US', { weekday: 'short' });
-    }
-    
     function calculateTotalBalance() {
         const totalIncome = transactions
             .filter(t => t.type === 'income' && t.saving === 'normal')
@@ -129,82 +121,37 @@ document.addEventListener('DOMContentLoaded', function() {
         return totalSaving;
     }
     
-    function calculateSavingsTotal() {
-        const savings = { saving1: 0, saving2: 0, saving3: 0 };
-        
-        transactions.forEach(t => {
-            if (t.saving === 'saving1') {
-                if (t.type === 'income') savings.saving1 += t.amount;
-                else if (t.type === 'expense') savings.saving1 -= t.amount;
-            } else if (t.saving === 'saving2') {
-                if (t.type === 'income') savings.saving2 += t.amount;
-                else if (t.type === 'expense') savings.saving2 -= t.amount;
-            } else if (t.saving === 'saving3') {
-                if (t.type === 'income') savings.saving3 += t.amount;
-                else if (t.type === 'expense') savings.saving3 -= t.amount;
-            }
-        });
-        
-        return savings;
-    }
-    
-    function getColor(index) {
-        const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
-        return colors[index % colors.length];
-    }
-    
     // ===== FONCTIONS COMMUNICATION SERVEUR =====
     async function saveMoneyDataToServer(data) {
-        console.log('💾 Sauvegarde des données sur le serveur Mac...');
-        
         try {
             const response = await fetch('/saveMoneyManager?data=' + encodeURIComponent(JSON.stringify(data)), {
                 method: 'GET'
             });
             
             if (response.ok) {
-                const result = await response.json();
-                console.log('✅ Données sauvegardées sur le Mac');
-                return result;
-            } else {
-                throw new Error('Erreur HTTP: ' + response.status);
+                return await response.json();
             }
         } catch (error) {
-            console.error('❌ Erreur sauvegarde:', error);
-            showNotification('⚠️ Impossible de sauvegarder sur le serveur Mac', 'warning');
-            return { success: false, error: error.message };
+            console.error('Erreur sauvegarde:', error);
         }
+        return { success: false };
     }
     
     async function loadMoneyDataFromServer() {
-        console.log('📥 Chargement des données depuis le serveur Mac...');
-        
         try {
             const response = await fetch('/loadMoneyManager');
             
             if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Données chargées depuis le Mac');
-                return data;
-            } else {
-                throw new Error('Erreur HTTP: ' + response.status);
+                return await response.json();
             }
         } catch (error) {
-            console.error('❌ Erreur chargement:', error);
-            showNotification('⚠️ Impossible de charger depuis le serveur Mac', 'warning');
-            return {
-                transactions: [],
-                investments: [],
-                monthlyGoals: {},
-                yearlyGoal: 0
-            };
+            console.error('Erreur chargement:', error);
         }
+        return null;
     }
     
     // ===== FONCTIONS DE GESTION DES DONNÉES =====
     async function loadData() {
-        console.log('🔄 Chargement des données...');
-        
         const data = await loadMoneyDataFromServer();
         
         if (data) {
@@ -212,24 +159,17 @@ document.addEventListener('DOMContentLoaded', function() {
             investments = data.investments || [];
             monthlyGoals = data.monthlyGoals || {};
             yearlyGoal = data.yearlyGoal || 0;
-            
-            console.log(`✅ ${transactions.length} transactions chargées`);
-            console.log(`✅ Objectifs mensuels: ${Object.keys(monthlyGoals).length}`);
-            console.log(`💰 Objectif annuel: £${yearlyGoal}`);
         } else {
-            console.log('⚠️ Aucune donnée chargée, utilisation des valeurs par défaut');
             transactions = [];
             investments = [];
             monthlyGoals = {};
             yearlyGoal = 0;
         }
         
-        return true;
+        updateDashboard();
     }
     
     async function saveData() {
-        console.log('💾 Sauvegarde des données...');
-        
         const moneyData = {
             transactions: transactions,
             investments: investments,
@@ -238,29 +178,17 @@ document.addEventListener('DOMContentLoaded', function() {
             lastUpdated: new Date().toISOString()
         };
         
-        const result = await saveMoneyDataToServer(moneyData);
-        
-        if (result && result.success) {
-            console.log('✅ Données sauvegardées avec succès');
-            return true;
-        } else {
-            console.error('❌ Échec de la sauvegarde');
-            return false;
-        }
+        await saveMoneyDataToServer(moneyData);
     }
     
     // ===== FONCTIONS D'AFFICHAGE =====
     function updateDashboard() {
-        console.log('🔄 Mise à jour du tableau de bord...');
-        
         updateView();
         updateSummary();
         updateRecentTransactionsSummary();
         updateCharts();
         updateHorizontalBarGraph();
         updateLongTermSection();
-        
-        console.log('✅ Tableau de bord mis à jour');
     }
     
     function updateLongTermSection() {
@@ -374,14 +302,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 incomeData.push(categoryIncome[cat]);
             }
         });
-        
-        if (validCategories.length === 0) {
-            return {
-                categories: [],
-                expenses: [],
-                income: []
-            };
-        }
         
         return {
             categories: validCategories,
@@ -687,25 +607,12 @@ document.addEventListener('DOMContentLoaded', function() {
         savingPopupOverlay.style.display = 'flex';
     }
     
-    function applySavingToTransaction(savingType) {
-        if (!currentTransactionForSaving) return;
-        
-        currentTransactionForSaving.saving = savingType;
-        updateAndSaveDashboard();
-        savingPopupOverlay.style.display = 'none';
-        currentTransactionForSaving = null;
-    }
-    
     window.deleteTransaction = async function(id) {
         if (confirm('Are you sure you want to delete this transaction?')) {
             transactions = transactions.filter(t => t.id !== id);
-            await updateAndSaveDashboard();
+            updateDashboard();
+            await saveData();
         }
-    }
-    
-    async function updateAndSaveDashboard() {
-        updateDashboard();
-        await saveData();
     }
     
     function updateRecentTransactionsSummary() {
@@ -765,7 +672,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.')) {
             transactions = [];
-            await updateAndSaveDashboard();
+            updateDashboard();
+            await saveData();
         }
     }
     
@@ -783,11 +691,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // ===== FONCTIONS DES GRAPHIQUES =====
     function initCharts() {
-        console.log('📊 Initialisation des graphiques...');
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js not loaded');
+            setTimeout(initCharts, 100);
+            return;
+        }
         
-        // Détruire les anciens graphiques s'ils existent
+        // Détruire les anciens graphiques
         if (monthlyBarChart) {
             monthlyBarChart.destroy();
             monthlyBarChart = null;
@@ -801,16 +712,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Monthly Bar Chart
         const monthlyBarCanvas = document.getElementById('monthlyBarChart');
         if (monthlyBarCanvas) {
-            console.log('🔄 Création du graphique mensuel...');
             const monthlyBarCtx = monthlyBarCanvas.getContext('2d');
             
-            // Obtenir les 12 derniers mois
-            const monthData = getLast12Months();
-            
+            // Créer le graphique avec des données vides
             monthlyBarChart = new Chart(monthlyBarCtx, {
                 type: 'bar',
                 data: {
-                    labels: monthData.labels,
+                    labels: getLast12Months().labels,
                     datasets: [
                         {
                             label: 'Goal',
@@ -887,7 +795,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 callback: function(value) {
                                     return '£' + value;
                                 },
-                                stepSize: 100
+                                stepSize: 5
                             },
                             grid: {
                                 color: 'rgba(255, 255, 255, 0.1)'
@@ -910,13 +818,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
-            console.log('✅ Graphique mensuel créé');
         }
         
         // Category Bar Chart Vertical
         const categoryBarVerticalCanvas = document.getElementById('categoryBarChartVertical');
         if (categoryBarVerticalCanvas) {
-            console.log('🔄 Création du graphique catégories...');
             const categoryBarVerticalCtx = categoryBarVerticalCanvas.getContext('2d');
             
             categoryBarVerticalChart = new Chart(categoryBarVerticalCtx, {
@@ -924,7 +830,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'Balance',
+                        label: 'Amount',
                         data: [],
                         backgroundColor: '#FFA500',
                         borderColor: '#FF8C00',
@@ -960,7 +866,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 callback: function(value) {
                                     return '£' + value;
                                 },
-                                stepSize: 100
+                                stepSize: 20
                             },
                             grid: {
                                 display: false,
@@ -991,129 +897,96 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
-            console.log('✅ Graphique catégories créé');
         }
-        
-        console.log('📊 Graphiques initialisés');
     }
     
     function updateCategoryBarChart() {
-        if (!categoryBarVerticalChart) {
-            console.log('❌ Graphique catégories non initialisé');
-            return;
-        }
-        
-        console.log('🔄 Mise à jour du graphique catégories...');
+        if (!categoryBarVerticalChart) return;
         
         const categoryData = calculateCategoryBarChartData();
-        const maxCategories = 8;
+        const maxCategories = 10;
         const categories = categoryData.categories.slice(0, maxCategories);
         const amounts = categoryData.amounts.slice(0, maxCategories);
         
         categoryBarVerticalChart.data.labels = categories;
         categoryBarVerticalChart.data.datasets[0].data = amounts;
         
-        // Définir l'échelle Y avec un max adapté
-        const maxValue = Math.max(...amounts, 100);
-        const minValue = Math.min(...amounts, 0);
-        const maxTick = Math.ceil(Math.max(Math.abs(maxValue), Math.abs(minValue)) / 100) * 100;
+        const maxValue = Math.max(...amounts, 30);
+        const maxTick = Math.ceil(maxValue / 30) * 30;
         
         categoryBarVerticalChart.options.scales.y.max = maxTick;
-        categoryBarVerticalChart.options.scales.y.min = -maxTick;
-        categoryBarVerticalChart.options.scales.y.ticks.stepSize = Math.ceil(maxTick / 5);
+        categoryBarVerticalChart.options.scales.y.ticks.stepSize = 30;
         
-        try {
-            categoryBarVerticalChart.update();
-            console.log('✅ Graphique catégories mis à jour');
-        } catch (error) {
-            console.error('❌ Erreur mise à jour graphique catégories:', error);
-        }
+        categoryBarVerticalChart.update();
     }
     
     function updateCharts() {
-        console.log('🔄 Mise à jour des graphiques...');
-        
+        // Vérifier que les graphiques sont initialisés
         if (!monthlyBarChart || !categoryBarVerticalChart) {
-            console.log('⚠️ Graphiques non initialisés, tentative d\'initialisation...');
-            initCharts();
+            console.log('Graphiques non initialisés');
+            return;
         }
         
         // Monthly Bar Chart
-        if (monthlyBarChart) {
-            console.log('🔄 Mise à jour graphique mensuel...');
+        const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
+        monthlyBarChart.data.labels = monthData.labels;
+        
+        const goalData = [];
+        const incomeData = [];
+        const expenseData = [];
+        const balanceTrendData = [];
+        
+        monthData.keys.forEach(monthKey => {
+            const [year, month] = monthKey.split('-');
+            const monthStart = new Date(year, month - 1, 1);
+            const monthEnd = new Date(year, month, 0);
             
-            const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
-            monthlyBarChart.data.labels = monthData.labels;
-            
-            const goalData = [];
-            const incomeData = [];
-            const expenseData = [];
-            const balanceTrendData = [];
-            
-            monthData.keys.forEach(monthKey => {
-                const [year, month] = monthKey.split('-');
-                const monthStart = new Date(year, month - 1, 1);
-                const monthEnd = new Date(year, month, 0);
-                
-                const monthTransactions = transactions.filter(t => {
-                    const tDate = new Date(t.date);
-                    return tDate >= monthStart && tDate <= monthEnd;
-                });
-                
-                const monthIncome = monthTransactions
-                    .filter(t => t.type === 'income' && t.saving === 'normal' && !t.description.includes('Transfer to Saving'))
-                    .reduce((sum, t) => sum + t.amount, 0);
-                    
-                const monthExpense = monthTransactions
-                    .filter(t => t.type === 'expense' && t.saving === 'normal' && !t.description.includes('Transfer to Saving'))
-                    .reduce((sum, t) => sum + t.amount, 0);
-                
-                incomeData.push(monthIncome);
-                expenseData.push(monthExpense);
-                
-                const monthNormalIncome = monthTransactions
-                    .filter(t => t.type === 'income' && t.saving === 'normal')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                    
-                const monthNormalExpense = monthTransactions
-                    .filter(t => t.type === 'expense' && t.saving === 'normal')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                
-                const monthBalance = monthNormalIncome - monthNormalExpense;
-                balanceTrendData.push(monthBalance);
-                
-                const goalKey = `${year}-${month}`;
-                const goalForMonth = monthlyGoals[goalKey] || 0;
-                goalData.push(goalForMonth);
+            const monthTransactions = transactions.filter(t => {
+                const tDate = new Date(t.date);
+                return tDate >= monthStart && tDate <= monthEnd;
             });
             
-            monthlyBarChart.data.datasets[0].data = goalData;
-            monthlyBarChart.data.datasets[1].data = incomeData;
-            monthlyBarChart.data.datasets[2].data = expenseData;
-            monthlyBarChart.data.datasets[3].data = balanceTrendData;
+            const monthIncome = monthTransactions
+                .filter(t => t.type === 'income' && t.saving === 'normal' && !t.description.includes('Transfer to Saving'))
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const monthExpense = monthTransactions
+                .filter(t => t.type === 'expense' && t.saving === 'normal' && !t.description.includes('Transfer to Saving'))
+                .reduce((sum, t) => sum + t.amount, 0);
             
-            // Définir l'échelle Y avec un max adapté
-            const allData = [...goalData, ...incomeData, ...expenseData, ...balanceTrendData];
-            const maxValue = Math.max(...allData, 100);
-            const minValue = Math.min(...allData, 0);
-            const maxTick = Math.ceil(Math.max(Math.abs(maxValue), Math.abs(minValue)) / 100) * 100;
+            incomeData.push(monthIncome);
+            expenseData.push(monthExpense);
             
-            monthlyBarChart.options.scales.y.max = maxTick;
-            monthlyBarChart.options.scales.y.min = 0;
-            monthlyBarChart.options.scales.y.ticks.stepSize = Math.ceil(maxTick / 5);
+            const monthNormalIncome = monthTransactions
+                .filter(t => t.type === 'income' && t.saving === 'normal')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const monthNormalExpense = monthTransactions
+                .filter(t => t.type === 'expense' && t.saving === 'normal')
+                .reduce((sum, t) => sum + t.amount, 0);
             
-            try {
-                monthlyBarChart.update();
-                console.log('✅ Graphique mensuel mis à jour');
-            } catch (error) {
-                console.error('❌ Erreur mise à jour graphique mensuel:', error);
-            }
-        }
+            const monthBalance = monthNormalIncome - monthNormalExpense;
+            balanceTrendData.push(monthBalance);
+            
+            const goalKey = `${year}-${month}`;
+            const goalForMonth = monthlyGoals[goalKey] || 0;
+            goalData.push(goalForMonth);
+        });
         
-        // Category Bar Chart
+        monthlyBarChart.data.datasets[0].data = goalData;
+        monthlyBarChart.data.datasets[1].data = incomeData;
+        monthlyBarChart.data.datasets[2].data = expenseData;
+        monthlyBarChart.data.datasets[3].data = balanceTrendData;
+        
+        const allData = [...goalData, ...incomeData, ...expenseData];
+        const maxValue = Math.max(...allData, 5);
+        const maxTick = Math.ceil(maxValue / 5) * 5;
+        monthlyBarChart.options.scales.y.max = maxTick;
+        
+        monthlyBarChart.update();
+        
+        // Category Bar Chart Vertical
         updateCategoryBarChart();
-        
-        console.log('✅ Tous les graphiques mis à jour');
     }
     
     async function addTransaction() {
@@ -1151,7 +1024,8 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         transactions.push(transaction);
-        await updateAndSaveDashboard();
+        updateDashboard();
+        await saveData();
         
         amountInput.value = '';
         descriptionInput.value = '';
@@ -1172,7 +1046,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const goalKey = `${currentYear}-${currentMonth}`;
         
         monthlyGoals[goalKey] = amount;
-        await updateAndSaveDashboard();
+        updateDashboard();
+        await saveData();
         
         goalAmountInput.value = '';
     }
@@ -1186,85 +1061,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         yearlyGoal = amount;
-        await updateAndSaveDashboard();
+        updateDashboard();
+        await saveData();
         
         goalAllAmountInput.value = '';
-    }
-    
-    // ===== NOTIFICATION SYSTEM =====
-    function showNotification(message, type = 'info') {
-        // Créer une notification
-        const notification = document.createElement('div');
-        notification.className = 'server-notification';
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            background: ${type === 'warning' ? '#e74c3c' : type === 'success' ? '#2ecc71' : '#3498db'};
-            color: white;
-            border-radius: 8px;
-            z-index: 10000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            animation: slideIn 0.3s ease;
-            max-width: 400px;
-        `;
-        
-        notification.innerHTML = `
-            <span style="font-size: 20px;">
-                ${type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️'}
-            </span>
-            <span>${message}</span>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Supprimer après 5 secondes
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    document.body.removeChild(notification);
-                }
-            }, 300);
-        }, 5000);
-    }
-    
-    // Ajouter les styles d'animation
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // ===== TEST DE CONNEXION =====
-    async function testServerConnection() {
-        try {
-            const response = await fetch('/checkMac');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.status === 'connected') {
-                    console.log('✅ Serveur Mac connecté');
-                    showNotification('✅ Connecté au serveur Mac', 'success');
-                } else {
-                    console.log('⚠️ Serveur Mac déconnecté');
-                    showNotification('⚠️ Serveur Mac non connecté', 'warning');
-                }
-            }
-        } catch (error) {
-            console.error('❌ Impossible de vérifier le serveur Mac:', error);
-            showNotification('❌ Impossible de se connecter au serveur', 'warning');
-        }
     }
     
     // ===== INITIALISATION DES ÉVÉNEMENTS =====
@@ -1321,19 +1121,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    if (savingPopupOverlay) {
-        savingPopupOverlay.addEventListener('click', function(e) {
-            if (e.target === savingPopupOverlay) {
-                savingPopupOverlay.style.display = 'none';
-                currentTransactionForSaving = null;
-            }
-        });
-    }
+    savingPopupOverlay.addEventListener('click', function(e) {
+        if (e.target === savingPopupOverlay) {
+            savingPopupOverlay.style.display = 'none';
+            currentTransactionForSaving = null;
+        }
+    });
     
     if (savingSelect) {
         savingSelect.addEventListener('change', function() {
             const savingText = this.options[this.selectedIndex].text;
-            if (selectedSavingText) selectedSavingText.textContent = savingText;
+            selectedSavingText.textContent = savingText;
         });
     }
     
@@ -1343,11 +1141,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const transactionAmount = currentTransactionForSaving ? currentTransactionForSaving.amount : 0;
             
             if (amount > transactionAmount) {
-                if (errorMessage) errorMessage.textContent = 'Not enough money in this transaction';
-                if (confirmTransferBtn) confirmTransferBtn.disabled = true;
+                errorMessage.textContent = 'Not enough money in this transaction';
+                confirmTransferBtn.disabled = true;
             } else {
-                if (errorMessage) errorMessage.textContent = '';
-                if (confirmTransferBtn) confirmTransferBtn.disabled = false;
+                errorMessage.textContent = '';
+                confirmTransferBtn.disabled = false;
             }
         });
     }
@@ -1361,7 +1159,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const savingType = savingSelect.value;
             
             if (amount > transactionAmount || amount <= 0) {
-                if (errorMessage) errorMessage.textContent = 'Invalid amount';
+                errorMessage.textContent = 'Invalid amount';
                 return;
             }
             
@@ -1383,20 +1181,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 transactions = transactions.filter(t => t.id !== currentTransactionForSaving.id);
             }
             
-            await updateAndSaveDashboard();
-            if (savingPopupOverlay) savingPopupOverlay.style.display = 'none';
+            updateDashboard();
+            await saveData();
+            savingPopupOverlay.style.display = 'none';
             currentTransactionForSaving = null;
         });
     }
     
-    // Boutons d'année pour les graphiques
     document.querySelectorAll('.category-balance-section .month-btn[data-year]').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.category-balance-section .month-btn[data-year]').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentYearView = this.dataset.year;
             updateHorizontalBarGraph();
-            updateCharts();
         });
     });
     
@@ -1406,7 +1203,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             currentYearView = this.dataset.year;
             updateCharts();
-            updateHorizontalBarGraph();
         });
     });
     
@@ -1414,34 +1210,16 @@ document.addEventListener('DOMContentLoaded', function() {
     async function initApp() {
         console.log("💰 Initialisation Money Management");
         
-        // Tester la connexion au serveur
-        await testServerConnection();
-        
-        // Charger Chart.js si nécessaire
-        if (typeof Chart === 'undefined') {
-            console.log('📥 Chargement de Chart.js...');
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
-            
-            await new Promise((resolve, reject) => {
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-            
-            console.log('✅ Chart.js chargé');
-        }
-        
-        // Initialiser les graphiques AVANT de charger les données
+        // Initialiser les graphiques d'abord
         initCharts();
         
-        // Charger les données
-        await loadData();
-        
-        // Mettre à jour le tableau de bord
-        updateDashboard();
-        
-        console.log("✅ Money Management initialisé");
+        // Attendre un peu que Chart.js soit prêt
+        setTimeout(async () => {
+            // Charger les données
+            await loadData();
+            
+            console.log("✅ Money Management initialisé");
+        }, 100);
     }
     
     // Démarrer l'application
@@ -1449,49 +1227,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Redimensionnement de la fenêtre
     window.addEventListener('resize', function() {
-        setTimeout(() => {
-            if (monthlyBarChart) monthlyBarChart.resize();
-            if (categoryBarVerticalChart) categoryBarVerticalChart.resize();
-        }, 100);
+        setTimeout(updateCharts, 100);
+        setTimeout(updateHorizontalBarGraph, 100);
     });
-    
-    // ===== FONCTIONS DE DÉBOGAGE =====
-    window.debugMoneyManager = {
-        syncData: async function() {
-            console.log('🔄 Synchronisation manuelle...');
-            await loadData();
-            updateDashboard();
-            showNotification('✅ Données synchronisées depuis le serveur', 'success');
-        },
-        clearAll: async function() {
-            if (confirm('Effacer TOUTES les données ?')) {
-                transactions = [];
-                investments = [];
-                monthlyGoals = {};
-                yearlyGoal = 0;
-                await saveData();
-                updateDashboard();
-                showNotification('✅ Toutes les données ont été effacées', 'success');
-            }
-        },
-        showData: function() {
-            console.log('=== DONNÉES MONEY MANAGER ===');
-            console.log(`Transactions: ${transactions.length}`);
-            console.log(`Objectifs mensuels: ${Object.keys(monthlyGoals).length}`);
-            console.log(`Objectif annuel: £${yearlyGoal}`);
-            console.log('============================');
-        },
-        testConnection: async function() {
-            await testServerConnection();
-        },
-        reloadCharts: function() {
-            console.log('🔄 Rechargement des graphiques...');
-            initCharts();
-            updateCharts();
-            updateHorizontalBarGraph();
-            showNotification('✅ Graphiques rechargés', 'success');
-        }
-    };
     
     console.log('✅ Script Money Management chargé');
 });

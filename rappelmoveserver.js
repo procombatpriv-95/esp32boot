@@ -1,5 +1,7 @@
 // ===== CONFIGURATION =====
- // REMPLACER par l'IP de votre Mac
+const MAC_SERVER = "http://172.20.10.13:5000"; // REMPLACER par l'IP de votre Mac
+const ESP32_SERVER = window.location.origin; // URL actuelle de l'ESP32
+
 // ===== VARIABLES RAPPELS =====
 const rappelmove = document.getElementById('rappelmove');
 const contentAreaRappel = document.getElementById('contentAreaRappel');
@@ -14,18 +16,11 @@ let isFrozenRappel = false;
 let dragOffsetRappel = { x: 0, y: 0 };
 let hasDraggedRappel = false;
 
-// ===== CONFIGURATION SERVEUR MAC =====
-// IMPORTANT : Remplacez 192.168.1.XXX par l'IP de votre Mac
-const MAC_SERVER_URL = "http://172.20.10.13:5000/api";
-const ESP32_SERVER_URL = window.location.origin;
-
-// ===== FONCTIONS COMMUNICATION =====
-async function saveRappelsToServer(rappels) {
-    console.log(`💾 Tentative sauvegarde de ${rappels.length} rappels`);
-    
-    // Essayer d'abord le serveur Mac
+// ===== FONCTIONS POUR LE SERVEUR MAC =====
+async function saveRappelsToMac(rappels) {
     try {
-        const response = await fetch(`${MAC_SERVER_URL}/saveRappels`, {
+        // Essayer d'abord le Mac
+        const response = await fetch(`${MAC_SERVER}/api/saveRappels`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -34,67 +29,54 @@ async function saveRappelsToServer(rappels) {
         });
         
         if (response.ok) {
-            console.log('✅ Données sauvegardées sur Mac');
-            const result = await response.json();
-            return result;
-        }
-    } catch (error) {
-        console.log('❌ Serveur Mac injoignable, tentative ESP32...');
-    }
-    
-    // Fallback : sauvegarder sur ESP32
-    try {
-        const response = await fetch(`${ESP32_SERVER_URL}/saveRappels?data=` + 
-                                   encodeURIComponent(JSON.stringify(rappels)), {
-            method: 'GET'
-        });
-        
-        if (response.ok) {
-            console.log('✅ Données sauvegardées sur ESP32 (fallback)');
+            console.log('✅ Sauvegardé sur Mac');
             return await response.json();
         }
     } catch (error) {
-        console.error('❌ Erreur sauvegarde ESP32:', error);
+        console.log('❌ Mac hors ligne, sauvegarde locale');
     }
     
-    return {success: false, error: "Aucun serveur disponible"};
+    // Si le Mac échoue, sauvegarder sur ESP32
+    try {
+        const response = await fetch('/saveRappels?data=' + encodeURIComponent(JSON.stringify(rappels)), {
+            method: 'GET'
+        });
+        return response.ok ? await response.json() : {success: false};
+    } catch (error) {
+        console.error('Erreur sauvegarde locale:', error);
+        return {success: false};
+    }
 }
 
-async function loadRappelsFromServer() {
-    console.log('📥 Tentative chargement des rappels...');
-    
-    // Essayer d'abord le serveur Mac
+async function loadRappelsFromMac() {
     try {
-        const response = await fetch(`${MAC_SERVER_URL}/loadRappels`);
+        // Essayer d'abord le Mac
+        const response = await fetch(`${MAC_SERVER}/api/loadRappels`);
         if (response.ok) {
             const data = await response.json();
             console.log(`✅ ${data.length} rappels chargés depuis Mac`);
             return Array.isArray(data) ? data : [];
         }
     } catch (error) {
-        console.log('❌ Serveur Mac injoignable, chargement ESP32...');
+        console.log('❌ Mac hors ligne, chargement local');
     }
     
-    // Fallback : charger depuis ESP32
+    // Si le Mac échoue, charger depuis ESP32
     try {
-        const response = await fetch(`${ESP32_SERVER_URL}/loadRappels`);
+        const response = await fetch('/loadRappels');
         if (response.ok) {
             const data = await response.json();
-            console.log(`✅ ${data.length} rappels chargés depuis ESP32 (fallback)`);
             return Array.isArray(data) ? data : [];
         }
     } catch (error) {
-        console.error('❌ Erreur chargement ESP32:', error);
+        console.error('Erreur chargement local:', error);
+        return [];
     }
-    
-    console.log('⚠️ Aucune donnée trouvée, retour tableau vide');
-    return [];
 }
 
 // ===== FONCTIONS RAPPELS =====
 async function initRappels() {
-    console.log('🔄 Initialisation des rappels...');
-    savedRappels = await loadRappelsFromServer();
+    savedRappels = await loadRappelsFromMac();
     renderRappels();
     enforceZIndexRappel();
 }
@@ -102,182 +84,94 @@ async function initRappels() {
 function enforceZIndexRappel() {
     rappelContain.style.zIndex = '7000';
     rappelmove.style.zIndex = '7000';
-    if (inputrappel) inputrappel.style.zIndex = '7000';
-    if (contentAreaRappel) contentAreaRappel.style.zIndex = '7000';
 }
 
 async function renderRappels() {
-    if (!contentAreaRappel) return;
-    
-    if (isExpandedRappel) {
-        contentAreaRappel.innerHTML = savedRappels.map((rappel, index) => 
-            `<div class="rappel-item" style="
-                margin-bottom: 8px; 
-                padding: 8px;
-                background: rgba(255,255,255,0.05);
-                border-radius: 8px;
-                border-left: 3px solid #4CAF50;
-                line-height: 1.4;
-                word-break: break-word;
-            ">
-                <span style="margin-right: 5px;">•</span> ${rappel}
-            </div>`
+    if (isExpandedRappel && contentAreaRappel) {
+        contentAreaRappel.innerHTML = savedRappels.map(rappel => 
+            `<div style="margin-bottom: 8px; line-height: 1.4;">• ${rappel}</div>`
         ).join('');
-        
-        if (savedRappels.length === 0) {
-            contentAreaRappel.innerHTML = `
-                <div style="
-                    text-align: center; 
-                    padding: 20px; 
-                    color: rgba(255,255,255,0.5);
-                    font-style: italic;
-                ">
-                    Aucun rappel pour le moment
-                </div>`;
-        }
-    } else {
+    } else if (contentAreaRappel) {
         contentAreaRappel.innerHTML = '';
     }
 }
 
 async function saveAndRenderRappel() {
-    await saveRappelsToServer(savedRappels);
+    await saveRappelsToMac(savedRappels);
     await renderRappels();
 }
 
 // ===== ÉVÉNEMENTS RAPPELS =====
-if (rappelmove) {
-    rappelmove.addEventListener('click', (e) => {
-        if (hasDraggedRappel || 
-            e.target.id === 'resetRappelBtn' || 
-            e.target.id === 'freezerappel') {
-            hasDraggedRappel = false;
-            return;
-        }
-        
-        if (!isExpandedRappel) {
-            // Ouvrir le menu
-            rappelmove.classList.add('expanded');
-            isExpandedRappel = true;
-            
-            // S'assurer que l'input est visible
-            if (inputrappel) {
-                inputrappel.style.display = 'block';
-                setTimeout(() => {
-                    inputrappel.style.opacity = '1';
-                    inputrappel.style.transform = 'translateY(0) scale(1)';
-                }, 10);
-            }
-            
-            renderRappels();
-            enforceZIndexRappel();
-            
-            // Focus sur l'input après un court délai
-            setTimeout(() => {
-                if (wordInputRappel) wordInputRappel.focus();
-            }, 300);
-            
-        } else {
-            if (!isFrozenRappel) {
-                closeMenuRappel();
-            }
-        }
-    });
-}
-
-if (freezerappel) {
-    freezerappel.addEventListener('click', (e) => {
-        e.stopPropagation();
-        
-        isFrozenRappel = !isFrozenRappel;
-        freezerappel.classList.toggle('active');
-        
-        if (isFrozenRappel) {
-            rappelmove.classList.add('frozen');
-        } else {
-            rappelmove.classList.remove('frozen');
-        }
-        
+rappelmove.addEventListener('click', (e) => {
+    if (hasDraggedRappel || e.target.id === 'resetRappelBtn' || e.target.id === 'freezerappel') {
+        hasDraggedRappel = false;
+        return;
+    }
+    
+    if (!isExpandedRappel) {
+        rappelmove.classList.add('expanded');
+        isExpandedRappel = true;
+        renderRappels();
         enforceZIndexRappel();
-    });
-}
+    } else {
+        if (!isFrozenRappel) {
+            closeMenuRappel();
+        }
+    }
+});
+
+freezerappel.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isFrozenRappel = !isFrozenRappel;
+    freezerappel.classList.toggle('active');
+    
+    if (isFrozenRappel) {
+        rappelmove.classList.add('frozen');
+    } else {
+        rappelmove.classList.remove('frozen');
+    }
+    
+    enforceZIndexRappel();
+});
 
 function closeMenuRappel() {
-    if (!rappelmove || !rappelContain) return;
-    
     rappelContain.classList.add('closing-rappel');
-    
-    // Cacher l'input
-    if (inputrappel) {
-        inputrappel.style.opacity = '0';
-        inputrappel.style.transform = 'translateY(20px) scale(0.9)';
-        setTimeout(() => {
-            inputrappel.style.display = 'none';
-        }, 300);
-    }
     
     setTimeout(() => {
         rappelmove.classList.remove('expanded');
         isExpandedRappel = false;
         isFrozenRappel = false;
-        
-        if (freezerappel) freezerappel.classList.remove('active');
+        freezerappel.classList.remove('active');
         rappelmove.classList.remove('frozen');
-        
         renderRappels();
         
         setTimeout(() => {
             rappelContain.classList.remove('closing-rappel');
             enforceZIndexRappel();
-        }, 100);
-    }, 300);
+        }, 500);
+    }, 50);
 }
 
-// Fermer le menu quand on clique en dehors
 document.addEventListener('click', (e) => {
-    if (!isExpandedRappel || isFrozenRappel) return;
-    
-    const isClickInside = rappelmove && (rappelmove.contains(e.target) || 
-                        (inputrappel && inputrappel.contains(e.target)));
-    
-    if (!isClickInside) {
+    if (isExpandedRappel && !isFrozenRappel && !rappelmove.contains(e.target) && e.target !== inputrappel && !inputrappel.contains(e.target)) {
         closeMenuRappel();
     }
 });
 
-// Gestion de la saisie
-if (wordInputRappel) {
-    wordInputRappel.addEventListener('keydown', async (e) => {
-        if (e.key === 'Enter' && wordInputRappel.value.trim() !== '') {
-            const newRappel = wordInputRappel.value.trim();
-            
-            // Ajouter le rappel
-            savedRappels.push(newRappel);
-            wordInputRappel.value = '';
-            
-            // Sauvegarder et afficher
-            await saveAndRenderRappel();
-            
-            // Restaurer le focus pour le prochain rappel
-            setTimeout(() => {
-                wordInputRappel.focus();
-            }, 10);
-        }
-    });
-}
+wordInputRappel.addEventListener('keydown', async e => {
+    if (e.key === 'Enter' && wordInputRappel.value.trim() !== '') {
+        savedRappels.push(wordInputRappel.value.trim());
+        wordInputRappel.value = '';
+        await saveAndRenderRappel();
+        wordInputRappel.focus();
+    }
+});
 
-// Reset des rappels
-const resetRappelBtn = document.getElementById('resetRappelBtn');
-if (resetRappelBtn) {
-    resetRappelBtn.onclick = async (e) => {
-        e.stopPropagation();
-        
-        if (confirm('Effacer tous les rappels ?')) {
-            savedRappels = [];
-            await saveAndRenderRappel();
-        }
-    };
-}
+document.getElementById('resetRappelBtn').onclick = async (e) => {
+    e.stopPropagation();
+    savedRappels = [];
+    await saveAndRenderRappel();
+};
 
 // ===== SYSTÈME DE DÉPLACEMENT =====
 let dragStartFrozenStateRappel = false;
@@ -307,12 +201,13 @@ function startDragRappel(e) {
 }
 
 function doDragRappel(e) {
-    if (!isDraggingRappel || !rappelContain) return;
+    if (!isDraggingRappel) return;
     
-    rappelContain.style.position = 'fixed';
+    const rappelContain = document.querySelector('.rappelcontain');
     rappelContain.style.left = (e.clientX - dragOffsetRappel.x) + 'px';
     rappelContain.style.top = (e.clientY - dragOffsetRappel.y) + 'px';
-    rappelContain.style.margin = '0';
+    rappelContain.style.marginLeft = '0';
+    rappelContain.style.bottom = 'auto';
     
     enforceZIndexRappel();
     
@@ -325,109 +220,33 @@ function stopDragRappel(e) {
     if (!isDraggingRappel) return;
     
     isDraggingRappel = false;
-    if (rappelContain) {
-        rappelContain.classList.remove('dragging-rappel');
-    }
-    
+    const rappelContain = document.querySelector('.rappelcontain');
+    rappelContain.classList.remove('dragging-rappel');
     document.removeEventListener('mousemove', doDragRappel);
     document.removeEventListener('mouseup', stopDragRappel);
     
     enforceZIndexRappel();
     
     if (isExpandedRappel && !dragStartFrozenStateRappel && !isFrozenRappel) {
-        if (!rappelmove.contains(e.target) && 
-            e.target !== inputrappel && 
-            !inputrappel.contains(e.target)) {
+        if (!rappelmove.contains(e.target) && e.target !== inputrappel && !inputrappel.contains(e.target)) {
             closeMenuRappel();
         }
     }
 }
 
 // Événements de déplacement
-if (rappelmove) {
-    rappelmove.addEventListener('mousedown', startDragRappel);
-}
+rappelmove.addEventListener('mousedown', startDragRappel);
+contentAreaRappel.addEventListener('mousedown', startDragRappel);
 
-if (contentAreaRappel) {
-    contentAreaRappel.addEventListener('mousedown', startDragRappel);
-}
-
-// Empêcher le déplacement sur l'input et boutons
-if (wordInputRappel) {
-    wordInputRappel.addEventListener('mousedown', (e) => e.stopPropagation());
-}
-
-if (resetRappelBtn) {
-    resetRappelBtn.addEventListener('mousedown', (e) => e.stopPropagation());
-}
-
-if (freezerappel) {
-    freezerappel.addEventListener('mousedown', (e) => e.stopPropagation());
-}
+wordInputRappel.addEventListener('mousedown', (e) => e.stopPropagation());
+document.getElementById('resetRappelBtn').addEventListener('mousedown', (e) => e.stopPropagation());
+freezerappel.addEventListener('mousedown', (e) => e.stopPropagation());
 
 // ===== INITIALISATION =====
-// Attendre que le DOM soit chargé
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('📋 DOM chargé, initialisation rappels...');
-        initRappels();
-        
-        // S'assurer que le z-index est appliqué
-        setInterval(enforceZIndexRappel, 1000);
-    });
-} else {
-    // DOM déjà chargé
-    console.log('📋 DOM déjà chargé, initialisation rappels...');
+document.addEventListener('DOMContentLoaded', () => {
     initRappels();
-    setInterval(enforceZIndexRappel, 1000);
-}
-
-// Fonction pour tester la connexion
-async function testServerConnection() {
-    console.log('🔍 Test de connexion serveurs...');
-    
-    // Test serveur Mac
-    try {
-        const macResponse = await fetch(`${MAC_SERVER_URL.replace('/api', '')}/health`);
-        console.log(`Mac: ${macResponse.ok ? '✅ Connecté' : '❌ Erreur'}`);
-    } catch {
-        console.log('Mac: ❌ Hors ligne');
-    }
-    
-    // Test serveur ESP32
-    try {
-        const espResponse = await fetch(`${ESP32_SERVER_URL}/health`);
-        console.log(`ESP32: ${espResponse.ok ? '✅ Connecté' : '❌ Erreur'}`);
-    } catch {
-        console.log('ESP32: ❌ Hors ligne');
-    }
-}
-
-// Exécuter le test au démarrage (optionnel)
-setTimeout(testServerConnection, 2000);
-
-// Fonction pour forcer le rafraîchissement
-window.refreshRappels = async function() {
-    console.log('🔄 Rafraîchissement manuel des rappels');
-    savedRappels = await loadRappelsFromServer();
-    await renderRappels();
-};
-
-// Exposer les fonctions globalement pour le débogage
-window.rappels = {
-    get: () => savedRappels,
-    add: async (text) => {
-        savedRappels.push(text);
-        await saveAndRenderRappel();
-    },
-    clear: async () => {
-        savedRappels = [];
-        await saveAndRenderRappel();
-    },
-    refresh: async () => {
-        savedRappels = await loadRappelsFromServer();
-        await renderRappels();
-    }
+    setInterval(enforceZIndexRappel, 100);
+});
 };
 
 console.log('✅ Script rappel chargé avec succès');

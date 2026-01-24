@@ -38,7 +38,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorMessage = document.getElementById('errorMessage');
     const confirmTransferBtn = document.getElementById('confirmTransferBtn');
     
-    let monthlyBarChart, categoryBarVerticalChart;
+    // ===== VARIABLES DES GRAPHIQUES =====
+    let monthlyBarChart = null;
+    let categoryBarVerticalChart = null;
     
     // ===== CONFIGURATION =====
     // Date du jour
@@ -222,8 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
             yearlyGoal = 0;
         }
         
-        // Mettre à jour l'interface
-        updateDashboard();
+        return true;
     }
     
     async function saveData() {
@@ -241,19 +242,25 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (result && result.success) {
             console.log('✅ Données sauvegardées avec succès');
+            return true;
         } else {
             console.error('❌ Échec de la sauvegarde');
+            return false;
         }
     }
     
     // ===== FONCTIONS D'AFFICHAGE =====
     function updateDashboard() {
+        console.log('🔄 Mise à jour du tableau de bord...');
+        
         updateView();
         updateSummary();
         updateRecentTransactionsSummary();
         updateCharts();
         updateHorizontalBarGraph();
         updateLongTermSection();
+        
+        console.log('✅ Tableau de bord mis à jour');
     }
     
     function updateLongTermSection() {
@@ -776,27 +783,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // ===== FONCTIONS DES GRAPHIQUES =====
     function initCharts() {
-        if (typeof Chart === 'undefined') {
-            console.error('Chart.js non chargé');
-            setTimeout(initCharts, 100);
-            return;
+        console.log('📊 Initialisation des graphiques...');
+        
+        // Détruire les anciens graphiques s'ils existent
+        if (monthlyBarChart) {
+            monthlyBarChart.destroy();
+            monthlyBarChart = null;
         }
         
-        if (monthlyBarChart) monthlyBarChart.destroy();
-        if (categoryBarVerticalChart) categoryBarVerticalChart.destroy();
+        if (categoryBarVerticalChart) {
+            categoryBarVerticalChart.destroy();
+            categoryBarVerticalChart = null;
+        }
         
+        // Monthly Bar Chart
         const monthlyBarCanvas = document.getElementById('monthlyBarChart');
         if (monthlyBarCanvas) {
+            console.log('🔄 Création du graphique mensuel...');
             const monthlyBarCtx = monthlyBarCanvas.getContext('2d');
+            
+            // Obtenir les 12 derniers mois
+            const monthData = getLast12Months();
+            
             monthlyBarChart = new Chart(monthlyBarCtx, {
                 type: 'bar',
                 data: {
-                    labels: getLast12Months().labels,
+                    labels: monthData.labels,
                     datasets: [
                         {
                             label: 'Goal',
-                            data: [],
+                            data: new Array(12).fill(0),
                             backgroundColor: 'rgba(52, 152, 219, 0.5)',
                             borderColor: '#3498db',
                             borderWidth: 1,
@@ -804,7 +822,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         {
                             label: 'Income',
-                            data: [],
+                            data: new Array(12).fill(0),
                             backgroundColor: 'rgba(46, 204, 113, 0.5)',
                             borderColor: '#2ecc71',
                             borderWidth: 1,
@@ -812,7 +830,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         {
                             label: 'Expenses',
-                            data: [],
+                            data: new Array(12).fill(0),
                             backgroundColor: 'rgba(231, 76, 60, 0.5)',
                             borderColor: '#e74c3c',
                             borderWidth: 1,
@@ -820,7 +838,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         {
                             label: 'Balance Trend',
-                            data: [],
+                            data: new Array(12).fill(0),
                             backgroundColor: 'rgba(155, 89, 182, 0.2)',
                             borderColor: '#9b59b6',
                             borderWidth: 2,
@@ -869,7 +887,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 callback: function(value) {
                                     return '£' + value;
                                 },
-                                stepSize: 5
+                                stepSize: 100
                             },
                             grid: {
                                 color: 'rgba(255, 255, 255, 0.1)'
@@ -892,17 +910,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
+            console.log('✅ Graphique mensuel créé');
         }
         
+        // Category Bar Chart Vertical
         const categoryBarVerticalCanvas = document.getElementById('categoryBarChartVertical');
         if (categoryBarVerticalCanvas) {
+            console.log('🔄 Création du graphique catégories...');
             const categoryBarVerticalCtx = categoryBarVerticalCanvas.getContext('2d');
+            
             categoryBarVerticalChart = new Chart(categoryBarVerticalCtx, {
                 type: 'bar',
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'Amount',
+                        label: 'Balance',
                         data: [],
                         backgroundColor: '#FFA500',
                         borderColor: '#FF8C00',
@@ -938,7 +960,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 callback: function(value) {
                                     return '£' + value;
                                 },
-                                stepSize: 20
+                                stepSize: 100
                             },
                             grid: {
                                 display: false,
@@ -969,31 +991,57 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
+            console.log('✅ Graphique catégories créé');
         }
+        
+        console.log('📊 Graphiques initialisés');
     }
     
     function updateCategoryBarChart() {
-        if (!categoryBarVerticalChart) return;
+        if (!categoryBarVerticalChart) {
+            console.log('❌ Graphique catégories non initialisé');
+            return;
+        }
+        
+        console.log('🔄 Mise à jour du graphique catégories...');
         
         const categoryData = calculateCategoryBarChartData();
-        const maxCategories = 10;
+        const maxCategories = 8;
         const categories = categoryData.categories.slice(0, maxCategories);
         const amounts = categoryData.amounts.slice(0, maxCategories);
         
         categoryBarVerticalChart.data.labels = categories;
         categoryBarVerticalChart.data.datasets[0].data = amounts;
         
-        const maxValue = Math.max(...amounts, 30);
-        const maxTick = Math.ceil(maxValue / 30) * 30;
+        // Définir l'échelle Y avec un max adapté
+        const maxValue = Math.max(...amounts, 100);
+        const minValue = Math.min(...amounts, 0);
+        const maxTick = Math.ceil(Math.max(Math.abs(maxValue), Math.abs(minValue)) / 100) * 100;
         
         categoryBarVerticalChart.options.scales.y.max = maxTick;
-        categoryBarVerticalChart.options.scales.y.ticks.stepSize = 30;
+        categoryBarVerticalChart.options.scales.y.min = -maxTick;
+        categoryBarVerticalChart.options.scales.y.ticks.stepSize = Math.ceil(maxTick / 5);
         
-        categoryBarVerticalChart.update();
+        try {
+            categoryBarVerticalChart.update();
+            console.log('✅ Graphique catégories mis à jour');
+        } catch (error) {
+            console.error('❌ Erreur mise à jour graphique catégories:', error);
+        }
     }
     
     function updateCharts() {
+        console.log('🔄 Mise à jour des graphiques...');
+        
+        if (!monthlyBarChart || !categoryBarVerticalChart) {
+            console.log('⚠️ Graphiques non initialisés, tentative d\'initialisation...');
+            initCharts();
+        }
+        
+        // Monthly Bar Chart
         if (monthlyBarChart) {
+            console.log('🔄 Mise à jour graphique mensuel...');
+            
             const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
             monthlyBarChart.data.labels = monthData.labels;
             
@@ -1044,15 +1092,28 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyBarChart.data.datasets[2].data = expenseData;
             monthlyBarChart.data.datasets[3].data = balanceTrendData;
             
-            const allData = [...goalData, ...incomeData, ...expenseData];
-            const maxValue = Math.max(...allData, 5);
-            const maxTick = Math.ceil(maxValue / 5) * 5;
-            monthlyBarChart.options.scales.y.max = maxTick;
+            // Définir l'échelle Y avec un max adapté
+            const allData = [...goalData, ...incomeData, ...expenseData, ...balanceTrendData];
+            const maxValue = Math.max(...allData, 100);
+            const minValue = Math.min(...allData, 0);
+            const maxTick = Math.ceil(Math.max(Math.abs(maxValue), Math.abs(minValue)) / 100) * 100;
             
-            monthlyBarChart.update();
+            monthlyBarChart.options.scales.y.max = maxTick;
+            monthlyBarChart.options.scales.y.min = 0;
+            monthlyBarChart.options.scales.y.ticks.stepSize = Math.ceil(maxTick / 5);
+            
+            try {
+                monthlyBarChart.update();
+                console.log('✅ Graphique mensuel mis à jour');
+            } catch (error) {
+                console.error('❌ Erreur mise à jour graphique mensuel:', error);
+            }
         }
         
+        // Category Bar Chart
         updateCategoryBarChart();
+        
+        console.log('✅ Tous les graphiques mis à jour');
     }
     
     async function addTransaction() {
@@ -1260,17 +1321,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    savingPopupOverlay.addEventListener('click', function(e) {
-        if (e.target === savingPopupOverlay) {
-            savingPopupOverlay.style.display = 'none';
-            currentTransactionForSaving = null;
-        }
-    });
+    if (savingPopupOverlay) {
+        savingPopupOverlay.addEventListener('click', function(e) {
+            if (e.target === savingPopupOverlay) {
+                savingPopupOverlay.style.display = 'none';
+                currentTransactionForSaving = null;
+            }
+        });
+    }
     
     if (savingSelect) {
         savingSelect.addEventListener('change', function() {
             const savingText = this.options[this.selectedIndex].text;
-            selectedSavingText.textContent = savingText;
+            if (selectedSavingText) selectedSavingText.textContent = savingText;
         });
     }
     
@@ -1280,11 +1343,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const transactionAmount = currentTransactionForSaving ? currentTransactionForSaving.amount : 0;
             
             if (amount > transactionAmount) {
-                errorMessage.textContent = 'Not enough money in this transaction';
-                confirmTransferBtn.disabled = true;
+                if (errorMessage) errorMessage.textContent = 'Not enough money in this transaction';
+                if (confirmTransferBtn) confirmTransferBtn.disabled = true;
             } else {
-                errorMessage.textContent = '';
-                confirmTransferBtn.disabled = false;
+                if (errorMessage) errorMessage.textContent = '';
+                if (confirmTransferBtn) confirmTransferBtn.disabled = false;
             }
         });
     }
@@ -1298,7 +1361,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const savingType = savingSelect.value;
             
             if (amount > transactionAmount || amount <= 0) {
-                errorMessage.textContent = 'Invalid amount';
+                if (errorMessage) errorMessage.textContent = 'Invalid amount';
                 return;
             }
             
@@ -1321,17 +1384,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             await updateAndSaveDashboard();
-            savingPopupOverlay.style.display = 'none';
+            if (savingPopupOverlay) savingPopupOverlay.style.display = 'none';
             currentTransactionForSaving = null;
         });
     }
     
+    // Boutons d'année pour les graphiques
     document.querySelectorAll('.category-balance-section .month-btn[data-year]').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.category-balance-section .month-btn[data-year]').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentYearView = this.dataset.year;
             updateHorizontalBarGraph();
+            updateCharts();
         });
     });
     
@@ -1341,6 +1406,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             currentYearView = this.dataset.year;
             updateCharts();
+            updateHorizontalBarGraph();
         });
     });
     
@@ -1351,21 +1417,29 @@ document.addEventListener('DOMContentLoaded', function() {
         // Tester la connexion au serveur
         await testServerConnection();
         
+        // Charger Chart.js si nécessaire
+        if (typeof Chart === 'undefined') {
+            console.log('📥 Chargement de Chart.js...');
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
+            
+            await new Promise((resolve, reject) => {
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+            
+            console.log('✅ Chart.js chargé');
+        }
+        
+        // Initialiser les graphiques AVANT de charger les données
+        initCharts();
+        
         // Charger les données
         await loadData();
         
-        // Initialiser les graphiques
-        if (typeof Chart === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
-            script.onload = function() {
-                initCharts();
-                console.log("✅ Chart.js chargé");
-            };
-            document.head.appendChild(script);
-        } else {
-            initCharts();
-        }
+        // Mettre à jour le tableau de bord
+        updateDashboard();
         
         console.log("✅ Money Management initialisé");
     }
@@ -1375,8 +1449,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Redimensionnement de la fenêtre
     window.addEventListener('resize', function() {
-        setTimeout(updateCharts, 100);
-        setTimeout(updateHorizontalBarGraph, 100);
+        setTimeout(() => {
+            if (monthlyBarChart) monthlyBarChart.resize();
+            if (categoryBarVerticalChart) categoryBarVerticalChart.resize();
+        }, 100);
     });
     
     // ===== FONCTIONS DE DÉBOGAGE =====
@@ -1384,6 +1460,7 @@ document.addEventListener('DOMContentLoaded', function() {
         syncData: async function() {
             console.log('🔄 Synchronisation manuelle...');
             await loadData();
+            updateDashboard();
             showNotification('✅ Données synchronisées depuis le serveur', 'success');
         },
         clearAll: async function() {
@@ -1406,6 +1483,13 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         testConnection: async function() {
             await testServerConnection();
+        },
+        reloadCharts: function() {
+            console.log('🔄 Rechargement des graphiques...');
+            initCharts();
+            updateCharts();
+            updateHorizontalBarGraph();
+            showNotification('✅ Graphiques rechargés', 'success');
         }
     };
     

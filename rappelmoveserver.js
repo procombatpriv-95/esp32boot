@@ -12,27 +12,8 @@ let isFrozenRappel = false;
 let dragOffsetRappel = { x: 0, y: 0 };
 let hasDraggedRappel = false;
 
-// ===== FONCTIONS POUR COMMUNIQUER AVEC LE SERVEUR MAC =====
+// ===== FONCTIONS POUR COMMUNIQUER AVEC L'ESP32 =====
 async function saveRappelsToESP32(rappels) {
-    try {
-        // Essayer d'abord le serveur Mac
-        const response = await fetch('http://172.20.10.13:5000/api/saveRappels', { // REMPLACER XXX par l'IP du Mac
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(rappels)
-        });
-        
-        if (response.ok) {
-            console.log('✅ Données sauvegardées sur Mac');
-            return await response.json();
-        }
-    } catch (error) {
-        console.log('❌ Serveur Mac inaccessible, sauvegarde sur ESP32');
-    }
-    
-    // Fallback: sauvegarde sur ESP32
     try {
         const response = await fetch('/saveRappels?data=' + encodeURIComponent(JSON.stringify(rappels)), {
             method: 'GET'
@@ -46,24 +27,12 @@ async function saveRappelsToESP32(rappels) {
 
 async function loadRappelsFromESP32() {
     try {
-        // Essayer d'abord le serveur Mac
-        const response = await fetch('http://172.20.10.13:5000/api/loadRappels'); // REMPLACER XXX par l'IP du Mac
-        if (response.ok) {
-            const data = await response.json();
-            console.log('✅ Données chargées depuis Mac');
-            return Array.isArray(data) ? data : [];
-        }
-    } catch (error) {
-        console.log('❌ Serveur Mac inaccessible, chargement depuis ESP32');
-    }
-    
-    // Fallback: charger depuis ESP32
-    try {
         const response = await fetch('/loadRappels');
         if (response.ok) {
             const data = await response.json();
             return Array.isArray(data) ? data : [];
         }
+        return [];
     } catch (error) {
         console.error('Erreur chargement rappels:', error);
         return [];
@@ -260,6 +229,9 @@ freezerappel.addEventListener('mousedown', (e) => e.stopPropagation());
 // ===== INITIALISATION =====
 document.addEventListener('DOMContentLoaded', () => {
     initRappels();
+    // Forcer le z-index constamment
+    setInterval(enforceZIndexRappel, 100);
+});
     // Forcer le z-index constamment
     setInterval(enforceZIndexRappel, 100);
 });

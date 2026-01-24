@@ -1,7 +1,3 @@
-// ===== CONFIGURATION =====
-const MAC_SERVER = "http://172.20.10.13:5000"; // REMPLACER par l'IP de votre Mac
-const ESP32_SERVER = window.location.origin; // URL actuelle de l'ESP32
-
 // ===== VARIABLES RAPPELS =====
 const rappelmove = document.getElementById('rappelmove');
 const contentAreaRappel = document.getElementById('contentAreaRappel');
@@ -16,11 +12,11 @@ let isFrozenRappel = false;
 let dragOffsetRappel = { x: 0, y: 0 };
 let hasDraggedRappel = false;
 
-// ===== FONCTIONS POUR LE SERVEUR MAC =====
-async function saveRappelsToMac(rappels) {
+// ===== FONCTIONS POUR COMMUNIQUER AVEC LE SERVEUR MAC =====
+async function saveRappelsToESP32(rappels) {
     try {
-        // Essayer d'abord le Mac
-        const response = await fetch(`${MAC_SERVER}/api/saveRappels`, {
+        // Essayer d'abord le serveur Mac
+        const response = await fetch('http://172.20.10.13:5000/api/saveRappels', { // REMPLACER XXX par l'IP du Mac
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -29,39 +25,39 @@ async function saveRappelsToMac(rappels) {
         });
         
         if (response.ok) {
-            console.log('✅ Sauvegardé sur Mac');
+            console.log('✅ Données sauvegardées sur Mac');
             return await response.json();
         }
     } catch (error) {
-        console.log('❌ Mac hors ligne, sauvegarde locale');
+        console.log('❌ Serveur Mac inaccessible, sauvegarde sur ESP32');
     }
     
-    // Si le Mac échoue, sauvegarder sur ESP32
+    // Fallback: sauvegarde sur ESP32
     try {
         const response = await fetch('/saveRappels?data=' + encodeURIComponent(JSON.stringify(rappels)), {
             method: 'GET'
         });
         return response.ok ? await response.json() : {success: false};
     } catch (error) {
-        console.error('Erreur sauvegarde locale:', error);
+        console.error('Erreur sauvegarde rappels:', error);
         return {success: false};
     }
 }
 
-async function loadRappelsFromMac() {
+async function loadRappelsFromESP32() {
     try {
-        // Essayer d'abord le Mac
-        const response = await fetch(`${MAC_SERVER}/api/loadRappels`);
+        // Essayer d'abord le serveur Mac
+        const response = await fetch('http://192.168.1.XXX:5000/api/loadRappels'); // REMPLACER XXX par l'IP du Mac
         if (response.ok) {
             const data = await response.json();
-            console.log(`✅ ${data.length} rappels chargés depuis Mac`);
+            console.log('✅ Données chargées depuis Mac');
             return Array.isArray(data) ? data : [];
         }
     } catch (error) {
-        console.log('❌ Mac hors ligne, chargement local');
+        console.log('❌ Serveur Mac inaccessible, chargement depuis ESP32');
     }
     
-    // Si le Mac échoue, charger depuis ESP32
+    // Fallback: charger depuis ESP32
     try {
         const response = await fetch('/loadRappels');
         if (response.ok) {
@@ -69,25 +65,30 @@ async function loadRappelsFromMac() {
             return Array.isArray(data) ? data : [];
         }
     } catch (error) {
-        console.error('Erreur chargement local:', error);
+        console.error('Erreur chargement rappels:', error);
         return [];
     }
 }
 
 // ===== FONCTIONS RAPPELS =====
 async function initRappels() {
-    savedRappels = await loadRappelsFromMac();
+    savedRappels = await loadRappelsFromESP32();
     renderRappels();
     enforceZIndexRappel();
 }
 
+// FORCER le z-index au chargement et constamment
 function enforceZIndexRappel() {
     rappelContain.style.zIndex = '7000';
     rappelmove.style.zIndex = '7000';
+    document.querySelectorAll('.rappelcontain, #rappelmove, #inputrappel, .content-area-rappel').forEach(el => {
+        el.style.zIndex = '7000';
+    });
 }
 
 async function renderRappels() {
     if (isExpandedRappel && contentAreaRappel) {
+        // Chaque rappel sur une nouvelle ligne avec saut de ligne
         contentAreaRappel.innerHTML = savedRappels.map(rappel => 
             `<div style="margin-bottom: 8px; line-height: 1.4;">• ${rappel}</div>`
         ).join('');
@@ -97,11 +98,12 @@ async function renderRappels() {
 }
 
 async function saveAndRenderRappel() {
-    await saveRappelsToMac(savedRappels);
+    await saveRappelsToESP32(savedRappels);
     await renderRappels();
 }
 
 // ===== ÉVÉNEMENTS RAPPELS =====
+// Ouvrir en cliquant sur le bouton R
 rappelmove.addEventListener('click', (e) => {
     if (hasDraggedRappel || e.target.id === 'resetRappelBtn' || e.target.id === 'freezerappel') {
         hasDraggedRappel = false;
@@ -120,8 +122,10 @@ rappelmove.addEventListener('click', (e) => {
     }
 });
 
+// Gestion du bouton gelé
 freezerappel.addEventListener('click', (e) => {
     e.stopPropagation();
+    
     isFrozenRappel = !isFrozenRappel;
     freezerappel.classList.toggle('active');
     
@@ -134,6 +138,7 @@ freezerappel.addEventListener('click', (e) => {
     enforceZIndexRappel();
 });
 
+// Fonction pour fermer le menu
 function closeMenuRappel() {
     rappelContain.classList.add('closing-rappel');
     
@@ -152,21 +157,27 @@ function closeMenuRappel() {
     }, 50);
 }
 
+// Fermer le menu quand on clique en dehors
 document.addEventListener('click', (e) => {
     if (isExpandedRappel && !isFrozenRappel && !rappelmove.contains(e.target) && e.target !== inputrappel && !inputrappel.contains(e.target)) {
         closeMenuRappel();
     }
 });
 
+// Gestion de la saisie - CHAQUE RAPPEL SAUTE UNE LIGNE
 wordInputRappel.addEventListener('keydown', async e => {
     if (e.key === 'Enter' && wordInputRappel.value.trim() !== '') {
+        // Ajouter le rappel avec saut de ligne automatique
         savedRappels.push(wordInputRappel.value.trim());
         wordInputRappel.value = '';
         await saveAndRenderRappel();
+        
+        // Focus restant sur l'input pour le prochain rappel
         wordInputRappel.focus();
     }
 });
 
+// Reset des rappels
 document.getElementById('resetRappelBtn').onclick = async (e) => {
     e.stopPropagation();
     savedRappels = [];
@@ -186,6 +197,7 @@ function startDragRappel(e) {
         hasDraggedRappel = false;
         isDraggingRappel = true;
         
+        // Forcer z-index au début du drag
         enforceZIndexRappel();
         
         const rect = rappelContain.getBoundingClientRect();
@@ -209,6 +221,7 @@ function doDragRappel(e) {
     rappelContain.style.marginLeft = '0';
     rappelContain.style.bottom = 'auto';
     
+    // Forcer z-index pendant le drag
     enforceZIndexRappel();
     
     if (Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3) {
@@ -225,6 +238,7 @@ function stopDragRappel(e) {
     document.removeEventListener('mousemove', doDragRappel);
     document.removeEventListener('mouseup', stopDragRappel);
     
+    // Forcer z-index après le drag
     enforceZIndexRappel();
     
     if (isExpandedRappel && !dragStartFrozenStateRappel && !isFrozenRappel) {
@@ -238,6 +252,7 @@ function stopDragRappel(e) {
 rappelmove.addEventListener('mousedown', startDragRappel);
 contentAreaRappel.addEventListener('mousedown', startDragRappel);
 
+// Empêcher le déplacement sur l'input et boutons
 wordInputRappel.addEventListener('mousedown', (e) => e.stopPropagation());
 document.getElementById('resetRappelBtn').addEventListener('mousedown', (e) => e.stopPropagation());
 freezerappel.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -245,8 +260,6 @@ freezerappel.addEventListener('mousedown', (e) => e.stopPropagation());
 // ===== INITIALISATION =====
 document.addEventListener('DOMContentLoaded', () => {
     initRappels();
+    // Forcer le z-index constamment
     setInterval(enforceZIndexRappel, 100);
 });
-};
-
-console.log('✅ Script rappel chargé avec succès');

@@ -47,7 +47,7 @@ async function saveRappelsToESP32(rappels) {
 async function loadRappelsFromESP32() {
     try {
         // Essayer d'abord le serveur Mac
-        const response = await fetch('http://192.168.1.XXX:5000/api/loadRappels'); // REMPLACER XXX par l'IP du Mac
+        const response = await fetch('http://172.20.10.13:5000/api/loadRappels'); // REMPLACER XXX par l'IP du Mac
         if (response.ok) {
             const data = await response.json();
             console.log('✅ Données chargées depuis Mac');

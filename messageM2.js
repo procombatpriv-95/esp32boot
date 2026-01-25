@@ -4,23 +4,21 @@
                 this.messages = [];
                 this.intervalId = null;
                 this.isPolling = false;
-                this.hasLoadedInitialHistory = false;
                 this.init();
             }
             
             init() {
                 this.setupEventListeners();
-                this.loadInitialHistory();
+                this.loadChatHistory();
                 this.startPolling();
-                this.scrollToBottom();
                 console.log('ChatManager initialisé pour ' + this.session);
             }
             
-            async loadInitialHistory() {
+            async loadChatHistory() {
                 try {
-                    console.log('📥 Chargement de l\'historique depuis le serveur...');
+                    console.log('📥 Chargement de l\'historique complet...');
                     
-                    // D'abord charger les messages récents (envoyés)
+                    // 1. Charger les messages récents envoyés (depuis ESP32)
                     const recentResponse = await fetch(`/${this.session}recent`);
                     if (recentResponse.ok) {
                         const recentData = await recentResponse.json();
@@ -31,22 +29,59 @@
                         });
                     }
                     
-                    // Ensuite charger les messages non lus (reçus)
+                    // 2. Charger les messages non lus (reçus)
                     const unreadResponse = await fetch(`/${this.session}receive`);
                     if (unreadResponse.ok) {
                         const unreadText = await unreadResponse.text();
                         if (unreadText && unreadText.trim() !== '') {
                             this.addMessage(unreadText.trim(), false, false);
-                            
-                            // Effacer les messages lus
                             await fetch(`/${this.session}receive?clear=true`);
                         }
                     }
                     
-                    this.hasLoadedInitialHistory = true;
-                    console.log('✅ Historique chargé depuis le serveur');
+                    // 3. Charger l'historique complet depuis le Mac
+                    await this.loadCompleteHistory();
+                    
+                    console.log('✅ Historique chargé avec ' + this.messages.length + ' messages');
+                    this.displayAllMessages();
+                    this.scrollToBottom();
+                    
                 } catch (e) {
                     console.error('Erreur chargement historique:', e);
+                }
+            }
+            
+            async loadCompleteHistory() {
+                try {
+                    // Cette route doit être implémentée dans l'ESP32
+                    // Elle récupère TOUS les messages depuis le Mac
+                    const response = await fetch(`/${this.session}history`);
+                    if (response.ok) {
+                        const historyData = await response.json();
+                        
+                        // Filtrer pour éviter les doublons
+                        historyData.forEach((msgObj, index) => {
+                            if (msgObj && msgObj.text) {
+                                const isDuplicate = this.messages.some(m => 
+                                    m.text === msgObj.text && m.isSent === msgObj.isSent
+                                );
+                                
+                                if (!isDuplicate) {
+                                    this.messages.push({
+                                        id: Date.now() + index,
+                                        text: msgObj.text,
+                                        timestamp: msgObj.timestamp || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                                        isSent: msgObj.isSent
+                                    });
+                                }
+                            }
+                        });
+                        
+                        // Trier par timestamp
+                        this.messages.sort((a, b) => a.id - b.id);
+                    }
+                } catch (e) {
+                    console.error('Erreur chargement historique complet:', e);
                 }
             }
             
@@ -59,6 +94,11 @@
                 };
                 
                 this.messages.push(message);
+                
+                // Garder seulement les 100 derniers messages en mémoire
+                if (this.messages.length > 100) {
+                    this.messages = this.messages.slice(-100);
+                }
                 
                 this.displayMessage(message);
                 this.scrollToBottom();
@@ -92,7 +132,7 @@
                 
                 container.appendChild(bubble);
                 
-                // Limiter le nombre de messages affichés à 50
+                // Limiter l'affichage à 50 messages pour éviter la surcharge
                 const bubbles = container.getElementsByClassName('message-bubble');
                 if (bubbles.length > 50) {
                     for (let i = 0; i < bubbles.length - 50; i++) {
@@ -141,20 +181,20 @@
                 
                 const messageText = input.value.trim();
                 
-                // Ajouter visuellement le message immédiatement
+                // Ajouter visuellement le message
                 this.addMessage(messageText, true);
                 
                 // Envoyer au serveur
                 try {
                     const response = await fetch(`/${this.session}send?message=${encodeURIComponent(messageText)}`);
                     if (response.ok) {
-                        console.log('✅ Message envoyé avec succès à Fahim');
+                        console.log('✅ Message envoyé à Fahim');
                     } else {
                         throw new Error('Erreur serveur');
                     }
                 } catch (error) {
                     console.error('❌ Erreur d\'envoi:', error);
-                    this.showError('Erreur de connexion, réessayez');
+                    this.showError('Erreur de connexion');
                 }
                 
                 input.value = '';

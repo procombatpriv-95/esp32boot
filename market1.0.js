@@ -1,3 +1,4 @@
+    // Configuration des marchés avec les widgets TradingView
         const markets = [
             { 
                 id: 'cac40', 
@@ -98,64 +99,7 @@
             });
 
             // Fonction pour rendre le widget déplaçable
-            function makeWidgetDraggable(container, canvasElement) {
-                let isDragging = false;
-                let startX, startY;
-                let startLeft = 0, startTop = 0;
 
-                canvasElement.addEventListener('mousedown', (e) => {
-                    isDragging = true;
-                    startX = e.clientX;
-                    startY = e.clientY;
-                    
-                    // Récupérer la position actuelle dans la grille
-                    const rect = container.getBoundingClientRect();
-                    const gridRect = document.querySelector('.canvas-grid').getBoundingClientRect();
-                    
-                    startLeft = rect.left - gridRect.left;
-                    startTop = rect.top - gridRect.top;
-                    
-                    container.classList.add('dragging');
-                    document.addEventListener('mousemove', onDrag);
-                    document.addEventListener('mouseup', stopDrag);
-                    e.preventDefault();
-                });
-
-                function onDrag(e) {
-                    if (!isDragging) return;
-                    
-                    const dx = e.clientX - startX;
-                    const dy = e.clientY - startY;
-                    
-                    // Mettre à jour la position dans la grille
-                    container.style.position = 'absolute';
-                    container.style.left = (startLeft + dx) + 'px';
-                    container.style.top = (startTop + dy) + 'px';
-                    
-                    e.preventDefault();
-                }
-
-                function stopDrag() {
-                    if (isDragging) {
-                        isDragging = false;
-                        container.classList.remove('dragging');
-                        document.removeEventListener('mousemove', onDrag);
-                        document.removeEventListener('mouseup', stopDrag);
-                    }
-                }
-
-                // Empêcher le drag sur les iframes
-                document.addEventListener('dragstart', (e) => {
-                    if (e.target.tagName === 'IFRAME') {
-                        e.preventDefault();
-                        return false;
-                    }
-                });
-            }
-
-            // Rendre le widget déplaçable
-            makeWidgetDraggable(widgetContainer, canvas);
-        }
 
         // Initialiser le widget quand le DOM est chargé
-        document.addEventListener('DOMContentLoaded', initTradingViewWidget);
+        document.addEventListener('DOMContentLoaded', initTradingViewWidget);;

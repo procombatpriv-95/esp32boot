@@ -4,18 +4,14 @@
                 this.messages = [];
                 this.intervalId = null;
                 this.isPolling = false;
-                this.retryInterval = null;
-                this.pendingMessages = [];
                 this.init();
             }
             
             init() {
                 this.loadFromStorage();
-                this.loadPendingMessages();
                 this.loadRecentMessages();
                 this.setupEventListeners();
                 this.startPolling();
-                this.startRetryInterval();
                 this.scrollToBottom();
                 console.log('ChatManager initialisé pour ' + this.session);
             }
@@ -29,18 +25,6 @@
                     }
                 } catch (e) {
                     console.error('Erreur de chargement:', e);
-                }
-            }
-            
-            loadPendingMessages() {
-                try {
-                    const stored = localStorage.getItem(`${this.session}_pending`);
-                    if (stored) {
-                        this.pendingMessages = JSON.parse(stored);
-                        console.log(`${this.pendingMessages.length} messages en attente`);
-                    }
-                } catch (e) {
-                    console.error('Erreur de chargement messages en attente:', e);
                 }
             }
             
@@ -69,14 +53,6 @@
                     localStorage.setItem(`${this.session}_messages`, JSON.stringify(toSave));
                 } catch (e) {
                     console.error('Erreur de sauvegarde:', e);
-                }
-            }
-            
-            savePendingMessages() {
-                try {
-                    localStorage.setItem(`${this.session}_pending`, JSON.stringify(this.pendingMessages));
-                } catch (e) {
-                    console.error('Erreur sauvegarde messages en attente:', e);
                 }
             }
             
@@ -190,25 +166,13 @@
                 try {
                     const response = await fetch(`/${this.session}send?message=${encodeURIComponent(messageText)}`);
                     if (response.ok) {
-                        console.log('✅ Message envoyé avec succès');
-                        
-                        // Vérifier s'il y a des messages en attente à renvoyer
-                        if (this.pendingMessages.length > 0) {
-                            console.log('📤 Tentative d\'envoi des messages en attente...');
-                            this.retryPendingMessages();
-                        }
+                        console.log('✅ Message envoyé avec succès à Mohamed');
                     } else {
                         throw new Error('Erreur serveur');
                     }
                 } catch (error) {
                     console.error('❌ Erreur d\'envoi:', error);
-                    
-                    // Sauvegarder le message en attente
-                    this.pendingMessages.push(messageText);
-                    this.savePendingMessages();
-                    
-                    // Afficher un indicateur de message en attente
-                    this.showPendingIndicator();
+                    this.showError('Erreur de connexion, réessayez');
                 }
                 
                 // Réinitialiser l'input
@@ -216,67 +180,31 @@
                 input.focus();
             }
             
-            async retryPendingMessages() {
-                if (this.pendingMessages.length === 0) return;
+            showError(message) {
+                // Créer une notification d'erreur
+                const errorDiv = document.createElement('div');
+                errorDiv.textContent = message;
+                errorDiv.style.cssText = `
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    background: #ff4444;
+                    color: white;
+                    padding: 10px 15px;
+                    border-radius: 5px;
+                    z-index: 10000;
+                    font-size: 14px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                `;
                 
-                console.log(`🔄 Tentative d'envoi de ${this.pendingMessages.length} messages en attente...`);
+                document.body.appendChild(errorDiv);
                 
-                const successMessages = [];
-                
-                for (let i = 0; i < this.pendingMessages.length; i++) {
-                    const message = this.pendingMessages[i];
-                    try {
-                        const response = await fetch(`/${this.session}send?message=${encodeURIComponent(message)}`);
-                        if (response.ok) {
-                            successMessages.push(i);
-                            console.log(`✅ Message en attente envoyé: ${message.substring(0, 30)}...`);
-                        }
-                    } catch (error) {
-                        console.error(`❌ Échec d'envoi du message en attente: ${message.substring(0, 30)}...`);
+                // Supprimer après 3 secondes
+                setTimeout(() => {
+                    if (errorDiv.parentNode) {
+                        errorDiv.parentNode.removeChild(errorDiv);
                     }
-                }
-                
-                // Supprimer les messages envoyés avec succès
-                if (successMessages.length > 0) {
-                    this.pendingMessages = this.pendingMessages.filter((_, index) => !successMessages.includes(index));
-                    this.savePendingMessages();
-                    
-                    if (this.pendingMessages.length === 0) {
-                        this.hidePendingIndicator();
-                    }
-                }
-            }
-            
-            showPendingIndicator() {
-                let indicator = document.getElementById('pending-indicator');
-                if (!indicator) {
-                    indicator = document.createElement('div');
-                    indicator.id = 'pending-indicator';
-                    indicator.style.cssText = `
-                        position: fixed;
-                        bottom: 70px;
-                        right: 20px;
-                        background: #ff9800;
-                        color: white;
-                        padding: 5px 10px;
-                        border-radius: 15px;
-                        font-size: 12px;
-                        z-index: 1000;
-                        cursor: pointer;
-                    `;
-                    indicator.textContent = '📤 Messages en attente';
-                    indicator.title = 'Cliquez pour réessayer';
-                    indicator.addEventListener('click', () => this.retryPendingMessages());
-                    document.body.appendChild(indicator);
-                }
-                indicator.textContent = `📤 ${this.pendingMessages.length} message(s) en attente`;
-            }
-            
-            hidePendingIndicator() {
-                const indicator = document.getElementById('pending-indicator');
-                if (indicator) {
-                    indicator.remove();
-                }
+                }, 3000);
             }
             
             async checkForNewMessages() {
@@ -312,21 +240,10 @@
                 }, 1000); // Polling toutes les secondes
             }
             
-            startRetryInterval() {
-                this.retryInterval = setInterval(() => {
-                    if (this.pendingMessages.length > 0) {
-                        this.retryPendingMessages();
-                    }
-                }, 30000); // Toutes les 30 secondes
-            }
-            
             stopPolling() {
                 this.isPolling = false;
                 if (this.intervalId) {
                     clearInterval(this.intervalId);
-                }
-                if (this.retryInterval) {
-                    clearInterval(this.retryInterval);
                 }
             }
         }
@@ -359,7 +276,8 @@
                     if (data.status === 'connected') {
                         console.log('✅ Connecté au serveur Mac');
                     } else {
-                        console.log('❌ Non connecté au serveur Mac');
+                        console.log('⚠️ Non connecté au serveur Mac');
+                        this.showError('Serveur Mac non connecté');
                     }
                 } catch (e) {
                     console.error('Erreur de vérification du serveur Mac:', e);

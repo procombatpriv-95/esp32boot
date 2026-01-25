@@ -1,14 +1,48 @@
-        #marketCanvas {
-            position: fixed;
-            left: calc(50% - 150px);
-            top: calc(50% - 90px);
-            border-radius: 25px;
-            z-index: 3;
-            pointer-events: auto;
+        .tradingview-widget {
+            width: 300px;
+            height: 180px;
+            background: #111216;
+            position: relative;
+            cursor: move;
         }
-        
+
+        .tradingview-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: auto;
+            opacity: 0.01; /* Presque invisible mais cliquable */
+        }
+
+        .iframe-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .market-cell {
+            position: absolute;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .market-cell iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            pointer-events: none;
+        }
+
         .dragging {
             opacity: 0.8;
             cursor: grabbing;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }

@@ -4,59 +4,53 @@
                 this.messages = [];
                 this.intervalId = null;
                 this.isPolling = false;
+                this.hasLoadedInitialHistory = false;
                 this.init();
             }
             
             init() {
-                this.loadFromStorage();
-                this.loadRecentMessages();
                 this.setupEventListeners();
+                this.loadInitialHistory();
                 this.startPolling();
                 this.scrollToBottom();
                 console.log('ChatManager initialisé pour ' + this.session);
             }
             
-            loadFromStorage() {
+            async loadInitialHistory() {
                 try {
-                    const stored = localStorage.getItem(`${this.session}_messages`);
-                    if (stored) {
-                        this.messages = JSON.parse(stored);
-                        this.displayAllMessages();
+                    console.log('📥 Chargement de l\'historique depuis le serveur...');
+                    
+                    // D'abord charger les messages récents (envoyés)
+                    const recentResponse = await fetch(`/${this.session}recent`);
+                    if (recentResponse.ok) {
+                        const recentData = await recentResponse.json();
+                        recentData.forEach((msg, index) => {
+                            if (msg) {
+                                this.addMessage(msg, true, false);
+                            }
+                        });
                     }
-                } catch (e) {
-                    console.error('Erreur de chargement:', e);
-                }
-            }
-            
-            async loadRecentMessages() {
-                try {
-                    const response = await fetch(`/${this.session}recent`);
-                    if (!response.ok) throw new Error('Erreur réseau');
                     
-                    const data = await response.json();
-                    
-                    // Ajouter les messages récents s'ils ne sont pas déjà présents
-                    data.forEach((msg, index) => {
-                        if (msg && !this.messages.some(m => m.text === msg && m.isSent)) {
-                            this.addMessage(msg, true, true);
+                    // Ensuite charger les messages non lus (reçus)
+                    const unreadResponse = await fetch(`/${this.session}receive`);
+                    if (unreadResponse.ok) {
+                        const unreadText = await unreadResponse.text();
+                        if (unreadText && unreadText.trim() !== '') {
+                            this.addMessage(unreadText.trim(), false, false);
+                            
+                            // Effacer les messages lus
+                            await fetch(`/${this.session}receive?clear=true`);
                         }
-                    });
+                    }
+                    
+                    this.hasLoadedInitialHistory = true;
+                    console.log('✅ Historique chargé depuis le serveur');
                 } catch (e) {
-                    console.error('Erreur chargement récent:', e);
+                    console.error('Erreur chargement historique:', e);
                 }
             }
             
-            saveToStorage() {
-                try {
-                    // Garder seulement les 3 derniers messages dans le localStorage
-                    const toSave = this.messages.slice(-3);
-                    localStorage.setItem(`${this.session}_messages`, JSON.stringify(toSave));
-                } catch (e) {
-                    console.error('Erreur de sauvegarde:', e);
-                }
-            }
-            
-            addMessage(text, isSent, save = true) {
+            addMessage(text, isSent, saveToServer = false) {
                 const message = {
                     id: Date.now(),
                     text: text,
@@ -65,15 +59,6 @@
                 };
                 
                 this.messages.push(message);
-                
-                // Garder seulement les 3 derniers messages en mémoire
-                if (this.messages.length > 3) {
-                    this.messages = this.messages.slice(-3);
-                }
-                
-                if (save) {
-                    this.saveToStorage();
-                }
                 
                 this.displayMessage(message);
                 this.scrollToBottom();
@@ -88,7 +73,6 @@
                 const bubble = document.createElement('div');
                 bubble.className = `message-bubble ${message.isSent ? 'sent' : 'received'}`;
                 
-                // Créer un span pour le texte
                 const textSpan = document.createElement('span');
                 textSpan.style.cssText = `
                     display: block;
@@ -99,7 +83,6 @@
                 `;
                 textSpan.textContent = message.text;
                 
-                // Créer un span pour l'horodatage
                 const timeSpan = document.createElement('span');
                 timeSpan.className = 'timestamp';
                 timeSpan.textContent = message.timestamp;
@@ -109,10 +92,10 @@
                 
                 container.appendChild(bubble);
                 
-                // Limiter le nombre de messages affichés
+                // Limiter le nombre de messages affichés à 50
                 const bubbles = container.getElementsByClassName('message-bubble');
-                if (bubbles.length > 30) {
-                    for (let i = 0; i < bubbles.length - 30; i++) {
+                if (bubbles.length > 50) {
+                    for (let i = 0; i < bubbles.length - 50; i++) {
                         bubbles[i].remove();
                     }
                 }
@@ -148,7 +131,6 @@
                         }
                     });
                     
-                    // Focus automatique sur l'input
                     noteInput.focus();
                 }
             }
@@ -159,7 +141,7 @@
                 
                 const messageText = input.value.trim();
                 
-                // Ajouter visuellement le message
+                // Ajouter visuellement le message immédiatement
                 this.addMessage(messageText, true);
                 
                 // Envoyer au serveur
@@ -175,13 +157,11 @@
                     this.showError('Erreur de connexion, réessayez');
                 }
                 
-                // Réinitialiser l'input
                 input.value = '';
                 input.focus();
             }
             
             showError(message) {
-                // Créer une notification d'erreur
                 const errorDiv = document.createElement('div');
                 errorDiv.textContent = message;
                 errorDiv.style.cssText = `
@@ -199,7 +179,6 @@
                 
                 document.body.appendChild(errorDiv);
                 
-                // Supprimer après 3 secondes
                 setTimeout(() => {
                     if (errorDiv.parentNode) {
                         errorDiv.parentNode.removeChild(errorDiv);
@@ -237,7 +216,7 @@
                 this.isPolling = true;
                 this.intervalId = setInterval(() => {
                     this.checkForNewMessages();
-                }, 1000); // Polling toutes les secondes
+                }, 1000);
             }
             
             stopPolling() {
@@ -248,18 +227,15 @@
             }
         }
         
-        // Initialiser quand la page est chargée
         document.addEventListener('DOMContentLoaded', () => {
             window.chatManager = new ChatManager();
             
-            // Gestionnaire pour la fermeture de la page
             window.addEventListener('beforeunload', () => {
                 if (window.chatManager) {
                     window.chatManager.stopPolling();
                 }
             });
             
-            // Détecter la visibilité de la page
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden && window.chatManager) {
                     window.chatManager.stopPolling();
@@ -267,25 +243,8 @@
                     window.chatManager.startPolling();
                 }
             });
-            
-            // Vérifier la connexion au serveur Mac
-            setTimeout(async () => {
-                try {
-                    const response = await fetch('/checkMac');
-                    const data = await response.json();
-                    if (data.status === 'connected') {
-                        console.log('✅ Connecté au serveur Mac');
-                    } else {
-                        console.log('⚠️ Non connecté au serveur Mac');
-                        this.showError('Serveur Mac non connecté');
-                    }
-                } catch (e) {
-                    console.error('Erreur de vérification du serveur Mac:', e);
-                }
-            }, 2000);
         });
         
-        // Fonction globale pour le bouton
         window.drawText = function() {
             if (window.chatManager) {
                 window.chatManager.sendMessage();

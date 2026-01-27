@@ -909,7 +909,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 "isTransparent": true,
                 "displayMode": "compact",
                 "width": "250",
-                "height": "400",
+                "height": "600",
                 "colorTheme": "dark",
                 "locale": "fr",
                 "utm_source": "tradingview.com",

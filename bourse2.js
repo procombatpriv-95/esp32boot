@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         menu1WidgetsInterval = setInterval(() => {
             loadRandomBottomWidgets();
-        }, 30000);
+        }, 180000);
     }
 
     function loadSP500Widget() {

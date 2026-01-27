@@ -4,19 +4,16 @@
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
   background: transparent;
   border-radius: 20px;
-  position: relative;
-  overflow: hidden;
 }
 
 .status-container {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+  position: fixed;
+  margin-top: 10px;
+  margin-right: 10px;
   border: 1px solid white;
   border-radius: 30px;
   padding: 10px;
   background: transparent;
-  z-index: 10;
 }
 
 .status-dot {
@@ -33,53 +30,88 @@
   font-family: 'Lobster', cursive;
 }
 
-/* KINFOPANELTOUS CONTAINER */
+/* INFO CONTENT (Premier div) */
+.info-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  color: #39d353;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(57, 211, 83, 0.3);
+}
+
+.info-message {
+  color: #ccc;
+  text-align: center;
+  padding: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* KINFOPANELTOUS CONTAINER (Deuxième div) - MODIFIÉ */
 .kinfopaneltous-container {
-  width: 250px;
+  width: 250px; /* Largeur fixe de 250px */
   height: 620px;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 20px;
-  padding: 0;
+  padding: 0; /* Pas de padding pour que le widget prenne toute la place */
   display: none;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   margin-top: 80px;
-  align-self: center;
+  align-self: center; /* Centre le container dans le panelinfo */
 }
 
 .kinfopaneltous-container.active {
   display: flex;
 }
 
+/* KINFOPANELTOUS HEADER CACHÉ */
 .kinfopaneltous-header {
-  display: none;
+  display: none; /* Cache le header des kinfopaneltous */
 }
 
+/* KINFOPANELTOUS CONTENT DIRECT - CENTRÉ */
 .kinfopaneltous-content {
   flex: 1;
   width: 100%;
   height: 100%;
-  border-radius: 20px;
+  border-radius: 10px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.3);
   padding: 0;
   margin: 0;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
-/* SUPPRESSION DES TOOLTIPS */
+/* SUPPRESSION DES TOOLTIPS GÉNANTS */
 [title] {
   text-decoration: none !important;
 }
 
+/* Cacher tous les tooltips */
 *[title]:hover::after,
 *[data-title]:hover::after,
 *[aria-label]:hover::after {
   display: none !important;
 }
 
+/* Désactiver les tooltips natifs */
 * {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -89,10 +121,12 @@
   user-select: none;
 }
 
+/* Pour les iframes TradingView */
 iframe {
   pointer-events: auto !important;
 }
 
+/* Cacher les tooltips spécifiques TradingView */
 .tradingview-widget-copyright,
 .tradingview-widget-copyright a,
 .tv-widget-copyright,
@@ -100,10 +134,12 @@ iframe {
   text-decoration: none !important;
 }
 
+/* Style pour éviter les tooltips sur les éléments cliquables */
 a, button, .clickable {
   text-decoration: none !important;
 }
 
+/* Supprimer les attributs title des éléments */
 [title=""] {
   text-decoration: none !important;
 }
@@ -117,7 +153,6 @@ a, button, .clickable {
   flex-direction: column;
   gap: 20px;
   color: white;
-  overflow-y: auto;
 }
 
 .period-selector {
@@ -294,7 +329,7 @@ a, button, .clickable {
   color: #e74c3c;
 }
 
-/* SAVINGS SECTION */
+/* SAVINGS SECTION - NOUVEAU */
 .savings-container {
   margin-top: -5px;
   display: flex;
@@ -346,22 +381,39 @@ a, button, .clickable {
   cursor: not-allowed;
 }
 
+/* Message par défaut - SUPPRIMÉ */
+.kinfopaneltous-default {
+  display: none !important;
+}
+
 /* === STYLES POUR LES WIDGETS DU MENU-1 === */
 .menu-1-widgets {
-  width: 250px;
+  width: 100%;
   height: 180px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 15px;
   overflow: hidden;
-  position: absolute;
-  bottom: 0;
-  left: 0;
+  margin-top: 10px;
+  position: relative;
 }
 
 .menu-1-widgets-container {
   width: 100%;
   height: 100%;
   position: relative;
+}
+
+.market-cell {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: auto !important;
+}
+
+.market-cell iframe {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  pointer-events: auto !important;
 }
 
 /* Widget du haut - SP500 */
@@ -371,15 +423,7 @@ a, button, .clickable {
   left: 0;
   width: 250px !important;
   height: 90px !important;
-  border-radius: 15px 15px 0 0 !important;
-  overflow: hidden !important;
-}
-
-.top-widget iframe {
-  width: 100% !important;
-  height: 100% !important;
-  border: none !important;
-  border-radius: 15px 15px 0 0 !important;
+  z-index: 2;
 }
 
 /* Widgets du bas */
@@ -396,80 +440,16 @@ a, button, .clickable {
   position: absolute;
   top: 0;
   left: 0;
-  width: 125px !important;
+  width: 124.5px !important;
   height: 90px !important;
-  border-radius: 0 0 0 15px !important;
-  overflow: hidden !important;
-}
-
-.bottom-left-widget iframe {
-  width: 100% !important;
-  height: 100% !important;
-  border: none !important;
-  border-radius: 0 0 0 15px !important;
+  z-index: 2;
 }
 
 .bottom-right-widget {
   position: absolute;
   top: 0;
-  left: 125px;
-  width: 125px !important;
+  left: 124.5px;
+  width: 124.5px !important;
   height: 90px !important;
-  border-radius: 0 0 15px 0 !important;
-  overflow: hidden !important;
-}
-
-.bottom-right-widget iframe {
-  width: 100% !important;
-  height: 100% !important;
-  border: none !important;
-  border-radius: 0 0 15px 0 !important;
-}
-
-/* Pour s'assurer que les iframes remplissent leur conteneur */
-.market-cell {
-  position: relative !important;
-}
-
-.market-cell iframe {
-  width: 100% !important;
-  height: 100% !important;
-  border: none !important;
-  display: block !important;
-}
-
-/* Style pour ajuster l'échelle des iframes */
-iframe {
-  transform: scale(0.8);
-  transform-origin: top left;
-  width: 125% !important;
-  height: 125% !important;
-}
-
-/* Assurer que les widgets sont visibles */
-.tradingview-widget-container {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Style pour les news en selected view */
-.tradingview-kinfopaneltous-news {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Message par défaut - CACHÉ */
-.kinfopaneltous-default {
-  display: none !important;
-}
-
-/* Loader pour les news */
-.kinfopaneltous-loader {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 16px;
+  z-index: 2;
 }

@@ -345,85 +345,6 @@ function showResultPanel() {
 }
 
 // ============================================
-// SURVEILLANCE EN TEMPS RÉEL
-// ============================================
-
-function calculateTransactionHash() {
-  try {
-    const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
-    let hash = transactions.length.toString();
-    let totalAmount = 0;
-    transactions.forEach(t => {
-      totalAmount += t.amount;
-      hash += t.id + t.amount + t.type + t.saving;
-    });
-    return hash + totalAmount.toString();
-  } catch (e) {
-    return '';
-  }
-}
-
-function calculateGoalHash() {
-  try {
-    const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
-    const yearlyGoal = localStorage.getItem('moneyManagerYearlyGoal') || '0';
-    return JSON.stringify(monthlyGoals) + yearlyGoal;
-  } catch (e) {
-    return '';
-  }
-}
-
-function calculateSavingsHash() {
-  try {
-    const savings = calculateSavings();
-    return JSON.stringify(savings);
-  } catch (e) {
-    return '';
-  }
-}
-
-function checkForUpdates() {
-  if (window.currentMenuPage !== 'menu-4' || window.isInSelectedView) {
-    return;
-  }
-  
-  const currentTransactionHash = calculateTransactionHash();
-  const currentGoalHash = calculateGoalHash();
-  const currentSavingsHash = calculateSavingsHash();
-  
-  if (currentTransactionHash !== lastTransactionHash || 
-      currentGoalHash !== lastGoalHash ||
-      currentSavingsHash !== lastSavingsHash) {
-    
-    lastTransactionHash = currentTransactionHash;
-    lastGoalHash = currentGoalHash;
-    lastSavingsHash = currentSavingsHash;
-    
-    getMoneyManagementData();
-    showResultPanel();
-    
-    const panel = document.querySelector('.kinfopaneltous-container');
-    if (panel) {
-      panel.style.display = 'none';
-      panel.offsetHeight;
-      panel.style.display = 'flex';
-    }
-  }
-}
-
-function startAutoUpdate() {
-  lastTransactionHash = calculateTransactionHash();
-  lastGoalHash = calculateGoalHash();
-  lastSavingsHash = calculateSavingsHash();
-  
-  if (autoUpdateInterval) {
-    clearInterval(autoUpdateInterval);
-  }
-  
-  autoUpdateInterval = setInterval(checkForUpdates, 500);
-}
-
-// ============================================
 // GESTION DU LOCALSTORAGE
 // ============================================
 
@@ -454,30 +375,6 @@ localStorage.removeItem = function(key) {
     }
   }
 };
-
-// ============================================
-// ÉVÉNEMENTS GLOBAUX
-// ============================================
-
-window.addEventListener('storage', function(e) {
-  if (e.key && e.key.includes('moneyManager')) {
-    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-      setTimeout(() => {
-        getMoneyManagementData();
-        showResultPanel();
-      }, 100);
-    }
-  }
-});
-
-window.addEventListener('transactionUpdated', function() {
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    setTimeout(() => {
-      getMoneyManagementData();
-      showResultPanel();
-    }, 100);
-  }
-});
 
 // ============================================
 // SYSTÈME PRINCIPAL
@@ -558,34 +455,59 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadMenu1Widgets() {
         kinfopaneltousContent.innerHTML = '';
         
+        // Créer un conteneur principal pour les widgets
         const widgetsContainer = document.createElement('div');
-        widgetsContainer.className = 'menu-1-widgets';
         widgetsContainer.id = 'menu1WidgetsContainer';
         widgetsContainer.style.cssText = `
+            position: absolute;
+            bottom: 0;
+            left: 0;
             width: 250px;
             height: 180px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
             overflow: hidden;
-            position: absolute;
-            bottom: 0;
-            left: 0;
+            z-index: 1;
         `;
         
+        // Créer la structure des 3 widgets
         widgetsContainer.innerHTML = `
-            <div class="menu-1-widgets-container" style="width:100%; height:100%; position:relative;">
-                <div class="market-cell top-widget" id="topWidget" style="position:absolute; top:0; left:0; width:250px; height:90px; border-radius:15px 15px 0 0; overflow:hidden;"></div>
-                <div class="bottom-widgets" style="position:absolute; top:90px; left:0; width:250px; height:90px;">
-                    <div class="market-cell bottom-left-widget" id="bottomLeftWidget" style="position:absolute; top:0; left:0; width:125px; height:90px; border-radius:0 0 0 15px; overflow:hidden;"></div>
-                    <div class="market-cell bottom-right-widget" id="bottomRightWidget" style="position:absolute; top:0; left:125px; width:125px; height:90px; border-radius:0 0 15px 0; overflow:hidden;"></div>
+            <!-- Widget du haut - SP500 -->
+            <div id="topWidget" style="position: absolute; top: 0; left: 0; width: 250px; height: 90px; border-radius: 15px 15px 0 0; overflow: hidden;">
+                <!-- SP500 sera chargé ici -->
+            </div>
+            
+            <!-- Widgets du bas -->
+            <div style="position: absolute; top: 90px; left: 0; width: 250px; height: 90px;">
+                <!-- Widget gauche -->
+                <div id="bottomLeftWidget" style="position: absolute; top: 0; left: 0; width: 124.5px; height: 90px; border-radius: 0 0 0 15px; overflow: hidden;">
+                    <!-- FOREX sera chargé ici -->
                 </div>
+                
+                <!-- Widget droit -->
+                <div id="bottomRightWidget" style="position: absolute; top: 0; left: 124.5px; width: 124.5px; height: 90px; border-radius: 0 0 15px 0; overflow: hidden;">
+                    <!-- Action/Crypto sera chargé ici -->
+                </div>
+                
+                <!-- Petite barre de séparation entre les deux widgets du bas -->
+                <div style="position: absolute; top: 15px; left: 124.5px; width: 1px; height: 60px; background: rgba(255, 255, 255, 0.2);"></div>
             </div>
         `;
         
         kinfopaneltousContent.appendChild(widgetsContainer);
+        
+        // S'assurer que le conteneur principal est positionné correctement
+        kinfopaneltousContent.style.cssText = `
+            position: relative;
+            width: 100%;
+            height: 100%;
+        `;
+        
+        // Charger les widgets
         loadSP500Widget();
         loadRandomBottomWidgets();
         
+        // Démarrer l'intervalle pour changer les widgets du bas
         if (menu1WidgetsInterval) {
             clearInterval(menu1WidgetsInterval);
         }
@@ -638,12 +560,12 @@ document.addEventListener('DOMContentLoaded', function() {
         currentBottomLeftWidget = randomForex.id;
         currentBottomRightWidget = randomStockCrypto.id;
         
-        // Widget gauche
+        // Widget gauche (FOREX)
         const bottomLeftWidget = document.getElementById('bottomLeftWidget');
         if (bottomLeftWidget) {
             bottomLeftWidget.innerHTML = '';
             const iframe = document.createElement('iframe');
-            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomForex.symbol}&width=125&height=90&colorTheme=dark&isTransparent=true`;
+            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomForex.symbol}&width=124.5&height=90&colorTheme=dark&isTransparent=true`;
             iframe.frameBorder = '0';
             iframe.scrolling = 'no';
             iframe.allowtransparency = 'true';
@@ -657,12 +579,12 @@ document.addEventListener('DOMContentLoaded', function() {
             bottomLeftWidget.appendChild(iframe);
         }
         
-        // Widget droit
+        // Widget droit (Action/Crypto)
         const bottomRightWidget = document.getElementById('bottomRightWidget');
         if (bottomRightWidget) {
             bottomRightWidget.innerHTML = '';
             const iframe = document.createElement('iframe');
-            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomStockCrypto.symbol}&width=125&height=90&colorTheme=dark&isTransparent=true`;
+            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomStockCrypto.symbol}&width=124.5&height=90&colorTheme=dark&isTransparent=true`;
             iframe.frameBorder = '0';
             iframe.scrolling = 'no';
             iframe.allowtransparency = 'true';

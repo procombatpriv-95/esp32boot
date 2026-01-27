@@ -63,7 +63,7 @@
 /* KINFOPANELTOUS CONTAINER (Deuxième div) - MODIFIÉ */
 .kinfopaneltous-container {
   width: 250px; /* Largeur fixe de 250px */
-  height: 420px;
+  height: 620px;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 20px;
   padding: 0; /* Pas de padding pour que le widget prenne toute la place */

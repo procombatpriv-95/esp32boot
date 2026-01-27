@@ -1,4 +1,7 @@
 
+// ============================================
+// VARIABLES GLOBALES POUR LE PANEL RESULTAT
+// ============================================
 
 let resultPanelData = {
   currentPeriod: 'monthly',
@@ -573,6 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let menu1WidgetsInterval = null;
     let currentBottomLeftWidget = 'eurusd';
     let currentBottomRightWidget = 'apple';
+    let wasInSelectedView = false; // Nouvelle variable pour suivre l'état précédent
     
     if (!window.appTimezone) {
         window.appTimezone = "Europe/London";
@@ -658,6 +662,7 @@ document.addEventListener('DOMContentLoaded', function() {
         iframe.style.height = '100%';
         iframe.style.border = 'none';
         iframe.style.display = 'block';
+        iframe.style.borderRadius = '15px 15px 0 0';
         topWidget.appendChild(iframe);
     }
 
@@ -697,6 +702,7 @@ document.addEventListener('DOMContentLoaded', function() {
             iframe.style.height = '100%';
             iframe.style.border = 'none';
             iframe.style.display = 'block';
+            iframe.style.borderRadius = '0 0 0 15px';
             bottomLeftWidget.appendChild(iframe);
         }
         
@@ -712,6 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
             iframe.style.height = '100%';
             iframe.style.border = 'none';
             iframe.style.display = 'block';
+            iframe.style.borderRadius = '0 0 15px 0';
             bottomRightWidget.appendChild(iframe);
         }
         
@@ -784,9 +791,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function updatePanelInfo() {
         kinfopaneltousContainer.classList.add('active');
         
-        if (isInSelectedView && selectedAsset) {
+        // Si on vient de quitter le selected view ET on n'est pas en menu-2
+        if (wasInSelectedView && currentMenuPage !== 'menu-2') {
+            isInSelectedView = false;
+            wasInSelectedView = false;
+        }
+        
+        // Si on est en selected view et on a un asset sélectionné ET on est en menu-2
+        if (isInSelectedView && selectedAsset && currentMenuPage === 'menu-2') {
             loadKinfopaneltousNews(selectedAsset);
         } else {
+            // Sinon, désactiver le selected view
+            if (isInSelectedView && currentMenuPage !== 'menu-2') {
+                isInSelectedView = false;
+            }
+            
             if (currentMenuPage === 'menu-1') {
                 loadMenu1Widgets();
             } else if (currentMenuPage === 'menu-4') {
@@ -1030,6 +1049,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!selectedAsset) return;
 
         isInSelectedView = true;
+        wasInSelectedView = true;
         carousel.classList.add('carousel-paused');
         carouselScene.classList.add('hidden');
         sideMenu.classList.add('hidden');
@@ -1066,6 +1086,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // === RETOUR AU CAROUSEL ===
     backBtn.addEventListener('click', function() {
         isInSelectedView = false;
+        wasInSelectedView = false;
         selectedView.classList.remove('active');
         carouselScene.classList.remove('hidden');
         backBtn.classList.add('hidden');
@@ -1079,7 +1100,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const observerMenuChange = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.attributeName === 'class') {
+                const oldMenu = currentMenuPage;
                 updateCurrentMenuPage();
+                
+                // Si on était en selected view et qu'on change de menu (même si c'est menu-2)
+                if (isInSelectedView && oldMenu !== currentMenuPage) {
+                    // On quitte le selected view si on change de menu
+                    isInSelectedView = false;
+                    selectedView.classList.remove('active');
+                    carouselScene.classList.remove('hidden');
+                    sideMenu.classList.remove('hidden');
+                    carousel.classList.remove('carousel-paused');
+                    backBtn.classList.add('hidden');
+                }
+                
                 updatePanelInfo();
             }
         });

@@ -1,6 +1,35 @@
+<script>
+  setInterval(() => {
+    fetch('/pingMohamed?token=' + token);
+  }, 2000);
+  
+  setInterval(() => {
+    fetch('/checkFahimStatus')
+      .then(response => response.text())
+      .then(data => {
+        const dot = document.getElementById('fahimDot');
+        if (data === 'active') {
+          dot.style.backgroundColor = '#00FF00';
+          dot.style.boxShadow = '0 0 10px #00FF00';
+        } else {
+          dot.style.backgroundColor = '#FF0000';
+          dot.style.boxShadow = '0 0 10px #FF0000';
+        }
+      });
+  }, 2000);
+  
+  window.addEventListener('beforeunload', function() {
+    fetch('/logoutMohamed?token=' + token);
+  });
+  
+  function logout() {
+    fetch('/logoutMohamed?token=' + token);
+    window.location.href = '/';
+  }
+</script>
 
 // ============================================
-// VARIABLES GLOBALES POUR LE PANEL RESULTAT
+// VARIABLES GLOBALES
 // ============================================
 
 let resultPanelData = {
@@ -18,8 +47,13 @@ let resultPanelData = {
   savings: { saving1: 0, saving2: 0, saving3: 0 }
 };
 
+let lastTransactionHash = '';
+let lastGoalHash = '';
+let lastSavingsHash = '';
+let autoUpdateInterval = null;
+
 // ============================================
-// FONCTIONS POUR CALCULER LES SAVINGS
+// FONCTIONS FINANCIÈRES
 // ============================================
 
 function calculateSavings() {
@@ -41,17 +75,12 @@ function calculateSavings() {
     });
     
     resultPanelData.savings = savings;
-    
     return savings;
   } catch (e) {
     console.error('Erreur calcul savings:', e);
     return { saving1: 0, saving2: 0, saving3: 0 };
   }
 }
-
-// ============================================
-// FONCTION POUR TRANSFÉRER UN SAVING
-// ============================================
 
 function transferSaving(savingType) {
   try {
@@ -105,10 +134,6 @@ function transferSaving(savingType) {
     alert('Error transferring saving: ' + e.message);
   }
 }
-
-// ============================================
-// FONCTIONS POUR LE PANEL RESULTAT (MENU 4)
-// ============================================
 
 function getMoneyManagementData(period = null) {
   try {
@@ -206,20 +231,7 @@ function getMoneyManagementData(period = null) {
     resultPanelData.lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
     resultPanelData.savings = savings;
     
-    return {
-      monthlyGoal,
-      yearlyGoal,
-      monthlyIncome,
-      yearlyIncome,
-      monthlyExpenses,
-      yearlyExpenses,
-      monthlyTransactions: monthlyNormalTransactions,
-      yearlyTransactions: yearlyNormalTransactions,
-      highestTransaction: currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest,
-      lowestTransaction: currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest,
-      savings,
-      currentPeriod
-    };
+    return resultPanelData;
     
   } catch (e) {
     console.error('Erreur lors de la récupération des données:', e);
@@ -227,7 +239,6 @@ function getMoneyManagementData(period = null) {
   }
 }
 
-// Afficher le panel résultat
 function showResultPanel() {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
   if (!kinfopaneltousContent) return;
@@ -363,13 +374,8 @@ function showResultPanel() {
 }
 
 // ============================================
-// SYSTÈME DE SURVEILLANCE EN TEMPS RÉEL
+// SURVEILLANCE EN TEMPS RÉEL
 // ============================================
-
-let lastTransactionHash = '';
-let lastGoalHash = '';
-let lastSavingsHash = '';
-let autoUpdateInterval = null;
 
 function calculateTransactionHash() {
   try {
@@ -418,8 +424,6 @@ function checkForUpdates() {
       currentGoalHash !== lastGoalHash ||
       currentSavingsHash !== lastSavingsHash) {
     
-    console.log('Changement détecté, mise à jour du panel...');
-    
     lastTransactionHash = currentTransactionHash;
     lastGoalHash = currentGoalHash;
     lastSavingsHash = currentSavingsHash;
@@ -446,18 +450,10 @@ function startAutoUpdate() {
   }
   
   autoUpdateInterval = setInterval(checkForUpdates, 500);
-  console.log('Surveillance automatique démarrée');
-}
-
-function stopAutoUpdate() {
-  if (autoUpdateInterval) {
-    clearInterval(autoUpdateInterval);
-    autoUpdateInterval = null;
-  }
 }
 
 // ============================================
-// SURCHARGE DU LOCALSTORAGE POUR DÉTECTION IMMÉDIATE
+// GESTION DU LOCALSTORAGE
 // ============================================
 
 const originalSetItem = localStorage.setItem;
@@ -465,8 +461,6 @@ localStorage.setItem = function(key, value) {
   originalSetItem.apply(this, arguments);
   
   if (key && key.includes('moneyManager')) {
-    console.log(`Changement détecté dans localStorage: ${key}`);
-    
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
       setTimeout(() => {
         getMoneyManagementData();
@@ -481,8 +475,6 @@ localStorage.removeItem = function(key) {
   originalRemoveItem.apply(this, arguments);
   
   if (key && key.includes('moneyManager')) {
-    console.log(`Suppression détectée dans localStorage: ${key}`);
-    
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
       setTimeout(() => {
         getMoneyManagementData();
@@ -492,28 +484,12 @@ localStorage.removeItem = function(key) {
   }
 };
 
-const originalClear = localStorage.clear;
-localStorage.clear = function() {
-  originalClear.apply(this, arguments);
-  
-  console.log('localStorage effacé');
-  
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    setTimeout(() => {
-      getMoneyManagementData();
-      showResultPanel();
-    }, 100);
-  }
-};
-
 // ============================================
-// ÉVÉNEMENTS GLOBAUX POUR LA MISE À JOUR
+// ÉVÉNEMENTS GLOBAUX
 // ============================================
 
 window.addEventListener('storage', function(e) {
   if (e.key && e.key.includes('moneyManager')) {
-    console.log(`Événement storage détecté: ${e.key}`);
-    
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
       setTimeout(() => {
         getMoneyManagementData();
@@ -533,10 +509,11 @@ window.addEventListener('transactionUpdated', function() {
 });
 
 // ============================================
-// CONFIGURATION DES ACTIFS ET TRADINGVIEW
+// SYSTÈME PRINCIPAL
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Configuration des actifs
     const assetTypes = {
         crypto: [
             { id: 'bitcoin', name: 'Bitcoin (BTC)', symbol: 'BTC', tradingViewSymbol: 'BITSTAMP:BTCUSD', displayName: 'Bitcoin', kinfopaneltousSymbol: 'BTCUSD' },
@@ -564,6 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ]
     };
 
+    // Variables d'état
     let currentAssetType = 'crypto';
     let currentAssets = assetTypes.crypto;
     let selectedAsset = null;
@@ -576,12 +554,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let menu1WidgetsInterval = null;
     let currentBottomLeftWidget = 'eurusd';
     let currentBottomRightWidget = 'apple';
-    let wasInSelectedView = false; // Nouvelle variable pour suivre l'état précédent
+    let wasInSelectedView = false;
     
     if (!window.appTimezone) {
         window.appTimezone = "Europe/London";
     }
 
+    // Éléments DOM
     const carousel = document.getElementById('mainCarousel');
     const carouselScene = document.getElementById('carouselScene');
     const selectedView = document.getElementById('selectedView');
@@ -593,7 +572,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
     const megaBox = document.getElementById('megaBox');
 
-    // === SUPPRESSION DES TOOLTIPS ===
+    // === FONCTIONS UTILITAIRES ===
     function removeAllTooltips() {
         const elements = document.querySelectorAll('[title]');
         elements.forEach(el => {
@@ -602,34 +581,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 el.removeAttribute('title');
             }
         });
-        
-        const ariaElements = document.querySelectorAll('[aria-label]');
-        ariaElements.forEach(el => {
-            el.setAttribute('data-original-aria-label', el.getAttribute('aria-label'));
-            el.removeAttribute('aria-label');
-        });
-        
-        document.addEventListener('mouseover', function(e) {
-            if (e.target.hasAttribute('title') || e.target.hasAttribute('aria-label')) {
-                e.stopPropagation();
-            }
-        }, true);
     }
 
-    // === CHARGER LES WIDGETS DU MENU-1 ===
+    // === WIDGETS MENU-1 ===
     function loadMenu1Widgets() {
         kinfopaneltousContent.innerHTML = '';
         
         const widgetsContainer = document.createElement('div');
         widgetsContainer.className = 'menu-1-widgets';
         widgetsContainer.id = 'menu1WidgetsContainer';
+        widgetsContainer.style.cssText = `
+            width: 250px;
+            height: 180px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        `;
         
         widgetsContainer.innerHTML = `
-            <div class="menu-1-widgets-container">
-                <div class="market-cell top-widget" id="topWidget"></div>
-                <div class="bottom-widgets">
-                    <div class="market-cell bottom-left-widget" id="bottomLeftWidget"></div>
-                    <div class="market-cell bottom-right-widget" id="bottomRightWidget"></div>
+            <div class="menu-1-widgets-container" style="width:100%; height:100%; position:relative;">
+                <div class="market-cell top-widget" id="topWidget" style="position:absolute; top:0; left:0; width:250px; height:90px; border-radius:15px 15px 0 0; overflow:hidden;"></div>
+                <div class="bottom-widgets" style="position:absolute; top:90px; left:0; width:250px; height:90px;">
+                    <div class="market-cell bottom-left-widget" id="bottomLeftWidget" style="position:absolute; top:0; left:0; width:125px; height:90px; border-radius:0 0 0 15px; overflow:hidden;"></div>
+                    <div class="market-cell bottom-right-widget" id="bottomRightWidget" style="position:absolute; top:0; left:125px; width:125px; height:90px; border-radius:0 0 15px 0; overflow:hidden;"></div>
                 </div>
             </div>
         `;
@@ -647,7 +624,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 30000);
     }
 
-    // === CHARGER LE WIDGET SP500 ===
     function loadSP500Widget() {
         const topWidget = document.getElementById('topWidget');
         if (!topWidget) return;
@@ -658,15 +634,16 @@ document.addEventListener('DOMContentLoaded', function() {
         iframe.frameBorder = '0';
         iframe.scrolling = 'no';
         iframe.allowtransparency = 'true';
-        iframe.style.width = '100%';
-        iframe.style.height = '100%';
-        iframe.style.border = 'none';
-        iframe.style.display = 'block';
-        iframe.style.borderRadius = '15px 15px 0 0';
+        iframe.style.cssText = `
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            border-radius: 15px 15px 0 0;
+        `;
         topWidget.appendChild(iframe);
     }
 
-    // === CHARGER LES WIDGETS DU BAS (ALÉATOIRES) ===
     function loadRandomBottomWidgets() {
         const forexSymbols = [
             { id: 'eurusd', symbol: 'FX_IDC:EURUSD', name: 'EUR/USD' },
@@ -690,58 +667,46 @@ document.addEventListener('DOMContentLoaded', function() {
         currentBottomLeftWidget = randomForex.id;
         currentBottomRightWidget = randomStockCrypto.id;
         
+        // Widget gauche
         const bottomLeftWidget = document.getElementById('bottomLeftWidget');
         if (bottomLeftWidget) {
             bottomLeftWidget.innerHTML = '';
             const iframe = document.createElement('iframe');
-            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomForex.symbol}&width=124.5&height=90&colorTheme=dark&isTransparent=true`;
+            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomForex.symbol}&width=125&height=90&colorTheme=dark&isTransparent=true`;
             iframe.frameBorder = '0';
             iframe.scrolling = 'no';
             iframe.allowtransparency = 'true';
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.border = 'none';
-            iframe.style.display = 'block';
-            iframe.style.borderRadius = '0 0 0 15px';
+            iframe.style.cssText = `
+                width: 100%;
+                height: 100%;
+                border: none;
+                display: block;
+                border-radius: 0 0 0 15px;
+            `;
             bottomLeftWidget.appendChild(iframe);
         }
         
+        // Widget droit
         const bottomRightWidget = document.getElementById('bottomRightWidget');
         if (bottomRightWidget) {
             bottomRightWidget.innerHTML = '';
             const iframe = document.createElement('iframe');
-            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomStockCrypto.symbol}&width=124.5&height=90&colorTheme=dark&isTransparent=true`;
+            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomStockCrypto.symbol}&width=125&height=90&colorTheme=dark&isTransparent=true`;
             iframe.frameBorder = '0';
             iframe.scrolling = 'no';
             iframe.allowtransparency = 'true';
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.border = 'none';
-            iframe.style.display = 'block';
-            iframe.style.borderRadius = '0 0 15px 0';
+            iframe.style.cssText = `
+                width: 100%;
+                height: 100%;
+                border: none;
+                display: block;
+                border-radius: 0 0 15px 0;
+            `;
             bottomRightWidget.appendChild(iframe);
         }
-        
-        setTimeout(() => {
-            adjustIFrameScale();
-        }, 500);
     }
 
-    // === Ajuster le scale des iframes ===
-    function adjustIFrameScale() {
-        const cells = document.querySelectorAll('.market-cell');
-        cells.forEach(cell => {
-            const iframe = cell.querySelector('iframe');
-            if (iframe) {
-                iframe.style.transform = 'scale(0.8)';
-                iframe.style.transformOrigin = 'top left';
-                iframe.style.width = '125%';
-                iframe.style.height = '125%';
-            }
-        });
-    }
-
-    // === CHARGER LES KINFOPANELTOUS POUR LES ACTUALITÉS ===
+    // === ACTUALITÉS SELECTED VIEW ===
     function loadKinfopaneltousNews(asset) {
         kinfopaneltousContent.innerHTML = '';
         
@@ -753,6 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const widgetDiv = document.createElement('div');
         widgetDiv.className = 'tradingview-kinfopaneltous-news';
         widgetDiv.id = 'tradingview_kinfopaneltous_news';
+        widgetDiv.style.cssText = 'width:100%; height:100%;';
         
         setTimeout(() => {
             kinfopaneltousContent.removeChild(loaderDiv);
@@ -783,25 +749,24 @@ document.addEventListener('DOMContentLoaded', function() {
             
             widgetDiv.appendChild(script);
             currentKinfopaneltousWidget = widgetDiv;
-            setTimeout(removeAllTooltips, 1500);
         }, 500);
     }
 
-    // === GESTION DU PANEL INFO EN FONCTION DE L'ÉTAT ===
+    // === GESTION DU PANEL ===
     function updatePanelInfo() {
         kinfopaneltousContainer.classList.add('active');
         
-        // Si on vient de quitter le selected view ET on n'est pas en menu-2
+        // Si on change de menu et qu'on était en selected view, on le quitte
         if (wasInSelectedView && currentMenuPage !== 'menu-2') {
             isInSelectedView = false;
             wasInSelectedView = false;
         }
         
-        // Si on est en selected view et on a un asset sélectionné ET on est en menu-2
+        // Les news ne s'affichent QUE si toutes ces conditions sont remplies
         if (isInSelectedView && selectedAsset && currentMenuPage === 'menu-2') {
             loadKinfopaneltousNews(selectedAsset);
         } else {
-            // Sinon, désactiver le selected view
+            // Sinon, on désactive le selected view
             if (isInSelectedView && currentMenuPage !== 'menu-2') {
                 isInSelectedView = false;
             }
@@ -821,7 +786,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // === DÉTECTION DE LA PAGE ACTIVE ===
     function updateCurrentMenuPage() {
         const classes = megaBox.classList;
         if (classes.contains('menu-1')) currentMenuPage = 'menu-1';
@@ -838,7 +802,6 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 chartStates = JSON.parse(saved);
             } catch (e) {
-                console.error('Erreur lors du chargement des états:', e);
                 chartStates = {};
             }
         }
@@ -859,34 +822,17 @@ document.addEventListener('DOMContentLoaded', function() {
         updatePanelInfo();
         
         setTimeout(removeAllTooltips, 1000);
-        
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.addedNodes.length) {
-                    removeAllTooltips();
-                }
-            });
-        });
-        
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
     }
 
-    // === CRÉATION DES WIDGETS TRADINGVIEW ===
+    // === TRADINGVIEW WIDGETS ===
     function createTradingViewWidget(containerId, symbol, assetId, isCarousel = false) {
         if (!window.TradingView) {
-            console.error('Bibliothèque TradingView non chargée');
             setTimeout(() => createTradingViewWidget(containerId, symbol, assetId, isCarousel), 100);
             return null;
         }
 
         const container = document.getElementById(containerId);
-        if (!container) {
-            console.error('Conteneur non trouvé:', containerId);
-            return null;
-        }
+        if (!container) return null;
 
         const widgetConfig = {
             width: isCarousel ? '400' : '1000',
@@ -900,14 +846,7 @@ document.addEventListener('DOMContentLoaded', function() {
             enable_publishing: false,
             allow_symbol_change: false,
             save_image: false,
-            container_id: containerId,
-            time_frames: [
-                { text: "5min", resolution: "5", description: "5 Minutes", title: "5min" },
-                { text: "15min", resolution: "15", description: "15 Minutes", title: "15min" },
-                { text: "2h", resolution: "120", description: "2 Hours", title: "2h" },
-                { text: "4h", resolution: "240", description: "4 Hours", title: "4h" },
-                { text: "1D", resolution: "1D", description: "1 Day", title: "1D" }
-            ]
+            container_id: containerId
         };
 
         if (isCarousel) {
@@ -919,17 +858,6 @@ document.addEventListener('DOMContentLoaded', function() {
             widgetConfig.hotlist = false;
             widgetConfig.calendar = false;
             widgetConfig.show_popup_button = false;
-            widgetConfig.disabled_features = [
-                "header_widget", "left_toolbar", "timeframes_toolbar",
-                "edit_buttons_in_legend", "legend_context_menu", "control_bar",
-                "border_around_the_chart", "countdown", "header_compare",
-                "header_screenshot", "header_undo_redo", "header_saveload",
-                "header_settings", "header_chart_type", "header_indicators",
-                "volume_force_overlay", "study_templates", "symbol_info"
-            ];
-            widgetConfig.enabled_features = [
-                "hide_volume", "move_logo_to_main_pane"
-            ];
         } else {
             widgetConfig.toolbar_bg = "#f1f3f6";
             widgetConfig.hide_side_toolbar = false;
@@ -937,63 +865,15 @@ document.addEventListener('DOMContentLoaded', function() {
             widgetConfig.details = true;
             widgetConfig.hotlist = true;
             widgetConfig.calendar = true;
-            
-            const chartKey = `chart_${assetId}`;
-            const savedState = chartStates[chartKey];
-            
-            if (savedState && savedState.symbol === symbol) {
-                widgetConfig.studies_overrides = savedState.studies;
-            } else {
-                widgetConfig.studies = ["RSI@tv-basicstudies", "VWAP@tv-basicstudies"];
-                widgetConfig.studies_overrides = {
-                    "volume.volume.color.0": "rgba(0, 0, 0, 0)",
-                    "volume.volume.color.1": "rgba(0, 0, 0, 0)",
-                    "RSI.rsi.linewidth": 2,
-                    "RSI.rsi.period": 14,
-                    "RSI.rsi.plottype": "line",
-                    "VWAP.vwap.color": "#FF6B00",
-                    "VWAP.vwap.linewidth": 2,
-                    "VWAP.vwap.period": 50,
-                    "VWAP.vwap.plottype": "line",
-                    "VWAP.vwap.transparency": 0
-                };
-            }
         }
 
         try {
-            const widget = new TradingView.widget(widgetConfig);
-            
-            if (!isCarousel) {
-                widget.onChartReady(() => {
-                    const chart = widget.chart();
-                    setInterval(() => {
-                        if (selectedAsset && selectedTVWidget) {
-                            try {
-                                chart.getSavedStudies((studies) => {
-                                    const state = {
-                                        studies: studies,
-                                        timestamp: Date.now(),
-                                        symbol: selectedAsset.tradingViewSymbol
-                                    };
-                                    chartStates[`chart_${selectedAsset.id}`] = state;
-                                    localStorage.setItem('chartStates', JSON.stringify(chartStates));
-                                });
-                            } catch (e) {
-                                console.error('Erreur sauvegarde:', e);
-                            }
-                        }
-                    }, 30000);
-                });
-            }
-            
-            return widget;
+            return new TradingView.widget(widgetConfig);
         } catch (error) {
-            console.error('Erreur création widget TradingView:', error);
             return null;
         }
     }
 
-    // === MISE À JOUR DU CAROUSEL ===
     function updateCarousel() {
         carousel.innerHTML = '';
         
@@ -1027,12 +907,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
             });
             
-            setTimeout(removeAllTooltips, 2000);
             initCarouselClicks();
         }, 1000);
     }
 
-    // === INITIALISATION DES CLICS DU CAROUSEL ===
     function initCarouselClicks() {
         document.querySelectorAll('.carousel-overlay').forEach(overlay => {
             overlay.addEventListener('click', function(e) {
@@ -1043,7 +921,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // === SÉLECTION D'ACTIF ===
     function selectAsset(assetId) {
         selectedAsset = currentAssets.find(c => c.id === assetId);
         if (!selectedAsset) return;
@@ -1078,12 +955,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             setTimeout(() => {
                 loader.classList.add('hidden');
-                removeAllTooltips();
             }, 1500);
         }, 500);
     }
 
-    // === RETOUR AU CAROUSEL ===
+    // === ÉVÉNEMENTS ===
     backBtn.addEventListener('click', function() {
         isInSelectedView = false;
         wasInSelectedView = false;
@@ -1093,19 +969,15 @@ document.addEventListener('DOMContentLoaded', function() {
         sideMenu.classList.remove('hidden');
         carousel.classList.remove('carousel-paused');
         updatePanelInfo();
-        removeAllTooltips();
     });
 
-    // === SURVEILLANCE DU CHANGEMENT DE MENU ===
     const observerMenuChange = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.attributeName === 'class') {
                 const oldMenu = currentMenuPage;
                 updateCurrentMenuPage();
                 
-                // Si on était en selected view et qu'on change de menu (même si c'est menu-2)
                 if (isInSelectedView && oldMenu !== currentMenuPage) {
-                    // On quitte le selected view si on change de menu
                     isInSelectedView = false;
                     selectedView.classList.remove('active');
                     carouselScene.classList.remove('hidden');
@@ -1124,6 +996,7 @@ document.addEventListener('DOMContentLoaded', function() {
         attributeFilter: ['class']
     });
 
+    // DÉMARRAGE
     init();
 
     window.addEventListener('resize', function() {
@@ -1131,6 +1004,7 @@ document.addEventListener('DOMContentLoaded', function() {
         sideMenu.style.transform = 'translateY(-50%)';
     });
     
+    // Variables globales
     window.tvWidgets = tvWidgets;
     window.selectedTVWidget = selectedTVWidget;
     window.isInSelectedView = isInSelectedView;
@@ -1141,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.transferSaving = transferSaving;
 });
 
-// Polling global
+// Polling
 setInterval(() => {
   if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
     if (window.getMoneyManagementData && window.showResultPanel) {

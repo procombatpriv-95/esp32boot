@@ -552,8 +552,8 @@ document.addEventListener('DOMContentLoaded', function() {
             { id: 'apple', symbol: 'NASDAQ:AAPL', name: 'Apple' },
             { id: 'tesla', symbol: 'NASDAQ:TSLA', name: 'Tesla' },
             { id: 'bitcoin', symbol: 'BITSTAMP:BTCUSD', name: 'Bitcoin' },
-            { id: 'ethereum', symbol: 'BITSTAMP:ETHUSD', name: 'Ethereum' },
-            { id: 'nasdaq', symbol: 'NASDAQ:IXIC', name: 'NASDAQ' }
+            { id: 'gold', symbol: 'OANDA:XAUUSD', name: 'XAUUSD' },
+            { id: 'nasdaq', symbol: 'NYSE:GME', name: 'NASDAQ' }
         ];
         
         const randomForex = forexSymbols[Math.floor(Math.random() * forexSymbols.length)];

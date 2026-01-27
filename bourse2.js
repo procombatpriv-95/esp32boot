@@ -1,97 +1,33 @@
-async function getAddress(lat, lon) {
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=fr`,
-      {
-        headers: {
-          "User-Agent": "around-app/1.0 (test)",
-          "Accept-Language": "fr"
-        }
-      }
-    );
-    if (!res.ok) throw new Error("Réponse HTTP invalide");
-    const data = await res.json();
-
-    // Quartier
-    let suburb =
-      data.address.suburb ||
-      data.address.neighbourhood ||
-      data.address.quarter ||
-      "Quartier inconnu";
-
-    // Borough / District
-    let borough =
-      data.address.borough ||
-      data.address.city_district ||
-      "Borough inconnu";
-
-    // Ville
-    let city =
-      data.address.city ||
-      data.address.town ||
-      data.address.municipality ||
-      data.address.county ||
-      "Ville inconnue";
-
-    document.getElementById("output").textContent =
-      `Around: ${suburb}, ${borough}, ${city}`;
-  } catch (e) {
-    document.getElementById("output").textContent = "Erreur adresse : " + e;
-  }
-}
-
-async function getTimezoneFromCoords(lat, lon) {
-  try {
-    const res = await fetch(
-      `https://api.timezonedb.com/v2.1/get-time-zone?key=YOUR_API_KEY&format=json&by=position&lat=${lat}&lng=${lon}`
-    );
-    if (!res.ok) throw new Error("Erreur API fuseau horaire");
-    const data = await res.json();
-    return data.zoneName;
-  } catch (e) {
-    console.error("Erreur fuseau horaire:", e);
-    return "Europe/London";
-  }
-}
-
-function success(pos) {
-  const crd = pos.coords;
-  getAddress(crd.latitude, crd.longitude);
+<script>
+  // Variables globales pour les ping et l'état de Fahim
+  setInterval(() => {
+    fetch('/pingMohamed?token=' + token);
+  }, 2000);
   
-  getTimezoneFromCoords(crd.latitude, crd.longitude).then(timezone => {
-    window.appTimezone = timezone;
-    
-    if (window.tvWidgets) {
-      Object.values(window.tvWidgets).forEach(widget => {
-        if (widget && widget.chart) {
-          widget.chart().setTimezone(timezone);
+  setInterval(() => {
+    fetch('/checkFahimStatus')
+      .then(response => response.text())
+      .then(data => {
+        const dot = document.getElementById('fahimDot');
+        if (data === 'active') {
+          dot.style.backgroundColor = '#00FF00';
+          dot.style.boxShadow = '0 0 10px #00FF00';
+        } else {
+          dot.style.backgroundColor = '#FF0000';
+          dot.style.boxShadow = '0 0 10px #FF0000';
         }
       });
-    }
-    if (window.selectedTVWidget && window.selectedTVWidget.chart) {
-      window.selectedTVWidget.chart().setTimezone(timezone);
-    }
-  });
-}
-
-function error(err) {
-  document.getElementById("output").textContent =
-    `Erreur (${err.code}): ${err.message}`;
+  }, 2000);
   
-  window.appTimezone = "Europe/London";
-}
-
-if ("geolocation" in navigator) {
-  navigator.geolocation.getCurrentPosition(success, error, {
-    enableHighAccuracy: true,
-    timeout: 15000,
-    maximumAge: 0
+  window.addEventListener('beforeunload', function() {
+    fetch('/logoutMohamed?token=' + token);
   });
-} else {
-  document.getElementById("output").textContent =
-    "❌ Géolocalisation non supportée par ce navigateur.";
-  window.appTimezone = "Europe/London";
-}
+  
+  function logout() {
+    fetch('/logoutMohamed?token=' + token);
+    window.location.href = '/';
+  }
+</script>
 
 // ============================================
 // VARIABLES GLOBALES POUR LE PANEL RESULTAT
@@ -103,6 +39,10 @@ let resultPanelData = {
   yearlyGoal: 0,
   monthlyIncome: 0,
   yearlyIncome: 0,
+  monthlyExpenses: 0,
+  yearlyExpenses: 0,
+  monthlyTransactions: [],
+  yearlyTransactions: [],
   highestTransaction: { amount: 0, category: '' },
   lowestTransaction: { amount: 0, category: '' },
   savings: { saving1: 0, saving2: 0, saving3: 0 }
@@ -130,7 +70,6 @@ function calculateSavings() {
       }
     });
     
-    // Mettre à jour les données globales
     resultPanelData.savings = savings;
     
     return savings;
@@ -159,7 +98,6 @@ function transferSaving(savingType) {
     const dateStr = now.toISOString().split('T')[0];
     const newId = Date.now();
     
-    // 1. Créer une transaction normale (income) pour ajouter à la balance
     const normalTransaction = {
       id: newId,
       amount: amount,
@@ -171,7 +109,6 @@ function transferSaving(savingType) {
       timestamp: now.getTime()
     };
     
-    // 2. Créer une transaction expense dans le saving (pour le vider)
     const savingTransaction = {
       id: newId + 1,
       amount: amount,
@@ -183,19 +120,14 @@ function transferSaving(savingType) {
       timestamp: now.getTime() + 1
     };
     
-    // 3. Ajouter les deux transactions
     transactions.push(normalTransaction, savingTransaction);
-    
-    // 4. Sauvegarder
     localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
     
-    // 5. Mettre à jour l'affichage
     setTimeout(() => {
       getMoneyManagementData();
       showResultPanel();
     }, 100);
     
-    // 6. Déclencher la mise à jour du tableau de bord (Bloc 1)
     window.dispatchEvent(new Event('storage'));
     
   } catch (e) {
@@ -210,26 +142,18 @@ function transferSaving(savingType) {
 
 function getMoneyManagementData(period = null) {
   try {
-    // Utiliser la période passée en paramètre ou celle stockée
     const currentPeriod = period || resultPanelData.currentPeriod;
-    
-    // Récupérer les transactions
     const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
-    
-    // Récupérer les objectifs
     const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
     const yearlyGoal = parseFloat(localStorage.getItem('moneyManagerYearlyGoal') || '0');
     
-    // Date actuelle
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
     const monthKey = `${currentYear}-${currentMonth}`;
     
-    // Calculer l'objectif mensuel actuel
     const monthlyGoal = monthlyGoals[monthKey] || 0;
     
-    // Filtrer les transactions par mois et année (normales seulement)
     const monthlyNormalTransactions = transactions.filter(t => {
       const tDate = new Date(t.date);
       return tDate.getFullYear() === currentYear && 
@@ -243,7 +167,6 @@ function getMoneyManagementData(period = null) {
              t.saving === 'normal';
     });
     
-    // Calculer les revenus (normaux seulement)
     const monthlyIncome = monthlyNormalTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
@@ -252,7 +175,6 @@ function getMoneyManagementData(period = null) {
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    // CALCULER LES DÉPENSES (normales seulement)
     const monthlyExpenses = monthlyNormalTransactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
@@ -261,13 +183,11 @@ function getMoneyManagementData(period = null) {
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    // Trouver les transactions les plus hautes et basses pour CHAQUE période (normales seulement)
     let monthlyHighest = { amount: 0, category: '' };
     let monthlyLowest = { amount: 0, category: '' };
     let yearlyHighest = { amount: 0, category: '' };
     let yearlyLowest = { amount: 0, category: '' };
     
-    // Pour le mois (normales seulement)
     if (monthlyNormalTransactions.length > 0) {
       const monthlyIncomes = monthlyNormalTransactions.filter(t => t.type === 'income');
       const monthlyExpensesList = monthlyNormalTransactions.filter(t => t.type === 'expense');
@@ -285,7 +205,6 @@ function getMoneyManagementData(period = null) {
       }
     }
     
-    // Pour l'année (normales seulement)
     if (yearlyNormalTransactions.length > 0) {
       const yearlyIncomes = yearlyNormalTransactions.filter(t => t.type === 'income');
       const yearlyExpensesList = yearlyNormalTransactions.filter(t => t.type === 'expense');
@@ -303,10 +222,8 @@ function getMoneyManagementData(period = null) {
       }
     }
     
-    // Calculer les savings
     const savings = calculateSavings();
     
-    // Mettre à jour les données
     resultPanelData.monthlyGoal = monthlyGoal;
     resultPanelData.yearlyGoal = yearlyGoal;
     resultPanelData.monthlyIncome = monthlyIncome;
@@ -350,15 +267,12 @@ function showResultPanel() {
   const resultPanel = document.createElement('div');
   resultPanel.className = 'result-panel';
   
-  // Récupérer les données à jour
   const data = getMoneyManagementData();
   
-  // Déterminer l'objectif et la BALANCE (revenus - dépenses) selon la période
   const currentGoal = resultPanelData.currentPeriod === 'monthly' 
     ? resultPanelData.monthlyGoal 
     : resultPanelData.yearlyGoal;
 
-  // Calculer la BALANCE (normales seulement)
   const currentIncome = resultPanelData.currentPeriod === 'monthly'
     ? resultPanelData.monthlyIncome
     : resultPanelData.yearlyIncome;
@@ -369,24 +283,17 @@ function showResultPanel() {
 
   const currentBalance = Math.max(0, currentIncome - currentExpenses);
   
-  // Calculer le pourcentage (max 100%) - BASÉ SUR LA BALANCE
   const percentage = currentGoal > 0 
     ? Math.min((currentBalance / currentGoal) * 100, 100) 
     : 0;
   
-  // Déterminer si le goal est atteint ou dépassé
   const isGoalReached = percentage >= 100;
-  
-  // Pour l'affichage du montant sur la barre verte
   const showAmountOnBar = percentage > 10;
-  
-  // CORRECTION: Quand percentage est 0
   const progressFilledClass = percentage === 0 ? 'progress-filled empty' : 'progress-filled';
   const progressFilledStyle = percentage === 0 
     ? 'width: 0%; min-width: 0; padding-right: 0;' 
     : `width: ${percentage}%`;
   
-  // Récupérer les savings
   const savings = resultPanelData.savings || { saving1: 0, saving2: 0, saving3: 0 };
   
   resultPanel.innerHTML = `
@@ -438,7 +345,6 @@ function showResultPanel() {
       </div>
     </div>
     
-    <!-- SAVINGS SECTION -->
     <div class="savings-container">
       <div class="saving-item">
         <span class="saving-label">Saving 1:</span>
@@ -460,7 +366,6 @@ function showResultPanel() {
   
   kinfopaneltousContent.appendChild(resultPanel);
   
-  // Ajouter Font Awesome si nécessaire
   if (!document.querySelector('link[href*="font-awesome"]')) {
     const faLink = document.createElement('link');
     faLink.rel = 'stylesheet';
@@ -468,20 +373,16 @@ function showResultPanel() {
     document.head.appendChild(faLink);
   }
   
-  // Ajouter les événements aux boutons de période
   const periodBtns = resultPanel.querySelectorAll('.period-btn');
   periodBtns.forEach(btn => {
     btn.addEventListener('click', function() {
       const period = this.getAttribute('data-period');
       resultPanelData.currentPeriod = period;
-      
-      // Mettre à jour immédiatement avec la nouvelle période
       getMoneyManagementData(period);
       showResultPanel();
     });
   });
   
-  // Ajouter les événements aux boutons de saving
   const savingBtns = resultPanel.querySelectorAll('.saving-add-btn');
   savingBtns.forEach(btn => {
     btn.addEventListener('click', function() {
@@ -666,145 +567,30 @@ window.addEventListener('transactionUpdated', function() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Configuration des actifs avec symboles TradingView
     const assetTypes = {
         crypto: [
-            {
-                id: 'bitcoin',
-                name: 'Bitcoin (BTC)',
-                symbol: 'BTC',
-                tradingViewSymbol: 'BITSTAMP:BTCUSD',
-                displayName: 'Bitcoin',
-                kinfopaneltousSymbol: 'BTCUSD'
-            },
-            {
-                id: 'litecoin',
-                name: 'Litecoin (LTC)',
-                symbol: 'LTC',
-                tradingViewSymbol: 'BITSTAMP:LTCUSD',
-                displayName: 'Litecoin',
-                kinfopaneltousSymbol: 'LTCUSD'
-            },
-            {
-                id: 'ethereum',
-                name: 'Ethereum (ETH)',
-                symbol: 'ETH',
-                tradingViewSymbol: 'BITSTAMP:ETHUSD',
-                displayName: 'Ethereum',
-                kinfopaneltousSymbol: 'ETHUSD'
-            },
-            {
-                id: 'xrp',
-                name: 'XRP',
-                symbol: 'XRP',
-                tradingViewSymbol: 'BITSTAMP:XRPUSD',
-                displayName: 'XRP',
-                kinfopaneltousSymbol: 'XRPUSD'
-            }
+            { id: 'bitcoin', name: 'Bitcoin (BTC)', symbol: 'BTC', tradingViewSymbol: 'BITSTAMP:BTCUSD', displayName: 'Bitcoin', kinfopaneltousSymbol: 'BTCUSD' },
+            { id: 'litecoin', name: 'Litecoin (LTC)', symbol: 'LTC', tradingViewSymbol: 'BITSTAMP:LTCUSD', displayName: 'Litecoin', kinfopaneltousSymbol: 'LTCUSD' },
+            { id: 'ethereum', name: 'Ethereum (ETH)', symbol: 'ETH', tradingViewSymbol: 'BITSTAMP:ETHUSD', displayName: 'Ethereum', kinfopaneltousSymbol: 'ETHUSD' },
+            { id: 'xrp', name: 'XRP', symbol: 'XRP', tradingViewSymbol: 'BITSTAMP:XRPUSD', displayName: 'XRP', kinfopaneltousSymbol: 'XRPUSD' }
         ],
         shares: [
-            {
-                id: 'S&P 500',
-                name: 'S&P 500 (SP500)',
-                symbol: 'S&P 500',
-                tradingViewSymbol: 'Vantage:SP500',
-                displayName: 'S&P 500',
-                kinfopaneltousSymbol: 'Vantage:SP500'
-            },
-            {
-               id: 'nasdaq',
-               name: 'NASDAQ Composite',
-               symbol: 'NASDAQ',
-               tradingViewSymbol: 'NASDAQ:IXIC',
-               displayName: 'NASDAQ',
-               kinfopaneltousSymbol: 'NASDAQ:IXIC'
-            },
-
-            {
-                id: 'apple',
-                name: 'Apple (AAPL)',
-                symbol: 'AAPL',
-                tradingViewSymbol: 'NASDAQ:AAPL',
-                displayName: 'Apple',
-                kinfopaneltousSymbol: 'NASDAQ:AAPL'
-            },
-
-            {
-                id: 'GameStop',
-                name: 'GameStop (GME)',
-                symbol: 'GME',
-                tradingViewSymbol: 'NYSE:GME',
-                displayName: 'GameStop',
-                kinfopaneltousSymbol: 'NYSE:GME'
-            }
+            { id: 'S&P 500', name: 'S&P 500 (SP500)', symbol: 'S&P 500', tradingViewSymbol: 'Vantage:SP500', displayName: 'S&P 500', kinfopaneltousSymbol: 'Vantage:SP500' },
+            { id: 'nasdaq', name: 'NASDAQ Composite', symbol: 'NASDAQ', tradingViewSymbol: 'NASDAQ:IXIC', displayName: 'NASDAQ', kinfopaneltousSymbol: 'NASDAQ:IXIC' },
+            { id: 'apple', name: 'Apple (AAPL)', symbol: 'AAPL', tradingViewSymbol: 'NASDAQ:AAPL', displayName: 'Apple', kinfopaneltousSymbol: 'NASDAQ:AAPL' },
+            { id: 'GameStop', name: 'GameStop (GME)', symbol: 'GME', tradingViewSymbol: 'NYSE:GME', displayName: 'GameStop', kinfopaneltousSymbol: 'NYSE:GME' }
         ],
         commodities: [
-            {
-                id: 'gold',
-                name: 'Gold (XAUUSD)',
-                symbol: 'XAU',
-                tradingViewSymbol: 'OANDA:XAUUSD',
-                displayName: 'Gold',
-                kinfopaneltousSymbol: 'XAUUSD'
-            },
-            {
-                id: 'silver',
-                name: 'Silver (XAGUSD)',
-                symbol: 'XAG',
-                tradingViewSymbol: 'OANDA:XAGUSD',
-                displayName: 'Silver',
-                kinfopaneltousSymbol: 'XAGUSD'
-            },
-            {
-                id: 'platinum',
-                name: 'Platinum (XPTUSD)',
-                symbol: 'XPT',
-                tradingViewSymbol: 'TVC:PLATINUM',
-                displayName: 'Platinum',
-                kinfopaneltousSymbol: 'PLATINUM'
-            },
-            {
-                id: 'oil',
-                name: 'Crude Oil (WTI)',
-                symbol: 'OIL',
-                tradingViewSymbol: 'TVC:USOIL',
-                displayName: 'Crude Oil',
-                kinfopaneltousSymbol: 'USOIL'
-            }
+            { id: 'gold', name: 'Gold (XAUUSD)', symbol: 'XAU', tradingViewSymbol: 'OANDA:XAUUSD', displayName: 'Gold', kinfopaneltousSymbol: 'XAUUSD' },
+            { id: 'silver', name: 'Silver (XAGUSD)', symbol: 'XAG', tradingViewSymbol: 'OANDA:XAGUSD', displayName: 'Silver', kinfopaneltousSymbol: 'XAGUSD' },
+            { id: 'platinum', name: 'Platinum (XPTUSD)', symbol: 'XPT', tradingViewSymbol: 'TVC:PLATINUM', displayName: 'Platinum', kinfopaneltousSymbol: 'PLATINUM' },
+            { id: 'oil', name: 'Crude Oil (WTI)', symbol: 'OIL', tradingViewSymbol: 'TVC:USOIL', displayName: 'Crude Oil', kinfopaneltousSymbol: 'USOIL' }
         ],
         forex: [
-            {
-                id: 'eurusd',
-                name: 'EUR/USD',
-                symbol: 'EUR',
-                tradingViewSymbol: 'FX_IDC:EURUSD',
-                displayName: 'EUR/USD',
-                kinfopaneltousSymbol: 'EURUSD'
-            },
-            {
-                id: 'gbpusd',
-                name: 'GBP/USD',
-                symbol: 'GBP',
-                tradingViewSymbol: 'FX_IDC:GBPUSD',
-                displayName: 'GBP/USD',
-                kinfopaneltousSymbol: 'GBPUSD'
-            },
-            {
-                id: 'audusd',
-                name: 'AUD/USD',
-                symbol: 'AUD',
-                tradingViewSymbol: 'FX_IDC:AUDUSD',
-                displayName: 'AUD/USD',
-                kinfopaneltousSymbol: 'AUDUSD'
-            },
-            {
-                id: 'nzdusd',
-                name: 'NZD/USD',
-                symbol: 'NZD',
-                tradingViewSymbol: 'FX_IDC:NZDUSD',
-                displayName: 'NZD/USD',
-                kinfopaneltousSymbol: 'NZDUSD'
-            }
+            { id: 'eurusd', name: 'EUR/USD', symbol: 'EUR', tradingViewSymbol: 'FX_IDC:EURUSD', displayName: 'EUR/USD', kinfopaneltousSymbol: 'EURUSD' },
+            { id: 'gbpusd', name: 'GBP/USD', symbol: 'GBP', tradingViewSymbol: 'FX_IDC:GBPUSD', displayName: 'GBP/USD', kinfopaneltousSymbol: 'GBPUSD' },
+            { id: 'audusd', name: 'AUD/USD', symbol: 'AUD', tradingViewSymbol: 'FX_IDC:AUDUSD', displayName: 'AUD/USD', kinfopaneltousSymbol: 'AUDUSD' },
+            { id: 'nzdusd', name: 'NZD/USD', symbol: 'NZD', tradingViewSymbol: 'FX_IDC:NZDUSD', displayName: 'NZD/USD', kinfopaneltousSymbol: 'NZDUSD' }
         ]
     };
 
@@ -817,13 +603,14 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentKinfopaneltousWidget = null;
     let isInSelectedView = false;
     let currentMenuPage = 'menu-1';
+    let menu1WidgetsInterval = null;
+    let currentBottomLeftWidget = 'eurusd';
+    let currentBottomRightWidget = 'apple';
     
-    // Fuseau horaire par défaut (sera mis à jour par géolocalisation)
     if (!window.appTimezone) {
         window.appTimezone = "Europe/London";
     }
 
-    // Éléments du DOM
     const carousel = document.getElementById('mainCarousel');
     const carouselScene = document.getElementById('carouselScene');
     const selectedView = document.getElementById('selectedView');
@@ -858,30 +645,129 @@ document.addEventListener('DOMContentLoaded', function() {
         }, true);
     }
 
-    // === AFFICHER LE MESSAGE PAR DÉFAUT (Menu 1) ===
-    function showDefaultMessage() {
+    // === CHARGER LES WIDGETS DU MENU-1 ===
+    function loadMenu1Widgets() {
         kinfopaneltousContent.innerHTML = '';
         
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'kinfopaneltous-default';
-        messageDiv.style.cssText = `
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-            text-align: center;
-            padding: 20px;
-        `;
-        messageDiv.textContent = 'Bonjour Mohamed';
+        const widgetsContainer = document.createElement('div');
+        widgetsContainer.className = 'menu-1-widgets';
+        widgetsContainer.id = 'menu1WidgetsContainer';
         
-        kinfopaneltousContent.appendChild(messageDiv);
+        widgetsContainer.innerHTML = `
+            <div class="menu-1-widgets-container">
+                <div class="market-cell top-widget" id="topWidget"></div>
+                <div class="bottom-widgets">
+                    <div class="market-cell bottom-left-widget" id="bottomLeftWidget"></div>
+                    <div class="market-cell bottom-right-widget" id="bottomRightWidget"></div>
+                </div>
+            </div>
+        `;
+        
+        kinfopaneltousContent.appendChild(widgetsContainer);
+        loadSP500Widget();
+        loadRandomBottomWidgets();
+        
+        if (menu1WidgetsInterval) {
+            clearInterval(menu1WidgetsInterval);
+        }
+        
+        menu1WidgetsInterval = setInterval(() => {
+            loadRandomBottomWidgets();
+        }, 30000);
     }
 
-    // === CHARGEMENT DES KINFOPANELTOUS POUR LES ACTUALITÉS ===
+    // === CHARGER LE WIDGET SP500 ===
+    function loadSP500Widget() {
+        const topWidget = document.getElementById('topWidget');
+        if (!topWidget) return;
+        
+        topWidget.innerHTML = '';
+        const iframe = document.createElement('iframe');
+        iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=Vantage:SP500&width=250&height=90&colorTheme=dark&isTransparent=true`;
+        iframe.frameBorder = '0';
+        iframe.scrolling = 'no';
+        iframe.allowtransparency = 'true';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+        iframe.style.display = 'block';
+        topWidget.appendChild(iframe);
+    }
+
+    // === CHARGER LES WIDGETS DU BAS (ALÉATOIRES) ===
+    function loadRandomBottomWidgets() {
+        const forexSymbols = [
+            { id: 'eurusd', symbol: 'FX_IDC:EURUSD', name: 'EUR/USD' },
+            { id: 'gbpusd', symbol: 'FX_IDC:GBPUSD', name: 'GBP/USD' },
+            { id: 'nzdusd', symbol: 'FX_IDC:NZDUSD', name: 'NZD/USD' },
+            { id: 'audusd', symbol: 'FX_IDC:AUDUSD', name: 'AUD/USD' },
+            { id: 'jpyusd', symbol: 'FX_IDC:JPYUSD', name: 'JPY/USD' }
+        ];
+        
+        const stockCryptoSymbols = [
+            { id: 'apple', symbol: 'NASDAQ:AAPL', name: 'Apple' },
+            { id: 'tesla', symbol: 'NASDAQ:TSLA', name: 'Tesla' },
+            { id: 'bitcoin', symbol: 'BITSTAMP:BTCUSD', name: 'Bitcoin' },
+            { id: 'ethereum', symbol: 'BITSTAMP:ETHUSD', name: 'Ethereum' },
+            { id: 'nasdaq', symbol: 'NASDAQ:IXIC', name: 'NASDAQ' }
+        ];
+        
+        const randomForex = forexSymbols[Math.floor(Math.random() * forexSymbols.length)];
+        const randomStockCrypto = stockCryptoSymbols[Math.floor(Math.random() * stockCryptoSymbols.length)];
+        
+        currentBottomLeftWidget = randomForex.id;
+        currentBottomRightWidget = randomStockCrypto.id;
+        
+        const bottomLeftWidget = document.getElementById('bottomLeftWidget');
+        if (bottomLeftWidget) {
+            bottomLeftWidget.innerHTML = '';
+            const iframe = document.createElement('iframe');
+            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomForex.symbol}&width=124.5&height=90&colorTheme=dark&isTransparent=true`;
+            iframe.frameBorder = '0';
+            iframe.scrolling = 'no';
+            iframe.allowtransparency = 'true';
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.display = 'block';
+            bottomLeftWidget.appendChild(iframe);
+        }
+        
+        const bottomRightWidget = document.getElementById('bottomRightWidget');
+        if (bottomRightWidget) {
+            bottomRightWidget.innerHTML = '';
+            const iframe = document.createElement('iframe');
+            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomStockCrypto.symbol}&width=124.5&height=90&colorTheme=dark&isTransparent=true`;
+            iframe.frameBorder = '0';
+            iframe.scrolling = 'no';
+            iframe.allowtransparency = 'true';
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.display = 'block';
+            bottomRightWidget.appendChild(iframe);
+        }
+        
+        setTimeout(() => {
+            adjustIFrameScale();
+        }, 500);
+    }
+
+    // === Ajuster le scale des iframes ===
+    function adjustIFrameScale() {
+        const cells = document.querySelectorAll('.market-cell');
+        cells.forEach(cell => {
+            const iframe = cell.querySelector('iframe');
+            if (iframe) {
+                iframe.style.transform = 'scale(0.8)';
+                iframe.style.transformOrigin = 'top left';
+                iframe.style.width = '125%';
+                iframe.style.height = '125%';
+            }
+        });
+    }
+
+    // === CHARGER LES KINFOPANELTOUS POUR LES ACTUALITÉS ===
     function loadKinfopaneltousNews(asset) {
         kinfopaneltousContent.innerHTML = '';
         
@@ -909,7 +795,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 "isTransparent": true,
                 "displayMode": "compact",
                 "width": "250",
-                "height": "400",
+                "height": "600",
                 "colorTheme": "dark",
                 "locale": "fr",
                 "utm_source": "tradingview.com",
@@ -922,9 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             widgetDiv.appendChild(script);
-            
             currentKinfopaneltousWidget = widgetDiv;
-            
             setTimeout(removeAllTooltips, 1500);
         }, 500);
     }
@@ -933,21 +817,20 @@ document.addEventListener('DOMContentLoaded', function() {
     function updatePanelInfo() {
         kinfopaneltousContainer.classList.add('active');
         
-        // PRIORITÉ 1: Si Selected View est ouvert, TOUJOURS afficher les news
         if (isInSelectedView && selectedAsset) {
             loadKinfopaneltousNews(selectedAsset);
-        } 
-        // PRIORITÉ 2: Sinon, afficher selon la page active
-        else {
+        } else {
             if (currentMenuPage === 'menu-1') {
-                showDefaultMessage();
+                loadMenu1Widgets();
             } else if (currentMenuPage === 'menu-4') {
-                // Toujours charger les données à jour
                 getMoneyManagementData();
                 showResultPanel();
             } else {
-                // Pour les autres pages
-                showDefaultMessage();
+                kinfopaneltousContent.innerHTML = '';
+                if (menu1WidgetsInterval) {
+                    clearInterval(menu1WidgetsInterval);
+                    menu1WidgetsInterval = null;
+                }
             }
         }
     }
@@ -977,20 +860,15 @@ document.addEventListener('DOMContentLoaded', function() {
         menuSections.forEach(section => {
             section.addEventListener('click', function() {
                 const type = this.getAttribute('data-type');
-                
                 menuSections.forEach(s => s.classList.remove('active'));
                 this.classList.add('active');
-                
                 currentAssetType = type;
                 currentAssets = assetTypes[type];
-                
                 updateCarousel();
             });
         });
         
         updateCarousel();
-        
-        // Détecter la page initiale
         updateCurrentMenuPage();
         updatePanelInfo();
         
@@ -1041,6 +919,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 { text: "5min", resolution: "5", description: "5 Minutes", title: "5min" },
                 { text: "15min", resolution: "15", description: "15 Minutes", title: "15min" },
                 { text: "2h", resolution: "120", description: "2 Hours", title: "2h" },
+                { text: "4h", resolution: "240", description: "4 Hours", title: "4h" },
                 { text: "1D", resolution: "1D", description: "1 Day", title: "1D" }
             ]
         };
@@ -1183,10 +1062,7 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedAsset = currentAssets.find(c => c.id === assetId);
         if (!selectedAsset) return;
 
-        // Activer le mode Selected View
         isInSelectedView = true;
-        
-        // Animation et transition
         carousel.classList.add('carousel-paused');
         carouselScene.classList.add('hidden');
         sideMenu.classList.add('hidden');
@@ -1194,10 +1070,8 @@ document.addEventListener('DOMContentLoaded', function() {
         backBtn.classList.remove('hidden');
         loader.classList.remove('hidden');
 
-        // Mettre à jour le panel info (afficher les news)
         updatePanelInfo();
 
-        // Préparer le graphique TradingView
         const tvContainer = document.getElementById('tradingview_selected');
         if (tvContainer) {
             tvContainer.innerHTML = '';
@@ -1222,20 +1096,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
 
-    // === RETOUR AU CAROUSEL (MANUEL SEULEMENT) ===
+    // === RETOUR AU CAROUSEL ===
     backBtn.addEventListener('click', function() {
-        // Désactiver le mode Selected View
         isInSelectedView = false;
-        
         selectedView.classList.remove('active');
         carouselScene.classList.remove('hidden');
         backBtn.classList.add('hidden');
         sideMenu.classList.remove('hidden');
         carousel.classList.remove('carousel-paused');
-        
-        // Mettre à jour le panel info selon la page active
         updatePanelInfo();
-        
         removeAllTooltips();
     });
 
@@ -1243,14 +1112,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const observerMenuChange = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.attributeName === 'class') {
-                // Mettre à jour la page active
                 updateCurrentMenuPage();
-                
-                // Mettre à jour le panel info seulement si Selected View n'est PAS actif
-                if (!isInSelectedView) {
-                    updatePanelInfo();
-                }
-                // Si Selected View est actif, on NE CHANGE RIEN - les news restent
+                updatePanelInfo();
             }
         });
     });
@@ -1260,7 +1123,6 @@ document.addEventListener('DOMContentLoaded', function() {
         attributeFilter: ['class']
     });
 
-    // DÉMARRER L'APPLICATION
     init();
 
     window.addEventListener('resize', function() {
@@ -1268,7 +1130,6 @@ document.addEventListener('DOMContentLoaded', function() {
         sideMenu.style.transform = 'translateY(-50%)';
     });
     
-    // Stocker les widgets dans l'objet global pour pouvoir les mettre à jour
     window.tvWidgets = tvWidgets;
     window.selectedTVWidget = selectedTVWidget;
     window.isInSelectedView = isInSelectedView;
@@ -1277,26 +1138,9 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showResultPanel = showResultPanel;
     window.calculateSavings = calculateSavings;
     window.transferSaving = transferSaving;
-    
-    // ============================================
-    // DÉMARRER LA SURVEILLANCE AUTOMATIQUE
-    // ============================================
-    
-    // Démarrer la surveillance immédiatement
-    setTimeout(() => {
-        startAutoUpdate();
-        
-        // Vérifier toutes les 2 secondes en backup
-        setInterval(() => {
-            if (currentMenuPage === 'menu-4' && !isInSelectedView) {
-                getMoneyManagementData();
-                showResultPanel();
-            }
-        }, 1000);
-    }, 1000);
 });
 
-// Polling global de secours toutes les secondes
+// Polling global
 setInterval(() => {
   if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
     if (window.getMoneyManagementData && window.showResultPanel) {
@@ -1306,7 +1150,6 @@ setInterval(() => {
   }
 }, 300);
 
-// Mettre à jour immédiatement au chargement de la page
 window.addEventListener('load', function() {
   setTimeout(() => {
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
@@ -1317,3 +1160,81 @@ window.addEventListener('load', function() {
     }
   }, 300);
 });
+
+// ============================================
+// GÉOLOCALISATION
+// ============================================
+
+async function getAddress(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=fr`,
+      {
+        headers: {
+          "User-Agent": "around-app/1.0 (test)",
+          "Accept-Language": "fr"
+        }
+      }
+    );
+    if (!res.ok) throw new Error("Réponse HTTP invalide");
+    const data = await res.json();
+
+    let suburb = data.address.suburb || data.address.neighbourhood || data.address.quarter || "Quartier inconnu";
+    let borough = data.address.borough || data.address.city_district || "Borough inconnu";
+    let city = data.address.city || data.address.town || data.address.municipality || data.address.county || "Ville inconnue";
+
+    document.getElementById("output").textContent = `Around: ${suburb}, ${borough}, ${city}`;
+  } catch (e) {
+    document.getElementById("output").textContent = "Erreur adresse : " + e;
+  }
+}
+
+async function getTimezoneFromCoords(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://api.timezonedb.com/v2.1/get-time-zone?key=YOUR_API_KEY&format=json&by=position&lat=${lat}&lng=${lon}`
+    );
+    if (!res.ok) throw new Error("Erreur API fuseau horaire");
+    const data = await res.json();
+    return data.zoneName;
+  } catch (e) {
+    console.error("Erreur fuseau horaire:", e);
+    return "Europe/London";
+  }
+}
+
+function success(pos) {
+  const crd = pos.coords;
+  getAddress(crd.latitude, crd.longitude);
+  
+  getTimezoneFromCoords(crd.latitude, crd.longitude).then(timezone => {
+    window.appTimezone = timezone;
+    
+    if (window.tvWidgets) {
+      Object.values(window.tvWidgets).forEach(widget => {
+        if (widget && widget.chart) {
+          widget.chart().setTimezone(timezone);
+        }
+      });
+    }
+    if (window.selectedTVWidget && window.selectedTVWidget.chart) {
+      window.selectedTVWidget.chart().setTimezone(timezone);
+    }
+  });
+}
+
+function error(err) {
+  document.getElementById("output").textContent = `Erreur (${err.code}): ${err.message}`;
+  window.appTimezone = "Europe/London";
+}
+
+if ("geolocation" in navigator) {
+  navigator.geolocation.getCurrentPosition(success, error, {
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 0
+  });
+} else {
+  document.getElementById("output").textContent = "❌ Géolocalisation non supportée par ce navigateur.";
+  window.appTimezone = "Europe/London";
+}

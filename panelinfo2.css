@@ -71,7 +71,7 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 280px;
+  margin-top: 80px;
   align-self: center; /* Centre le container dans le panelinfo */
 }
 

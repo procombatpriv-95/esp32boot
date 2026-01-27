@@ -1,37 +1,4 @@
-<script>
-  // Variables globales pour les ping et l'état de Fahim
-  setInterval(() => {
-    fetch('/pingMohamed?token=' + token);
-  }, 2000);
-  
-  setInterval(() => {
-    fetch('/checkFahimStatus')
-      .then(response => response.text())
-      .then(data => {
-        const dot = document.getElementById('fahimDot');
-        if (data === 'active') {
-          dot.style.backgroundColor = '#00FF00';
-          dot.style.boxShadow = '0 0 10px #00FF00';
-        } else {
-          dot.style.backgroundColor = '#FF0000';
-          dot.style.boxShadow = '0 0 10px #FF0000';
-        }
-      });
-  }, 2000);
-  
-  window.addEventListener('beforeunload', function() {
-    fetch('/logoutMohamed?token=' + token);
-  });
-  
-  function logout() {
-    fetch('/logoutMohamed?token=' + token);
-    window.location.href = '/';
-  }
-</script>
 
-// ============================================
-// VARIABLES GLOBALES POUR LE PANEL RESULTAT
-// ============================================
 
 let resultPanelData = {
   currentPeriod: 'monthly',

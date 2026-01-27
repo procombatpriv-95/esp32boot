@@ -63,7 +63,7 @@
 /* KINFOPANELTOUS CONTAINER (Deuxième div) - MODIFIÉ */
 .kinfopaneltous-container {
   width: 250px; /* Largeur fixe de 250px */
-  height: 420px;
+  height: 620px;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 20px;
   padding: 0; /* Pas de padding pour que le widget prenne toute la place */
@@ -71,7 +71,7 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 280px;
+  margin-top: 80px;
   align-self: center; /* Centre le container dans le panelinfo */
 }
 
@@ -187,7 +187,8 @@ a, button, .clickable {
 
 .progress-section {
   width: 100%;
-  margin-bottom: 20px;
+  margin-top:-10px;
+  margin-bottom: 55px;
 }
 
 .progress-header {
@@ -273,7 +274,7 @@ a, button, .clickable {
 .indicators-container {
   display: flex;
   gap: 15px;
-  margin-top: 20px;
+  margin-top: -57px;
 }
 
 .indicator-box {
@@ -326,6 +327,58 @@ a, button, .clickable {
 
 .indicator-lowest .indicator-value {
   color: #e74c3c;
+}
+
+/* SAVINGS SECTION - NOUVEAU */
+.savings-container {
+  margin-top: -5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.saving-item {
+  background: rgba(30, 31, 35, 0.8);
+  border-radius: 30px;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.saving-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.saving-amount {
+  font-size: 14px;
+  font-weight: bold;
+  color: #3498db;
+}
+
+.saving-add-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.saving-add-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.saving-add-btn:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
 }
 
 /* Message par défaut */

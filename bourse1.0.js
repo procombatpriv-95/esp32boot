@@ -1041,6 +1041,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 { text: "5min", resolution: "5", description: "5 Minutes", title: "5min" },
                 { text: "15min", resolution: "15", description: "15 Minutes", title: "15min" },
                 { text: "2h", resolution: "120", description: "2 Hours", title: "2h" },
+                { text: "4h", resolution: "240", description: "4 Hours", title: "4h" },
                 { text: "1D", resolution: "1D", description: "1 Day", title: "1D" }
             ]
         };

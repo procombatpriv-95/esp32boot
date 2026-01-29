@@ -1,20 +1,3 @@
-<div class="panelinfo" id="panelInfo">
-  <div class="status-container">
-    <div style="display: flex; align-items: center; gap: 5px;">
-      <span class="status-text">F.S</span>
-      <div id="fahimDot" class="status-dot" style="background-color: )rawliteral" + 
-      (isFahimActive ? "#00FF00" : "#FF0000") + R"rawliteral(;"></div>
-    </div>
-  </div>
-
-  <!-- DEUXIÈME DIV: Kinfopaneltous Container -->
-  <div class="kinfopaneltous-container" id="kinfopaneltousContainer">
-    <div class="kinfopaneltous-header" id="kinfopaneltousHeader" style="display: none;"></div>
-    <div class="kinfopaneltous-content" id="kinfopaneltousContent">
-      <div class="kinfopaneltous-default">Bonjour Mohamed</div>
-    </div>
-  </div>
-</div>
 
 // ============================================
 // VARIABLES GLOBALES

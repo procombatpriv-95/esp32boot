@@ -386,70 +386,23 @@ a, button, .clickable {
   display: none !important;
 }
 
-/* === STYLES POUR LES WIDGETS DU MENU-1 === */
-.menu-1-widgets {
+/* === STYLES POUR LE MENU 1 (MODIFIÉ - GRAPHIQUE SP500) === */
+#menu1WidgetContainer {
   width: 100%;
   height: 180px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 15px;
   overflow: hidden;
   margin-top: 10px;
-  position: relative;
 }
 
-.menu-1-widgets-container {
+#menu1WidgetContainer iframe {
   width: 100%;
   height: 100%;
-  position: relative;
-}
-
-.market-cell {
-  position: absolute;
-  overflow: hidden;
-  pointer-events: auto !important;
-}
-
-.market-cell iframe {
-  width: 100% !important;
-  height: 100% !important;
-  border: none !important;
-  pointer-events: auto !important;
-}
-
-/* Widget du haut - SP500 */
-.top-widget {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 250px !important;
-  height: 90px !important;
-  z-index: 2;
-}
-
-/* Widgets du bas */
-.bottom-widgets {
-  position: absolute;
-  top: 90px;
-  left: 0;
-  width: 250px !important;
-  height: 90px !important;
-  display: flex;
-}
-
-.bottom-left-widget {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 124.5px !important;
-  height: 90px !important;
-  z-index: 2;
-}
-
-.bottom-right-widget {
-  position: absolute;
-  top: 0;
-  left: 124.5px;
-  width: 124.5px !important;
-  height: 90px !important;
-  z-index: 2;
+  border: none;
+  border-radius: 15px;
+  transform: scale(0.8);
+  transform-origin: top left;
+  width: 125%;
+  height: 125%;
 }

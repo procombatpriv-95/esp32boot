@@ -1,4 +1,20 @@
+<div class="panelinfo" id="panelInfo">
+  <div class="status-container">
+    <div style="display: flex; align-items: center; gap: 5px;">
+      <span class="status-text">F.S</span>
+      <div id="fahimDot" class="status-dot" style="background-color: )rawliteral" + 
+      (isFahimActive ? "#00FF00" : "#FF0000") + R"rawliteral(;"></div>
+    </div>
+  </div>
 
+  <!-- DEUXIÈME DIV: Kinfopaneltous Container -->
+  <div class="kinfopaneltous-container" id="kinfopaneltousContainer">
+    <div class="kinfopaneltous-header" id="kinfopaneltousHeader" style="display: none;"></div>
+    <div class="kinfopaneltous-content" id="kinfopaneltousContent">
+      <div class="kinfopaneltous-default">Bonjour Mohamed</div>
+    </div>
+  </div>
+</div>
 
 // ============================================
 // VARIABLES GLOBALES
@@ -420,7 +436,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentKinfopaneltousWidget = null;
     let isInSelectedView = false;
     let currentMenuPage = 'menu-1';
-    let menu1WidgetsInterval = null;
     let wasInSelectedView = false;
     
     if (!window.appTimezone) {
@@ -450,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // === WIDGET MENU-1 COMPLET (SP500) ===
+    // === WIDGET MENU-1 SIMPLE (SP500) ===
     function loadMenu1Widgets() {
         kinfopaneltousContent.innerHTML = '';
         
@@ -458,57 +473,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const sp500Container = document.createElement('div');
         sp500Container.className = 'menu1-sp500-container';
         
-        // Données simulées pour SP500 (vous pouvez les remplacer par des données réelles)
-        const sp500Price = 6978.02;
-        const sp500Change = -12.34; // Exemple de changement négatif
-        const sp500ChangePercent = -0.18;
-        const isPositive = sp500Change >= 0;
+        // Créer l'iframe avec un widget TradingView simple
+        const iframe = document.createElement('iframe');
+        iframe.src = `https://s.tradingview.com/embed-widget/advanced-chart/?locale=fr&symbol=Vantage:SP500&height=250&width=220&interval=60&hide_side_toolbar=true&allow_symbol_change=false&save_image=false&theme=dark&style=1&studies=&backgroundColor=rgba(0,0,0,0.3)&textColor=white&gridColor=rgba(255,255,255,0.1)&hide_volume=true&withdateranges=false&range=1D&hide_top_toolbar=true`;
+        iframe.frameBorder = '0';
+        iframe.scrolling = 'no';
+        iframe.allowtransparency = 'true';
+        iframe.title = 'S&P 500 Chart';
         
-        sp500Container.innerHTML = `
-            <!-- Header avec logo, nom, prix et pourcentage -->
-            <div class="sp500-header">
-                <div class="sp500-logo">SPX</div>
-                <div class="sp500-info">
-                    <div class="sp500-name">S&P 500</div>
-                    <div class="sp500-price-container">
-                        <div class="sp500-price">$${sp500Price.toFixed(2)}</div>
-                        <div class="sp500-change ${isPositive ? 'positive' : 'negative'}">
-                            ${isPositive ? '+' : ''}${sp500Change.toFixed(2)} (${isPositive ? '+' : ''}${sp500ChangePercent.toFixed(2)}%)
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Graphique TradingView -->
-            <div class="sp500-chart-container">
-                <iframe 
-                    src="https://s.tradingview.com/embed-widget/advanced-chart/?locale=fr&symbol=Vantage%3ASP500&height=300&width=220&interval=5&hide_side_toolbar=true&allow_symbol_change=false&save_image=false&theme=dark&style=1&studies=&backgroundColor=rgba(0%2C0%2C0%2C0.3)&textColor=white&gridColor=rgba(255%2C255%2C255%2C0.1)&hide_volume=true&withdateranges=false&range=1D"
-                    frameborder="0"
-                    scrolling="no"
-                    allowtransparency="true"
-                    title="S&P 500 Chart">
-                </iframe>
-            </div>
-            
-            <!-- Section négativité -->
-            <div class="sp500-negative-section">
-                <div class="negative-header">
-                    <div class="negative-title">Négativité</div>
-                    <div class="negative-percentage">${Math.abs(sp500ChangePercent).toFixed(2)}%</div>
-                </div>
-                <div class="negative-stocks">
-                    Principales baisses: AAPL -1.2%, MSFT -0.8%, GOOGL -0.6%, AMZN -0.9%, TSLA -2.3%
-                </div>
-            </div>
-        `;
-        
+        sp500Container.appendChild(iframe);
         kinfopaneltousContent.appendChild(sp500Container);
-        
-        // Arrêter l'intervalle des anciens widgets s'il existe
-        if (menu1WidgetsInterval) {
-            clearInterval(menu1WidgetsInterval);
-            menu1WidgetsInterval = null;
-        }
     }
 
     // === ACTUALITÉS SELECTED VIEW ===
@@ -598,10 +572,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 showResultPanel();
             } else {
                 kinfopaneltousContent.innerHTML = '';
-                if (menu1WidgetsInterval) {
-                    clearInterval(menu1WidgetsInterval);
-                    menu1WidgetsInterval = null;
-                }
             }
         }
     }

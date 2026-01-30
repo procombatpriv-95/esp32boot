@@ -14,13 +14,21 @@ let resultPanelData = {
   yearlyTransactions: [],
   highestTransaction: { amount: 0, category: '' },
   lowestTransaction: { amount: 0, category: '' },
-  savings: { saving1: 0, saving2: 0, saving3: 0 }
+  savings: { saving1: 0, saving2: 0, saving3: 0 },
+  monthlyIncomes: new Array(12).fill(0), // Pour l'area chart
+  selectedNewsView: false, // Nouveau: pour suivre l'état de la vue sélectionnée des news
+  currentNews: null // Nouveau: pour stocker la news sélectionnée
 };
 
 let lastTransactionHash = '';
 let lastGoalHash = '';
 let lastSavingsHash = '';
 let autoUpdateInterval = null;
+let menu4Interval = null;
+let selectedNewsState = {
+  isActive: false,
+  currentNews: null
+};
 
 // ============================================
 // FONCTIONS FINANCIÈRES
@@ -148,17 +156,30 @@ function getMoneyManagementData(period = null) {
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
     
+    // Calcul des revenus mensuels pour l'area chart
+    const monthlyIncomes = new Array(12).fill(0);
+    const monthlyExpensesArray = new Array(12).fill(0);
+    
+    yearlyNormalTransactions.forEach(t => {
+      const month = new Date(t.date).getMonth();
+      if (t.type === 'income') {
+        monthlyIncomes[month] += t.amount;
+      } else if (t.type === 'expense') {
+        monthlyExpensesArray[month] += t.amount;
+      }
+    });
+    
     let monthlyHighest = { amount: 0, category: '' };
     let monthlyLowest = { amount: 0, category: '' };
     let yearlyHighest = { amount: 0, category: '' };
     let yearlyLowest = { amount: 0, category: '' };
     
     if (monthlyNormalTransactions.length > 0) {
-      const monthlyIncomes = monthlyNormalTransactions.filter(t => t.type === 'income');
+      const monthlyIncomesList = monthlyNormalTransactions.filter(t => t.type === 'income');
       const monthlyExpensesList = monthlyNormalTransactions.filter(t => t.type === 'expense');
       
-      if (monthlyIncomes.length > 0) {
-        monthlyHighest = monthlyIncomes.reduce((max, t) => 
+      if (monthlyIncomesList.length > 0) {
+        monthlyHighest = monthlyIncomesList.reduce((max, t) => 
           t.amount > max.amount ? t : max
         );
       }
@@ -171,11 +192,11 @@ function getMoneyManagementData(period = null) {
     }
     
     if (yearlyNormalTransactions.length > 0) {
-      const yearlyIncomes = yearlyNormalTransactions.filter(t => t.type === 'income');
+      const yearlyIncomesList = yearlyNormalTransactions.filter(t => t.type === 'income');
       const yearlyExpensesList = yearlyNormalTransactions.filter(t => t.type === 'expense');
       
-      if (yearlyIncomes.length > 0) {
-        yearlyHighest = yearlyIncomes.reduce((max, t) => 
+      if (yearlyIncomesList.length > 0) {
+        yearlyHighest = yearlyIncomesList.reduce((max, t) => 
           t.amount > max.amount ? t : max
         );
       }
@@ -200,6 +221,7 @@ function getMoneyManagementData(period = null) {
     resultPanelData.highestTransaction = currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest;
     resultPanelData.lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
     resultPanelData.savings = savings;
+    resultPanelData.monthlyIncomes = monthlyIncomes;
     
     return resultPanelData;
     
@@ -207,6 +229,117 @@ function getMoneyManagementData(period = null) {
     console.error('Erreur lors de la récupération des données:', e);
     return resultPanelData;
   }
+}
+
+function drawAreaChart(monthlyIncomes, period) {
+  const container = document.getElementById('areaChartContainer');
+  if (!container) return;
+  
+  // Créer le canvas s'il n'existe pas
+  let canvas = container.querySelector('canvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'incomeAreaChart';
+    canvas.width = 200;
+    canvas.height = 200;
+    container.innerHTML = '';
+    container.appendChild(canvas);
+  }
+  
+  const ctx = canvas.getContext('2d');
+  
+  // Effacer le canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Données pour le graphique
+  const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+  const incomeData = monthlyIncomes;
+  
+  // Trouver les valeurs min et max pour l'échelle
+  const minValue = Math.min(...incomeData);
+  const maxValue = Math.max(...incomeData);
+  const range = maxValue - minValue || 1; // Éviter division par zéro
+  
+  // Créer un gradient pour l'area chart
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, 'rgba(67, 97, 238, 0.3)');
+  gradient.addColorStop(1, 'rgba(67, 97, 238, 0.1)');
+  
+  // Dessiner l'area chart
+  ctx.beginPath();
+  ctx.moveTo(10, canvas.height - 10);
+  
+  incomeData.forEach((value, index) => {
+    const x = 10 + (index / (incomeData.length - 1)) * (canvas.width - 20);
+    const y = canvas.height - 10 - ((value - minValue) / range) * (canvas.height - 20);
+    
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  
+  ctx.lineTo(canvas.width - 10, canvas.height - 10);
+  ctx.lineTo(10, canvas.height - 10);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+  
+  // Dessiner la ligne
+  ctx.beginPath();
+  ctx.strokeStyle = '#4361ee';
+  ctx.lineWidth = 2;
+  
+  incomeData.forEach((value, index) => {
+    const x = 10 + (index / (incomeData.length - 1)) * (canvas.width - 20);
+    const y = canvas.height - 10 - ((value - minValue) / range) * (canvas.height - 20);
+    
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  
+  ctx.stroke();
+  
+  // Ajouter des points sur la ligne
+  incomeData.forEach((value, index) => {
+    const x = 10 + (index / (incomeData.length - 1)) * (canvas.width - 20);
+    const y = canvas.height - 10 - ((value - minValue) / range) * (canvas.height - 20);
+    
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#4361ee';
+    ctx.fill();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+  
+  // Ajouter les labels des mois (tous les 2 mois)
+  ctx.fillStyle = '#666';
+  ctx.font = '8px Arial';
+  ctx.textAlign = 'center';
+  
+  incomeData.forEach((value, index) => {
+    if (index % 2 === 0) { // Tous les 2 mois
+      const x = 10 + (index / (incomeData.length - 1)) * (canvas.width - 20);
+      ctx.fillText(months[index], x, canvas.height - 2);
+    }
+  });
+  
+  // Ajouter le titre
+  ctx.fillStyle = '#333';
+  ctx.font = 'bold 10px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Évolution des Revenus', canvas.width / 2, 15);
+  
+  // Ajouter la période
+  ctx.font = '8px Arial';
+  ctx.fillStyle = '#666';
+  ctx.fillText(`Période: ${period === 'monthly' ? 'Mensuelle' : 'Annuelle'}`, canvas.width / 2, 30);
 }
 
 function showResultPanel() {
@@ -313,9 +446,17 @@ function showResultPanel() {
         <button class="saving-add-btn" data-saving="saving3" ${savings.saving3 <= 0 ? 'disabled' : ''}>Add</button>
       </div>
     </div>
+    
+    <!-- Area Chart Container -->
+    <div id="areaChartContainer" style="width: 200px; height: 200px; margin: 20px auto; background: rgba(255,255,255,0.1); border-radius: 10px; padding: 10px;"></div>
   `;
   
   kinfopaneltousContent.appendChild(resultPanel);
+  
+  // Dessiner l'area chart
+  setTimeout(() => {
+    drawAreaChart(resultPanelData.monthlyIncomes, resultPanelData.currentPeriod);
+  }, 100);
   
   if (!document.querySelector('link[href*="font-awesome"]')) {
     const faLink = document.createElement('link');
@@ -324,11 +465,14 @@ function showResultPanel() {
     document.head.appendChild(faLink);
   }
   
+  // Gestion des boutons de période - MISE À JOUR AUTOMATIQUE
   const periodBtns = resultPanel.querySelectorAll('.period-btn');
   periodBtns.forEach(btn => {
     btn.addEventListener('click', function() {
       const period = this.getAttribute('data-period');
       resultPanelData.currentPeriod = period;
+      
+      // Mettre à jour immédiatement sans clic supplémentaire
       getMoneyManagementData(period);
       showResultPanel();
     });
@@ -352,6 +496,7 @@ localStorage.setItem = function(key, value) {
   originalSetItem.apply(this, arguments);
   
   if (key && key.includes('moneyManager')) {
+    // Mettre à jour automatiquement si on est sur le menu-4
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
       setTimeout(() => {
         getMoneyManagementData();
@@ -668,31 +813,78 @@ document.addEventListener('DOMContentLoaded', function() {
     function updatePanelInfo() {
         kinfopaneltousContainer.classList.add('active');
         
-        // Si on change de menu et qu'on était en selected view, on le quitte
-        if (wasInSelectedView && currentMenuPage !== 'menu-2') {
-            isInSelectedView = false;
-            wasInSelectedView = false;
+        // Gestion spéciale pour le menu-2: restaurer la vue sélectionnée si elle était active
+        if (currentMenuPage === 'menu-2') {
+            // Si on a une vue sélectionnée active, on la restaure
+            if (selectedNewsState.isActive && selectedNewsState.currentNews) {
+                // Réactiver l'interface de la vue sélectionnée
+                isInSelectedView = true;
+                carouselScene.classList.add('hidden');
+                sideMenu.classList.add('hidden');
+                selectedView.classList.add('active');
+                backBtn.classList.remove('hidden');
+                carousel.classList.add('carousel-paused');
+                
+                // Recharger les news
+                loadKinfopaneltousNews(selectedNewsState.currentNews);
+                return;
+            } else {
+                // Sinon, on montre le carousel normal
+                isInSelectedView = false;
+                selectedView.classList.remove('active');
+                carouselScene.classList.remove('hidden');
+                sideMenu.classList.remove('hidden');
+                backBtn.classList.add('hidden');
+                carousel.classList.remove('carousel-paused');
+                kinfopaneltousContent.innerHTML = '';
+            }
         }
         
         // Les news ne s'affichent QUE si toutes ces conditions sont remplies
         if (isInSelectedView && selectedAsset && currentMenuPage === 'menu-2') {
+            // Sauvegarder l'état de la vue sélectionnée
+            selectedNewsState.isActive = true;
+            selectedNewsState.currentNews = selectedAsset;
+            
             loadKinfopaneltousNews(selectedAsset);
         } else {
-            // Sinon, on désactive le selected view
+            // Si on change de menu et qu'on était en selected view, on garde l'état
             if (isInSelectedView && currentMenuPage !== 'menu-2') {
-                isInSelectedView = false;
+                // On ne réinitialise pas isInSelectedView, on garde l'état
+                // Mais on masque l'interface de la vue sélectionnée
+                selectedView.classList.remove('active');
+                carouselScene.classList.remove('hidden');
+                sideMenu.classList.remove('hidden');
+                carousel.classList.remove('carousel-paused');
+                backBtn.classList.add('hidden');
             }
             
             if (currentMenuPage === 'menu-1') {
                 loadMenu1Widgets();
             } else if (currentMenuPage === 'menu-4') {
+                // Mettre à jour automatiquement les données financières
                 getMoneyManagementData();
                 showResultPanel();
+                
+                // Démarrer l'intervalle de mise à jour automatique
+                if (menu4Interval) clearInterval(menu4Interval);
+                menu4Interval = setInterval(() => {
+                    if (currentMenuPage === 'menu-4' && !isInSelectedView) {
+                        getMoneyManagementData();
+                        showResultPanel();
+                    }
+                }, 30000); // Mise à jour toutes les 30 secondes
             } else {
                 kinfopaneltousContent.innerHTML = '';
                 if (menu1WidgetsInterval) {
                     clearInterval(menu1WidgetsInterval);
                     menu1WidgetsInterval = null;
+                }
+                
+                // Arrêter l'intervalle du menu-4 si on n'est pas dans le menu-4
+                if (menu4Interval) {
+                    clearInterval(menu4Interval);
+                    menu4Interval = null;
                 }
             }
         }
@@ -838,7 +1030,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!selectedAsset) return;
 
         isInSelectedView = true;
-        wasInSelectedView = true;
         carousel.classList.add('carousel-paused');
         carouselScene.classList.add('hidden');
         sideMenu.classList.add('hidden');
@@ -874,7 +1065,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // === ÉVÉNEMENTS ===
     backBtn.addEventListener('click', function() {
         isInSelectedView = false;
-        wasInSelectedView = false;
+        selectedNewsState.isActive = false;
+        selectedNewsState.currentNews = null;
+        
         selectedView.classList.remove('active');
         carouselScene.classList.remove('hidden');
         backBtn.classList.add('hidden');
@@ -889,13 +1082,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 const oldMenu = currentMenuPage;
                 updateCurrentMenuPage();
                 
-                if (isInSelectedView && oldMenu !== currentMenuPage) {
-                    isInSelectedView = false;
+                // Si on quitte le menu-2, on garde l'état de la vue sélectionnée
+                if (oldMenu === 'menu-2' && currentMenuPage !== 'menu-2') {
+                    // On ne réinitialise pas isInSelectedView, on garde l'état
+                    // Mais on masque l'interface de la vue sélectionnée
                     selectedView.classList.remove('active');
                     carouselScene.classList.remove('hidden');
                     sideMenu.classList.remove('hidden');
                     carousel.classList.remove('carousel-paused');
                     backBtn.classList.add('hidden');
+                }
+                
+                // Si on revient au menu-2, on restaure l'état si nécessaire
+                if (oldMenu !== 'menu-2' && currentMenuPage === 'menu-2') {
+                    // La restauration se fera dans updatePanelInfo
                 }
                 
                 updatePanelInfo();

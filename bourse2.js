@@ -1,4 +1,3 @@
-
 // ============================================
 // VARIABLES GLOBALES
 // ============================================
@@ -419,6 +418,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentKinfopaneltousWidget = null;
     let isInSelectedView = false;
     let currentMenuPage = 'menu-1';
+    let menu1WidgetsInterval = null;
+    let currentBottomLeftWidget = 'eurusd';
+    let currentBottomRightWidget = 'apple';
     let wasInSelectedView = false;
     
     if (!window.appTimezone) {
@@ -448,27 +450,164 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // === WIDGET MENU-1 SIMPLE (SP500) ===
+    // === WIDGETS MENU-1 ===
     function loadMenu1Widgets() {
         kinfopaneltousContent.innerHTML = '';
         
-        // Créer le conteneur principal pour SP500
-        const sp500Container = document.createElement('div');
-        sp500Container.className = 'menu1-sp500-container';
+        // Créer un conteneur principal pour les widgets
+        const widgetsContainer = document.createElement('div');
+        widgetsContainer.id = 'menu1WidgetsContainer';
+        widgetsContainer.style.cssText = `
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 250px;
+            height: 180px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            z-index: 1;
+        `;
         
-        // Créer l'iframe avec un widget TradingView simple
+        // Créer la structure des 3 widgets
+        widgetsContainer.innerHTML = `
+            <!-- Widget du haut - SP500 -->
+            <div id="topWidget" style="position: absolute; top: 0; left: 0; width: 250px; height: 90px; border-radius: 15px 15px 0 0; overflow: hidden;">
+                <!-- SP500 sera chargé ici -->
+            </div>
+            
+            <!-- Widgets du bas -->
+            <div style="position: absolute; top: 90px; left: 0; width: 250px; height: 90px;">
+                <!-- Widget gauche -->
+                <div id="bottomLeftWidget" style="position: absolute; top: 0; left: 0; width: 125px; height: 90px; border-radius: 0 0 0 15px; overflow: hidden;">
+                    <!-- FOREX sera chargé ici -->
+                </div>
+                
+                <!-- Widget droit -->
+                <div id="bottomRightWidget" style="position: absolute; top: 0; left: 125px; width: 125px; height: 90px; border-radius: 0 0 15px 0; overflow: hidden;">
+                    <!-- Action/Crypto sera chargé ici -->
+                </div>
+            </div>
+        `;
+        
+        kinfopaneltousContent.appendChild(widgetsContainer);
+        
+        // S'assurer que le conteneur principal est positionné correctement
+        kinfopaneltousContent.style.cssText = `
+            position: relative;
+            width: 100%;
+            height: 100%;
+        `;
+        
+        // Charger les widgets
+        loadSP500Widget();
+        loadRandomBottomWidgets();
+        
+        // Démarrer l'intervalle pour changer les widgets du bas
+        if (menu1WidgetsInterval) {
+            clearInterval(menu1WidgetsInterval);
+        }
+        
+        menu1WidgetsInterval = setInterval(() => {
+            loadRandomBottomWidgets();
+        }, 180000);
+    }
+
+    function loadSP500Widget() {
+        const topWidget = document.getElementById('topWidget');
+        if (!topWidget) return;
+        
+        topWidget.innerHTML = '';
         const iframe = document.createElement('iframe');
-        iframe.src = `https://s.tradingview.com/embed-widget/advanced-chart/?locale=fr&symbol=Vantage:SP500&height=250&width=220&interval=60&hide_side_toolbar=true&allow_symbol_change=false&save_image=false&theme=dark&style=1&studies=&backgroundColor=rgba(0,0,0,0.3)&textColor=white&gridColor=rgba(255,255,255,0.1)&hide_volume=true&withdateranges=false&range=1D&hide_top_toolbar=true`;
+        iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=Vantage:SP500&width=250&height=90&colorTheme=dark&isTransparent=true`;
         iframe.frameBorder = '0';
         iframe.scrolling = 'no';
         iframe.allowtransparency = 'true';
-        iframe.title = 'S&P 500 Chart';
-        
-        sp500Container.appendChild(iframe);
-        kinfopaneltousContent.appendChild(sp500Container);
+        iframe.style.cssText = `
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            border-radius: 15px 15px 0 0;
+            transform: scale(0.8);
+            transform-origin: top left;
+            width: 125%;
+            height: 125%;
+        `;
+        topWidget.appendChild(iframe);
     }
 
-    // === ACTUALITÉS SELECTED VIEW ===
+    function loadRandomBottomWidgets() {
+        const forexSymbols = [
+            { id: 'eurusd', symbol: 'FX_IDC:EURUSD', name: 'EUR/USD' },
+            { id: 'gbpusd', symbol: 'FX_IDC:GBPUSD', name: 'GBP/USD' },
+            { id: 'nzdusd', symbol: 'FX_IDC:NZDUSD', name: 'NZD/USD' },
+            { id: 'audusd', symbol: 'FX_IDC:AUDUSD', name: 'AUD/USD' },
+            { id: 'jpyusd', symbol: 'FX_IDC:JPYUSD', name: 'JPY/USD' }
+        ];
+        
+        const stockCryptoSymbols = [
+            { id: 'apple', symbol: 'NASDAQ:AAPL', name: 'Apple' },
+            { id: 'tesla', symbol: 'NASDAQ:TSLA', name: 'Tesla' },
+            { id: 'bitcoin', symbol: 'BITSTAMP:BTCUSD', name: 'Bitcoin' },
+            { id: 'gold', symbol: 'OANDA:XAUUSD', name: 'XAUUSD' },
+            { id: 'nasdaq', symbol: 'NYSE:GME', name: 'NASDAQ' }
+        ];
+        
+        const randomForex = forexSymbols[Math.floor(Math.random() * forexSymbols.length)];
+        const randomStockCrypto = stockCryptoSymbols[Math.floor(Math.random() * stockCryptoSymbols.length)];
+        
+        currentBottomLeftWidget = randomForex.id;
+        currentBottomRightWidget = randomStockCrypto.id;
+        
+        // Widget gauche (FOREX)
+        const bottomLeftWidget = document.getElementById('bottomLeftWidget');
+        if (bottomLeftWidget) {
+            bottomLeftWidget.innerHTML = '';
+            const iframe = document.createElement('iframe');
+            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomForex.symbol}&width=125&height=90&colorTheme=dark&isTransparent=true`;
+            iframe.frameBorder = '0';
+            iframe.scrolling = 'no';
+            iframe.allowtransparency = 'true';
+            iframe.style.cssText = `
+                width: 100%;
+                height: 100%;
+                border: none;
+                display: block;
+                border-radius: 0 0 0 15px;
+                transform: scale(0.8);
+                transform-origin: top left;
+                width: 125%;
+                height: 125%;
+            `;
+            bottomLeftWidget.appendChild(iframe);
+        }
+        
+        // Widget droit (Action/Crypto)
+        const bottomRightWidget = document.getElementById('bottomRightWidget');
+        if (bottomRightWidget) {
+            bottomRightWidget.innerHTML = '';
+            const iframe = document.createElement('iframe');
+            iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomStockCrypto.symbol}&width=125&height=90&colorTheme=dark&isTransparent=true`;
+            iframe.frameBorder = '0';
+            iframe.scrolling = 'no';
+            iframe.allowtransparency = 'true';
+            iframe.style.cssText = `
+                width: 100%;
+                height: 100%;
+                border: none;
+                display: block;
+                border-radius: 0 0 15px 0;
+                transform: scale(0.8);
+                transform-origin: top left;
+                width: 125%;
+                height: 125%;
+            `;
+            bottomRightWidget.appendChild(iframe);
+        }
+    }
+
+    // === ACTUALITÉS SELECTED VIEW - CORRIGÉES ===
     function loadKinfopaneltousNews(asset) {
         kinfopaneltousContent.innerHTML = '';
         
@@ -513,6 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
             widgetDiv.appendChild(script);
             currentKinfopaneltousWidget = widgetDiv;
             
+            // Supprimer le scaling qui rend flou
             setTimeout(() => {
                 const iframes = widgetDiv.querySelectorAll('iframe');
                 iframes.forEach(iframe => {
@@ -528,24 +668,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function updatePanelInfo() {
         kinfopaneltousContainer.classList.add('active');
         
-        // Gestion de la persistance du selected view
-        if (wasInSelectedView && currentMenuPage === 'menu-2') {
-            // Si on revient au menu-2 et qu'on avait une vue sélectionnée
-            if (selectedAsset) {
-                loadKinfopaneltousNews(selectedAsset);
-                return;
-            }
+        // Si on change de menu et qu'on était en selected view, on le quitte
+        if (wasInSelectedView && currentMenuPage !== 'menu-2') {
+            isInSelectedView = false;
+            wasInSelectedView = false;
         }
         
+        // Les news ne s'affichent QUE si toutes ces conditions sont remplies
         if (isInSelectedView && selectedAsset && currentMenuPage === 'menu-2') {
-            // Affichage normal des news en selected view
             loadKinfopaneltousNews(selectedAsset);
         } else {
-            // Si on change de menu, on garde le selected view actif mais on affiche le contenu du menu
+            // Sinon, on désactive le selected view
             if (isInSelectedView && currentMenuPage !== 'menu-2') {
-                // On reste en selected view mais on affiche le contenu du menu
-                // On ne désactive pas isInSelectedView pour pouvoir revenir
-                wasInSelectedView = true;
+                isInSelectedView = false;
             }
             
             if (currentMenuPage === 'menu-1') {
@@ -555,6 +690,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 showResultPanel();
             } else {
                 kinfopaneltousContent.innerHTML = '';
+                if (menu1WidgetsInterval) {
+                    clearInterval(menu1WidgetsInterval);
+                    menu1WidgetsInterval = null;
+                }
             }
         }
     }
@@ -741,7 +880,6 @@ document.addEventListener('DOMContentLoaded', function() {
         backBtn.classList.add('hidden');
         sideMenu.classList.remove('hidden');
         carousel.classList.remove('carousel-paused');
-        selectedAsset = null;
         updatePanelInfo();
     });
 
@@ -751,24 +889,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const oldMenu = currentMenuPage;
                 updateCurrentMenuPage();
                 
-                // Si on quitte le menu-2 et qu'on est en selected view
-                if (oldMenu === 'menu-2' && isInSelectedView) {
-                    // On garde le selected view actif mais on cache l'interface
+                if (isInSelectedView && oldMenu !== currentMenuPage) {
+                    isInSelectedView = false;
                     selectedView.classList.remove('active');
                     carouselScene.classList.remove('hidden');
                     sideMenu.classList.remove('hidden');
                     carousel.classList.remove('carousel-paused');
                     backBtn.classList.add('hidden');
-                }
-                
-                // Si on revient au menu-2 et qu'on avait un selected view
-                if (currentMenuPage === 'menu-2' && wasInSelectedView && selectedAsset) {
-                    // On réactive l'interface selected view
-                    selectedView.classList.add('active');
-                    carouselScene.classList.add('hidden');
-                    sideMenu.classList.add('hidden');
-                    carousel.classList.add('carousel-paused');
-                    backBtn.classList.remove('hidden');
                 }
                 
                 updatePanelInfo();
@@ -798,8 +925,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showResultPanel = showResultPanel;
     window.calculateSavings = calculateSavings;
     window.transferSaving = transferSaving;
-    window.selectedAsset = selectedAsset;
-    window.wasInSelectedView = wasInSelectedView;
 });
 
 // Polling

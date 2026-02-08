@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Variables d'état TradingView
     let currentAssetType = 'crypto';
     let currentAssets = assetTypes.crypto;
-    let selectedAsset = null;
     let tvWidgets = {};
     let selectedTVWidget = null;
     let chartStates = {};
@@ -159,8 +158,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function selectAsset(assetId) {
-        selectedAsset = currentAssets.find(c => c.id === assetId);
-        if (!selectedAsset) return;
+        // Important: Stocker l'actif sélectionné dans window pour qu'il soit accessible
+        window.selectedAsset = currentAssets.find(c => c.id === assetId);
+        if (!window.selectedAsset) return;
 
         isInSelectedView = true;
         wasInSelectedView = true;
@@ -188,8 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             selectedTVWidget = createTradingViewWidget(
                 'tradingview_selected',
-                selectedAsset.tradingViewSymbol,
-                selectedAsset.id,
+                window.selectedAsset.tradingViewSymbol,
+                window.selectedAsset.id,
                 false
             );
             
@@ -203,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
     backBtn.addEventListener('click', function() {
         isInSelectedView = false;
         wasInSelectedView = false;
+        window.selectedAsset = null; // Réinitialiser l'actif sélectionné
         selectedView.classList.remove('active');
         carouselScene.classList.remove('hidden');
         backBtn.classList.add('hidden');
@@ -239,6 +240,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         updateCarousel();
         setTimeout(removeAllTooltips, 1000);
+        
+        // Initialiser la variable globale selectedAsset
+        window.selectedAsset = null;
     }
 
     // DÉMARRAGE
@@ -249,6 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.selectedTVWidget = selectedTVWidget;
     window.isInSelectedView = isInSelectedView;
     window.wasInSelectedView = wasInSelectedView;
+    // Note: window.selectedAsset est déjà défini dans la fonction selectAsset
 });
 
 // ============================================

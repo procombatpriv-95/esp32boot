@@ -349,7 +349,7 @@ function showResultPanel() {
 }
 
 // ============================================
-// WIDGETS MENU-1
+// WIDGETS MENU-1 (TICKER TAPE VERTICAL)
 // ============================================
 
 function loadMenu1Widgets() {
@@ -358,157 +358,55 @@ function loadMenu1Widgets() {
   
   kinfopaneltousContent.innerHTML = '';
   
-  // Créer un conteneur principal pour les widgets
-  const widgetsContainer = document.createElement('div');
-  widgetsContainer.id = 'menu1WidgetsContainer';
-  widgetsContainer.style.cssText = `
+  // Créer le conteneur pour le ticker tape
+  const tickerContainer = document.createElement('div');
+  tickerContainer.id = 'ticker-container-1';
+  tickerContainer.style.cssText = `
+      width: 250px;
+      height: 240px;
+      border-radius: 30px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      margin: 0 auto;
       position: absolute;
       bottom: 0;
       left: 0;
-      width: 250px;
-      height: 180px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 15px;
-      overflow: hidden;
-      z-index: 1;
+      right: 0;
   `;
   
-  // Créer la structure des 3 widgets
-  widgetsContainer.innerHTML = `
-      <!-- Widget du haut - SP500 -->
-      <div id="topWidget" style="position: absolute; top: 0; left: 0; width: 250px; height: 90px; border-radius: 15px 15px 0 0; overflow: hidden;">
-          <!-- SP500 sera chargé ici -->
-      </div>
-      
-      <!-- Widgets du bas -->
-      <div style="position: absolute; top: 90px; left: 0; width: 250px; height: 90px;">
-          <!-- Widget gauche -->
-          <div id="bottomLeftWidget" style="position: absolute; top: 0; left: 0; width: 125px; height: 90px; border-radius: 0 0 0 15px; overflow: hidden;">
-              <!-- FOREX sera chargé ici -->
-          </div>
-          
-          <!-- Widget droit -->
-          <div id="bottomRightWidget" style="position: absolute; top: 0; left: 125px; width: 125px; height: 90px; border-radius: 0 0 15px 0; overflow: hidden;">
-              <!-- Action/Crypto sera chargé ici -->
-          </div>
-      </div>
-  `;
+  // Créer l'élément tv-ticker-tape
+  const tickerTape = document.createElement('tv-ticker-tape');
+  tickerTape.setAttribute('symbols', 'FOREXCOM:SPXUSD,FX:EURUSD,CMCMARKETS:GOLD,OANDA:NZDUSD,OANDA:GBPUSD,FX_IDC:JPYUSD,FX_IDC:CADUSD,OANDA:AUDUSD');
+  tickerTape.setAttribute('direction', 'vertical');
+  tickerTape.setAttribute('theme', 'dark');
+  tickerTape.style.cssText = 'width: 100% !important; height: 100% !important; display: block;';
   
-  kinfopaneltousContent.appendChild(widgetsContainer);
+  tickerContainer.appendChild(tickerTape);
+  kinfopaneltousContent.appendChild(tickerContainer);
+  
+  // Charger le script du ticker tape s'il n'est pas déjà chargé
+  if (!document.querySelector('script[src*="tv-ticker-tape.js"]')) {
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = 'https://widgets.tradingview-widget.com/w/en/tv-ticker-tape.js';
+    document.head.appendChild(script);
+  }
+  
+  // Nettoyer l'intervalle précédent s'il existe
+  if (menu1WidgetsInterval) {
+    clearInterval(menu1WidgetsInterval);
+    menu1WidgetsInterval = null;
+  }
   
   // S'assurer que le conteneur principal est positionné correctement
   kinfopaneltousContent.style.cssText = `
       position: relative;
       width: 100%;
       height: 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
   `;
-  
-  // Charger les widgets
-  loadSP500Widget();
-  loadRandomBottomWidgets();
-  
-  // Démarrer l'intervalle pour changer les widgets du bas
-  if (menu1WidgetsInterval) {
-      clearInterval(menu1WidgetsInterval);
-  }
-  
-  menu1WidgetsInterval = setInterval(() => {
-      loadRandomBottomWidgets();
-  }, 180000);
-}
-
-function loadSP500Widget() {
-  const topWidget = document.getElementById('topWidget');
-  if (!topWidget) return;
-  
-  topWidget.innerHTML = '';
-  const iframe = document.createElement('iframe');
-  iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=Vantage:SP500&width=250&height=90&colorTheme=dark&isTransparent=true`;
-  iframe.frameBorder = '0';
-  iframe.scrolling = 'no';
-  iframe.allowtransparency = 'true';
-  iframe.style.cssText = `
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-      border-radius: 15px 15px 0 0;
-      transform: scale(0.8);
-      transform-origin: top left;
-      width: 125%;
-      height: 125%;
-  `;
-  topWidget.appendChild(iframe);
-}
-
-function loadRandomBottomWidgets() {
-  const forexSymbols = [
-      { id: 'eurusd', symbol: 'FX_IDC:EURUSD', name: 'EUR/USD' },
-      { id: 'gbpusd', symbol: 'FX_IDC:GBPUSD', name: 'GBP/USD' },
-      { id: 'nzdusd', symbol: 'FX_IDC:NZDUSD', name: 'NZD/USD' },
-      { id: 'audusd', symbol: 'FX_IDC:AUDUSD', name: 'AUD/USD' },
-      { id: 'jpyusd', symbol: 'FX_IDC:JPYUSD', name: 'JPY/USD' }
-  ];
-  
-  const stockCryptoSymbols = [
-      { id: 'apple', symbol: 'NASDAQ:AAPL', name: 'Apple' },
-      { id: 'tesla', symbol: 'NASDAQ:TSLA', name: 'Tesla' },
-      { id: 'bitcoin', symbol: 'BITSTAMP:BTCUSD', name: 'Bitcoin' },
-      { id: 'gold', symbol: 'OANDA:XAUUSD', name: 'XAUUSD' },
-      { id: 'nasdaq', symbol: 'NYSE:GME', name: 'NASDAQ' }
-  ];
-  
-  const randomForex = forexSymbols[Math.floor(Math.random() * forexSymbols.length)];
-  const randomStockCrypto = stockCryptoSymbols[Math.floor(Math.random() * stockCryptoSymbols.length)];
-  
-  currentBottomLeftWidget = randomForex.id;
-  currentBottomRightWidget = randomStockCrypto.id;
-  
-  // Widget gauche (FOREX)
-  const bottomLeftWidget = document.getElementById('bottomLeftWidget');
-  if (bottomLeftWidget) {
-      bottomLeftWidget.innerHTML = '';
-      const iframe = document.createElement('iframe');
-      iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomForex.symbol}&width=125&height=90&colorTheme=dark&isTransparent=true`;
-      iframe.frameBorder = '0';
-      iframe.scrolling = 'no';
-      iframe.allowtransparency = 'true';
-      iframe.style.cssText = `
-          width: 100%;
-          height: 100%;
-          border: none;
-          display: block;
-          border-radius: 0 0 0 15px;
-          transform: scale(0.8);
-          transform-origin: top left;
-          width: 125%;
-          height: 125%;
-      `;
-      bottomLeftWidget.appendChild(iframe);
-  }
-  
-  // Widget droit (Action/Crypto)
-  const bottomRightWidget = document.getElementById('bottomRightWidget');
-  if (bottomRightWidget) {
-      bottomRightWidget.innerHTML = '';
-      const iframe = document.createElement('iframe');
-      iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomStockCrypto.symbol}&width=125&height=90&colorTheme=dark&isTransparent=true`;
-      iframe.frameBorder = '0';
-      iframe.scrolling = 'no';
-      iframe.allowtransparency = 'true';
-      iframe.style.cssText = `
-          width: 100%;
-          height: 100%;
-          border: none;
-          display: block;
-          border-radius: 0 0 15px 0;
-          transform: scale(0.8);
-          transform-origin: top left;
-          width: 125%;
-          height: 125%;
-      `;
-      bottomRightWidget.appendChild(iframe);
-  }
 }
 
 // ============================================

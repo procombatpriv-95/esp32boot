@@ -172,8 +172,7 @@ function selectAsset(assetId) {
     if (backBtn) backBtn.classList.remove('hidden');
     if (loader) loader.classList.remove('hidden');
 
-    // Afficher les news dans le panelinfo
-    loadKinfopaneltousNews(selectedAsset);
+    // Les news s'affichent automatiquement car on est en menu-2 et selected view
 
     const tvContainer = document.getElementById('tradingview_selected');
     if (tvContainer) {
@@ -199,7 +198,7 @@ function selectAsset(assetId) {
 }
 
 // ============================================
-// ACTUALITÉS SELECTED VIEW
+// ACTUALITÉS SELECTED VIEW (menu-2 uniquement)
 // ============================================
 
 function loadKinfopaneltousNews(asset) {
@@ -249,13 +248,6 @@ function loadKinfopaneltousNews(asset) {
         widgetDiv.appendChild(script);
         currentKinfopaneltousWidget = widgetDiv;
         
-        // Activer le conteneur
-        const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
-        if (kinfopaneltousContainer) {
-            kinfopaneltousContainer.classList.add('active');
-        }
-        
-        // Supprimer le scaling qui rend flou
         setTimeout(() => {
             const iframes = widgetDiv.querySelectorAll('iframe');
             iframes.forEach(iframe => {
@@ -268,18 +260,16 @@ function loadKinfopaneltousNews(asset) {
 }
 
 // ============================================
-// GESTION DU PANELINFO POUR TRADINGVIEW
+// GESTION DU PANELINFO POUR NEWS DU MENU-2
 // ============================================
 
 function updateTradingViewPanelInfo() {
-    // Cette fonction ne s'occupe que des news quand on est en selected view
+    // Les news ne s'affichent QUE si toutes ces conditions sont remplies
     if (window.isInSelectedView && selectedAsset && window.currentMenuPage === 'menu-2') {
         loadKinfopaneltousNews(selectedAsset);
-    } else {
-        // Si on n'est pas en selected view avec menu-2, on désactive le conteneur
         const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
         if (kinfopaneltousContainer) {
-            kinfopaneltousContainer.classList.remove('active');
+            kinfopaneltousContainer.classList.add('active');
         }
     }
 }
@@ -295,6 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedView = document.getElementById('selectedView');
     const backBtn = document.getElementById('backBtn');
     const loader = document.getElementById('loader');
+    const menuSections = document.querySelectorAll('.menu-section');
     const sideMenu = document.getElementById('sideMenu');
     const megaBox = document.getElementById('megaBox');
 
@@ -318,8 +309,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Initialiser les sections de menu pour le carousel uniquement
-        const menuSections = document.querySelectorAll('.menu-section[data-type]');
         if (menuSections.length > 0) {
             menuSections.forEach(section => {
                 section.addEventListener('click', function() {
@@ -349,12 +338,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (backBtn) backBtn.classList.add('hidden');
             if (sideMenu) sideMenu.classList.remove('hidden');
             if (carousel) carousel.classList.remove('carousel-paused');
-            
-            // Désactiver le panelinfo
-            const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
-            if (kinfopaneltousContainer) {
-                kinfopaneltousContainer.classList.remove('active');
-            }
         });
     }
 
@@ -374,93 +357,3 @@ document.addEventListener('DOMContentLoaded', function() {
     window.isInSelectedView = window.isInSelectedView || false;
     window.currentMenuPage = window.currentMenuPage || 'menu-1';
 });
-
-// ============================================
-// GÉOLOCALISATION POUR TRADINGVIEW
-// ============================================
-
-async function getAddress(lat, lon) {
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=fr`,
-      {
-        headers: {
-          "User-Agent": "around-app/1.0 (test)",
-          "Accept-Language": "fr"
-        }
-      }
-    );
-    if (!res.ok) throw new Error("Réponse HTTP invalide");
-    const data = await res.json();
-
-    let suburb = data.address.suburb || data.address.neighbourhood || data.address.quarter || "Quartier inconnu";
-    let borough = data.address.borough || data.address.city_district || "Borough inconnu";
-    let city = data.address.city || data.address.town || data.address.municipality || data.address.county || "Ville inconnue";
-
-    const output = document.getElementById("output");
-    if (output) {
-        output.textContent = `Around: ${suburb}, ${borough}, ${city}`;
-    }
-  } catch (e) {
-    const output = document.getElementById("output");
-    if (output) {
-        output.textContent = "Erreur adresse : " + e;
-    }
-  }
-}
-
-async function getTimezoneFromCoords(lat, lon) {
-  try {
-    const res = await fetch(
-      `https://api.timezonedb.com/v2.1/get-time-zone?key=YOUR_API_KEY&format=json&by=position&lat=${lat}&lng=${lon}`
-    );
-    if (!res.ok) throw new Error("Erreur API fuseau horaire");
-    const data = await res.json();
-    return data.zoneName;
-  } catch (e) {
-    console.error("Erreur fuseau horaire:", e);
-    return "Europe/London";
-  }
-}
-
-function success(pos) {
-  const crd = pos.coords;
-  getAddress(crd.latitude, crd.longitude);
-  
-  getTimezoneFromCoords(crd.latitude, crd.longitude).then(timezone => {
-    window.appTimezone = timezone;
-    
-    if (window.tvWidgets) {
-      Object.values(window.tvWidgets).forEach(widget => {
-        if (widget && widget.chart) {
-          widget.chart().setTimezone(timezone);
-        }
-      });
-    }
-    if (window.selectedTVWidget && window.selectedTVWidget.chart) {
-      window.selectedTVWidget.chart().setTimezone(timezone);
-    }
-  });
-}
-
-function error(err) {
-  const output = document.getElementById("output");
-  if (output) {
-    output.textContent = `Erreur (${err.code}): ${err.message}`;
-  }
-  window.appTimezone = "Europe/London";
-}
-
-if ("geolocation" in navigator) {
-  navigator.geolocation.getCurrentPosition(success, error, {
-    enableHighAccuracy: true,
-    timeout: 15000,
-    maximumAge: 0
-  });
-} else {
-  const output = document.getElementById("output");
-  if (output) {
-    output.textContent = "❌ Géolocalisation non supportée par ce navigateur.";
-  }
-  window.appTimezone = "Europe/London";
-}

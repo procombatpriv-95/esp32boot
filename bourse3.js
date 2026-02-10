@@ -1,16 +1,6 @@
 // ============================================
-// TRADINGVIEW CAROUSEL SYSTEM
+// VARIABLES GLOBALES POUR TRADINGVIEW
 // ============================================
-
-// Variables globales pour le système TradingView
-let currentAssetType = 'crypto';
-let currentAssets = [];
-let selectedAsset = null;
-let tvWidgets = {};
-let selectedTVWidget = null;
-let chartStates = {};
-let isInSelectedView = false;
-let wasInSelectedView = false;
 
 // Configuration des actifs
 const assetTypes = {
@@ -40,17 +30,19 @@ const assetTypes = {
     ]
 };
 
-// Éléments DOM
-const carousel = document.getElementById('mainCarousel');
-const carouselScene = document.getElementById('carouselScene');
-const selectedView = document.getElementById('selectedView');
-const backBtn = document.getElementById('backBtn');
-const loader = document.getElementById('loader');
-const menuSections = document.querySelectorAll('.menu-section');
-const sideMenu = document.getElementById('sideMenu');
-const megaBox = document.getElementById('megaBox');
+// Variables d'état TradingView
+let currentAssetType = 'crypto';
+let currentAssets = assetTypes.crypto;
+let selectedAsset = null;
+let tvWidgets = {};
+let selectedTVWidget = null;
+let chartStates = {};
+let currentKinfopaneltousWidget = null;
 
-// === FONCTIONS UTILITAIRES ===
+// ============================================
+// FONCTIONS TRADINGVIEW
+// ============================================
+
 function removeAllTooltips() {
     const elements = document.querySelectorAll('[title]');
     elements.forEach(el => {
@@ -61,7 +53,6 @@ function removeAllTooltips() {
     });
 }
 
-// === FONCTIONS TRADINGVIEW ===
 function createTradingViewWidget(containerId, symbol, assetId, isCarousel = false) {
     if (!window.TradingView) {
         setTimeout(() => createTradingViewWidget(containerId, symbol, assetId, isCarousel), 100);
@@ -107,12 +98,14 @@ function createTradingViewWidget(containerId, symbol, assetId, isCarousel = fals
     try {
         return new TradingView.widget(widgetConfig);
     } catch (error) {
-        console.error('Error creating TradingView widget:', error);
         return null;
     }
 }
 
 function updateCarousel() {
+    const carousel = document.getElementById('mainCarousel');
+    if (!carousel) return;
+    
     carousel.innerHTML = '';
     
     currentAssets.forEach((asset, index) => {
@@ -163,19 +156,24 @@ function selectAsset(assetId) {
     selectedAsset = currentAssets.find(c => c.id === assetId);
     if (!selectedAsset) return;
 
-    isInSelectedView = true;
-    wasInSelectedView = true;
-    carousel.classList.add('carousel-paused');
-    carouselScene.classList.add('hidden');
-    sideMenu.classList.add('hidden');
-    selectedView.classList.add('active');
-    backBtn.classList.remove('hidden');
-    loader.classList.remove('hidden');
+    window.isInSelectedView = true;
+    
+    const carousel = document.getElementById('mainCarousel');
+    const carouselScene = document.getElementById('carouselScene');
+    const selectedView = document.getElementById('selectedView');
+    const backBtn = document.getElementById('backBtn');
+    const loader = document.getElementById('loader');
+    const sideMenu = document.getElementById('sideMenu');
+    
+    if (carousel) carousel.classList.add('carousel-paused');
+    if (carouselScene) carouselScene.classList.add('hidden');
+    if (sideMenu) sideMenu.classList.add('hidden');
+    if (selectedView) selectedView.classList.add('active');
+    if (backBtn) backBtn.classList.remove('hidden');
+    if (loader) loader.classList.remove('hidden');
 
-    // Notifier le système de panel info qu'on est en selected view
-    if (window.onSelectedViewChange) {
-        window.onSelectedViewChange(true, selectedAsset);
-    }
+    // Afficher les news dans le panelinfo
+    loadKinfopaneltousNews(selectedAsset);
 
     const tvContainer = document.getElementById('tradingview_selected');
     if (tvContainer) {
@@ -195,76 +193,274 @@ function selectAsset(assetId) {
         );
         
         setTimeout(() => {
-            loader.classList.add('hidden');
+            if (loader) loader.classList.add('hidden');
         }, 1500);
     }, 500);
 }
 
-// === INITIALISATION DU SYSTÈME TRADINGVIEW ===
-function initTradingViewSystem() {
-    const saved = localStorage.getItem('chartStates');
-    if (saved) {
-        try {
-            chartStates = JSON.parse(saved);
-        } catch (e) {
-            chartStates = {};
-        }
-    }
+// ============================================
+// ACTUALITÉS SELECTED VIEW
+// ============================================
+
+function loadKinfopaneltousNews(asset) {
+    const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+    if (!kinfopaneltousContent) return;
     
-    // Initialiser les types d'actifs
-    currentAssets = assetTypes.crypto;
+    kinfopaneltousContent.innerHTML = '';
     
-    // Configurer les sections de menu
-    menuSections.forEach(section => {
-        section.addEventListener('click', function() {
-            const type = this.getAttribute('data-type');
-            menuSections.forEach(s => s.classList.remove('active'));
-            this.classList.add('active');
-            currentAssetType = type;
-            currentAssets = assetTypes[type];
-            updateCarousel();
+    const loaderDiv = document.createElement('div');
+    loaderDiv.className = 'kinfopaneltous-loader';
+    loaderDiv.textContent = 'Loading...';
+    kinfopaneltousContent.appendChild(loaderDiv);
+    
+    const widgetDiv = document.createElement('div');
+    widgetDiv.className = 'tradingview-kinfopaneltous-news';
+    widgetDiv.id = 'tradingview_kinfopaneltous_news';
+    widgetDiv.style.cssText = 'width:100%; height:100%;';
+    
+    setTimeout(() => {
+        kinfopaneltousContent.removeChild(loaderDiv);
+        kinfopaneltousContent.appendChild(widgetDiv);
+        
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
+        script.async = true;
+        
+        script.textContent = JSON.stringify({
+            "feedMode": "symbol",
+            "symbol": asset.tradingViewSymbol,
+            "isTransparent": true,
+            "displayMode": "regular",
+            "width": "250",
+            "height": "600",
+            "colorTheme": "dark",
+            "locale": "fr",
+            "utm_source": "tradingview.com",
+            "utm_medium": "widget",
+            "utm_campaign": "timeline",
+            "noReferrer": true,
+            "showSymbolLogo": true,
+            "fontSize": "12",
+            "textColor": "#ffffff",
+            "backgroundColor": "rgba(0, 0, 0, 0.3)"
         });
-    });
-    
-    updateCarousel();
-    setTimeout(removeAllTooltips, 1000);
+        
+        widgetDiv.appendChild(script);
+        currentKinfopaneltousWidget = widgetDiv;
+        
+        // Activer le conteneur
+        const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
+        if (kinfopaneltousContainer) {
+            kinfopaneltousContainer.classList.add('active');
+        }
+        
+        // Supprimer le scaling qui rend flou
+        setTimeout(() => {
+            const iframes = widgetDiv.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                iframe.style.transform = 'none';
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+            });
+        }, 1000);
+    }, 500);
 }
 
-// === ÉVÉNEMENTS ===
-backBtn.addEventListener('click', function() {
-    isInSelectedView = false;
-    wasInSelectedView = false;
-    selectedView.classList.remove('active');
-    carouselScene.classList.remove('hidden');
-    backBtn.classList.add('hidden');
-    sideMenu.classList.remove('hidden');
-    carousel.classList.remove('carousel-paused');
-    
-    // Notifier le système de panel info qu'on a quitté la selected view
-    if (window.onSelectedViewChange) {
-        window.onSelectedViewChange(false, null);
-    }
-});
+// ============================================
+// GESTION DU PANELINFO POUR TRADINGVIEW
+// ============================================
 
-// Gestion du redimensionnement
-window.addEventListener('resize', function() {
+function updateTradingViewPanelInfo() {
+    // Cette fonction ne s'occupe que des news quand on est en selected view
+    if (window.isInSelectedView && selectedAsset && window.currentMenuPage === 'menu-2') {
+        loadKinfopaneltousNews(selectedAsset);
+    } else {
+        // Si on n'est pas en selected view avec menu-2, on désactive le conteneur
+        const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
+        if (kinfopaneltousContainer) {
+            kinfopaneltousContainer.classList.remove('active');
+        }
+    }
+}
+
+// ============================================
+// INITIALISATION ET ÉVÉNEMENTS
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Éléments DOM
+    const carousel = document.getElementById('mainCarousel');
+    const carouselScene = document.getElementById('carouselScene');
+    const selectedView = document.getElementById('selectedView');
+    const backBtn = document.getElementById('backBtn');
+    const loader = document.getElementById('loader');
+    const sideMenu = document.getElementById('sideMenu');
+    const megaBox = document.getElementById('megaBox');
+
+    function updateCurrentMenuPage() {
+        if (!megaBox) return;
+        const classes = megaBox.classList;
+        if (classes.contains('menu-1')) window.currentMenuPage = 'menu-1';
+        else if (classes.contains('menu-2')) window.currentMenuPage = 'menu-2';
+        else if (classes.contains('menu-3')) window.currentMenuPage = 'menu-3';
+        else if (classes.contains('menu-4')) window.currentMenuPage = 'menu-4';
+        else if (classes.contains('menu-5')) window.currentMenuPage = 'menu-5';
+    }
+
+    function init() {
+        const saved = localStorage.getItem('chartStates');
+        if (saved) {
+            try {
+                chartStates = JSON.parse(saved);
+            } catch (e) {
+                chartStates = {};
+            }
+        }
+        
+        // Initialiser les sections de menu pour le carousel uniquement
+        const menuSections = document.querySelectorAll('.menu-section[data-type]');
+        if (menuSections.length > 0) {
+            menuSections.forEach(section => {
+                section.addEventListener('click', function() {
+                    const type = this.getAttribute('data-type');
+                    menuSections.forEach(s => s.classList.remove('active'));
+                    this.classList.add('active');
+                    currentAssetType = type;
+                    currentAssets = assetTypes[type];
+                    updateCarousel();
+                });
+            });
+        }
+        
+        updateCarousel();
+        updateCurrentMenuPage();
+        
+        setTimeout(removeAllTooltips, 1000);
+    }
+
+    // Événement back button
+    if (backBtn) {
+        backBtn.addEventListener('click', function() {
+            window.isInSelectedView = false;
+            
+            if (selectedView) selectedView.classList.remove('active');
+            if (carouselScene) carouselScene.classList.remove('hidden');
+            if (backBtn) backBtn.classList.add('hidden');
+            if (sideMenu) sideMenu.classList.remove('hidden');
+            if (carousel) carousel.classList.remove('carousel-paused');
+            
+            // Désactiver le panelinfo
+            const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
+            if (kinfopaneltousContainer) {
+                kinfopaneltousContainer.classList.remove('active');
+            }
+        });
+    }
+
+    // DÉMARRAGE
+    init();
+
     if (sideMenu) {
-        sideMenu.style.top = '50%';
-        sideMenu.style.transform = 'translateY(-50%)';
+        window.addEventListener('resize', function() {
+            sideMenu.style.top = '50%';
+            sideMenu.style.transform = 'translateY(-50%)';
+        });
     }
+    
+    // Variables globales
+    window.tvWidgets = tvWidgets;
+    window.selectedTVWidget = selectedTVWidget;
+    window.isInSelectedView = window.isInSelectedView || false;
+    window.currentMenuPage = window.currentMenuPage || 'menu-1';
 });
 
-// Exporter les variables globales
-window.tvWidgets = tvWidgets;
-window.selectedTVWidget = selectedTVWidget;
-window.isInSelectedView = isInSelectedView;
-window.selectedAsset = selectedAsset;
-window.currentAssetType = currentAssetType;
-window.currentAssets = currentAssets;
+// ============================================
+// GÉOLOCALISATION POUR TRADINGVIEW
+// ============================================
 
-// Initialiser lorsque le DOM est prêt
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTradingViewSystem);
+async function getAddress(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=fr`,
+      {
+        headers: {
+          "User-Agent": "around-app/1.0 (test)",
+          "Accept-Language": "fr"
+        }
+      }
+    );
+    if (!res.ok) throw new Error("Réponse HTTP invalide");
+    const data = await res.json();
+
+    let suburb = data.address.suburb || data.address.neighbourhood || data.address.quarter || "Quartier inconnu";
+    let borough = data.address.borough || data.address.city_district || "Borough inconnu";
+    let city = data.address.city || data.address.town || data.address.municipality || data.address.county || "Ville inconnue";
+
+    const output = document.getElementById("output");
+    if (output) {
+        output.textContent = `Around: ${suburb}, ${borough}, ${city}`;
+    }
+  } catch (e) {
+    const output = document.getElementById("output");
+    if (output) {
+        output.textContent = "Erreur adresse : " + e;
+    }
+  }
+}
+
+async function getTimezoneFromCoords(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://api.timezonedb.com/v2.1/get-time-zone?key=YOUR_API_KEY&format=json&by=position&lat=${lat}&lng=${lon}`
+    );
+    if (!res.ok) throw new Error("Erreur API fuseau horaire");
+    const data = await res.json();
+    return data.zoneName;
+  } catch (e) {
+    console.error("Erreur fuseau horaire:", e);
+    return "Europe/London";
+  }
+}
+
+function success(pos) {
+  const crd = pos.coords;
+  getAddress(crd.latitude, crd.longitude);
+  
+  getTimezoneFromCoords(crd.latitude, crd.longitude).then(timezone => {
+    window.appTimezone = timezone;
+    
+    if (window.tvWidgets) {
+      Object.values(window.tvWidgets).forEach(widget => {
+        if (widget && widget.chart) {
+          widget.chart().setTimezone(timezone);
+        }
+      });
+    }
+    if (window.selectedTVWidget && window.selectedTVWidget.chart) {
+      window.selectedTVWidget.chart().setTimezone(timezone);
+    }
+  });
+}
+
+function error(err) {
+  const output = document.getElementById("output");
+  if (output) {
+    output.textContent = `Erreur (${err.code}): ${err.message}`;
+  }
+  window.appTimezone = "Europe/London";
+}
+
+if ("geolocation" in navigator) {
+  navigator.geolocation.getCurrentPosition(success, error, {
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 0
+  });
 } else {
-    initTradingViewSystem();
+  const output = document.getElementById("output");
+  if (output) {
+    output.textContent = "❌ Géolocalisation non supportée par ce navigateur.";
+  }
+  window.appTimezone = "Europe/London";
 }

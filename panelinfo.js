@@ -1,362 +1,13 @@
 // ============================================
-// VARIABLES GLOBALES POUR GESTION FINANCIÈRE
+// FONCTIONS ET VARIABLES SPÉCIFIQUES AUX MENUS
 // ============================================
 
-let resultPanelData = {
-  currentPeriod: 'monthly',
-  monthlyGoal: 0,
-  yearlyGoal: 0,
-  monthlyIncome: 0,
-  yearlyIncome: 0,
-  monthlyExpenses: 0,
-  yearlyExpenses: 0,
-  monthlyTransactions: [],
-  yearlyTransactions: [],
-  highestTransaction: { amount: 0, category: '' },
-  lowestTransaction: { amount: 0, category: '' },
-  savings: { saving1: 0, saving2: 0, saving3: 0 }
-};
-
-let lastTransactionHash = '';
-let lastGoalHash = '';
-let lastSavingsHash = '';
-let autoUpdateInterval = null;
+// Ces variables sont déjà définies dans le bloc 1, mais nous les répétons ici pour le bon fonctionnement
 let menu1WidgetsInterval = null;
 let currentBottomLeftWidget = 'eurusd';
 let currentBottomRightWidget = 'apple';
 
-// Variables globales partagées
-window.resultPanelData = resultPanelData;
-window.getMoneyManagementData = getMoneyManagementData;
-window.showResultPanel = showResultPanel;
-window.calculateSavings = calculateSavings;
-window.transferSaving = transferSaving;
-
-// ============================================
-// FONCTIONS FINANCIÈRES
-// ============================================
-
-function calculateSavings() {
-  try {
-    const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
-    const savings = { saving1: 0, saving2: 0, saving3: 0 };
-    
-    transactions.forEach(t => {
-      if (t.saving === 'saving1') {
-        if (t.type === 'income') savings.saving1 += t.amount;
-        else if (t.type === 'expense') savings.saving1 -= t.amount;
-      } else if (t.saving === 'saving2') {
-        if (t.type === 'income') savings.saving2 += t.amount;
-        else if (t.type === 'expense') savings.saving2 -= t.amount;
-      } else if (t.saving === 'saving3') {
-        if (t.type === 'income') savings.saving3 += t.amount;
-        else if (t.type === 'expense') savings.saving3 -= t.amount;
-      }
-    });
-    
-    resultPanelData.savings = savings;
-    return savings;
-  } catch (e) {
-    console.error('Erreur calcul savings:', e);
-    return { saving1: 0, saving2: 0, saving3: 0 };
-  }
-}
-
-function transferSaving(savingType) {
-  try {
-    const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
-    const savings = calculateSavings();
-    const amount = savings[savingType];
-    
-    if (amount <= 0) {
-      alert('Cannot transfer zero or negative saving amount.');
-      return;
-    }
-    
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const newId = Date.now();
-    
-    const normalTransaction = {
-      id: newId,
-      amount: amount,
-      category: 'Saving Release',
-      description: `Transfer from ${savingType}`,
-      date: dateStr,
-      type: 'income',
-      saving: 'normal',
-      timestamp: now.getTime()
-    };
-    
-    const savingTransaction = {
-      id: newId + 1,
-      amount: amount,
-      category: 'Saving Release',
-      description: `Transfer to normal from ${savingType}`,
-      date: dateStr,
-      type: 'expense',
-      saving: savingType,
-      timestamp: now.getTime() + 1
-    };
-    
-    transactions.push(normalTransaction, savingTransaction);
-    localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
-    
-    setTimeout(() => {
-      getMoneyManagementData();
-      showResultPanel();
-    }, 100);
-    
-    window.dispatchEvent(new Event('storage'));
-    
-  } catch (e) {
-    console.error('Erreur transfer saving:', e);
-    alert('Error transferring saving: ' + e.message);
-  }
-}
-
-function getMoneyManagementData(period = null) {
-  try {
-    const currentPeriod = period || resultPanelData.currentPeriod;
-    const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
-    const monthlyGoals = JSON.parse(localStorage.getItem('moneyManagerGoals') || '{}');
-    const yearlyGoal = parseFloat(localStorage.getItem('moneyManagerYearlyGoal') || '0');
-    
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-    const monthKey = `${currentYear}-${currentMonth}`;
-    
-    const monthlyGoal = monthlyGoals[monthKey] || 0;
-    
-    const monthlyNormalTransactions = transactions.filter(t => {
-      const tDate = new Date(t.date);
-      return tDate.getFullYear() === currentYear && 
-             tDate.getMonth() + 1 === parseInt(currentMonth) &&
-             t.saving === 'normal';
-    });
-    
-    const yearlyNormalTransactions = transactions.filter(t => {
-      const tDate = new Date(t.date);
-      return tDate.getFullYear() === currentYear &&
-             t.saving === 'normal';
-    });
-    
-    const monthlyIncome = monthlyNormalTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const yearlyIncome = yearlyNormalTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const monthlyExpenses = monthlyNormalTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const yearlyExpenses = yearlyNormalTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    let monthlyHighest = { amount: 0, category: '' };
-    let monthlyLowest = { amount: 0, category: '' };
-    let yearlyHighest = { amount: 0, category: '' };
-    let yearlyLowest = { amount: 0, category: '' };
-    
-    if (monthlyNormalTransactions.length > 0) {
-      const monthlyIncomes = monthlyNormalTransactions.filter(t => t.type === 'income');
-      const monthlyExpensesList = monthlyNormalTransactions.filter(t => t.type === 'expense');
-      
-      if (monthlyIncomes.length > 0) {
-        monthlyHighest = monthlyIncomes.reduce((max, t) => 
-          t.amount > max.amount ? t : max
-        );
-      }
-      
-      if (monthlyExpensesList.length > 0) {
-        monthlyLowest = monthlyExpensesList.reduce((min, t) => 
-          t.amount < min.amount ? t : min
-        );
-      }
-    }
-    
-    if (yearlyNormalTransactions.length > 0) {
-      const yearlyIncomes = yearlyNormalTransactions.filter(t => t.type === 'income');
-      const yearlyExpensesList = yearlyNormalTransactions.filter(t => t.type === 'expense');
-      
-      if (yearlyIncomes.length > 0) {
-        yearlyHighest = yearlyIncomes.reduce((max, t) => 
-          t.amount > max.amount ? t : max
-        );
-      }
-      
-      if (yearlyExpensesList.length > 0) {
-        yearlyLowest = yearlyExpensesList.reduce((min, t) => 
-          t.amount < min.amount ? t : min
-        );
-      }
-    }
-    
-    const savings = calculateSavings();
-    
-    resultPanelData.monthlyGoal = monthlyGoal;
-    resultPanelData.yearlyGoal = yearlyGoal;
-    resultPanelData.monthlyIncome = monthlyIncome;
-    resultPanelData.yearlyIncome = yearlyIncome;
-    resultPanelData.monthlyExpenses = monthlyExpenses;
-    resultPanelData.yearlyExpenses = yearlyExpenses;
-    resultPanelData.monthlyTransactions = monthlyNormalTransactions;
-    resultPanelData.yearlyTransactions = yearlyNormalTransactions;
-    resultPanelData.highestTransaction = currentPeriod === 'monthly' ? monthlyHighest : yearlyHighest;
-    resultPanelData.lowestTransaction = currentPeriod === 'monthly' ? monthlyLowest : yearlyLowest;
-    resultPanelData.savings = savings;
-    
-    return resultPanelData;
-    
-  } catch (e) {
-    console.error('Erreur lors de la récupération des données:', e);
-    return resultPanelData;
-  }
-}
-
-function showResultPanel() {
-  const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-  if (!kinfopaneltousContent) return;
-  
-  kinfopaneltousContent.innerHTML = '';
-  
-  const resultPanel = document.createElement('div');
-  resultPanel.className = 'result-panel';
-  
-  const data = getMoneyManagementData();
-  
-  const currentGoal = resultPanelData.currentPeriod === 'monthly' 
-    ? resultPanelData.monthlyGoal 
-    : resultPanelData.yearlyGoal;
-
-  const currentIncome = resultPanelData.currentPeriod === 'monthly'
-    ? resultPanelData.monthlyIncome
-    : resultPanelData.yearlyIncome;
-
-  const currentExpenses = resultPanelData.currentPeriod === 'monthly'
-    ? (resultPanelData.monthlyExpenses || 0)
-    : (resultPanelData.yearlyExpenses || 0);
-
-  const currentBalance = Math.max(0, currentIncome - currentExpenses);
-  
-  const percentage = currentGoal > 0 
-    ? Math.min((currentBalance / currentGoal) * 100, 100) 
-    : 0;
-  
-  const isGoalReached = percentage >= 100;
-  const showAmountOnBar = percentage > 10;
-  const progressFilledClass = percentage === 0 ? 'progress-filled empty' : 'progress-filled';
-  const progressFilledStyle = percentage === 0 
-    ? 'width: 0%; min-width: 0; padding-right: 0;' 
-    : `width: ${percentage}%`;
-  
-  const savings = resultPanelData.savings || { saving1: 0, saving2: 0, saving3: 0 };
-  
-  resultPanel.innerHTML = `
-    <div class="period-selector">
-      <button class="period-btn ${resultPanelData.currentPeriod === 'monthly' ? 'active' : ''}" 
-              data-period="monthly">Monthly</button>
-      <button class="period-btn ${resultPanelData.currentPeriod === 'yearly' ? 'active' : ''}" 
-              data-period="yearly">Yearly</button>
-    </div>
-    
-    <div class="progress-section">
-      <div class="progress-header">
-        <span class="period-label">${resultPanelData.currentPeriod === 'monthly' ? 'Monthly' : 'Yearly'}</span>
-        <span class="percentage-label">${percentage.toFixed(1)}%</span>
-      </div>
-      
-      <div class="progress-bar-container">
-        <div class="progress-bar">
-          <div class="${progressFilledClass}" style="${progressFilledStyle}">
-            ${showAmountOnBar ? `£${currentBalance.toFixed(0)}` : ''}
-          </div>
-          ${!isGoalReached ? `
-            <div class="progress-remaining">
-              ${percentage < 90 ? `£${Math.max(0, currentGoal - currentBalance).toFixed(0)}` : ''}
-            </div>
-          ` : ''}
-        </div>
-      </div>
-    </div>
-    
-    <div class="indicators-container">
-      <div class="indicator-box indicator-highest">
-        <div class="indicator-label">
-          <i class="fas fa-arrow-up"></i> Highest
-        </div>
-        <div class="indicator-value">
-          £${resultPanelData.highestTransaction.amount.toFixed(2)}
-          ${resultPanelData.highestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.highestTransaction.category}</div>` : ''}
-        </div>
-      </div>
-      <div class="indicator-box indicator-lowest">
-        <div class="indicator-label">
-          <i class="fas fa-arrow-down"></i> Lowest
-        </div>
-        <div class="indicator-value">
-          £${resultPanelData.lowestTransaction.amount.toFixed(2)}
-          ${resultPanelData.lowestTransaction.category ? `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px;">${resultPanelData.lowestTransaction.category}</div>` : ''}
-        </div>
-      </div>
-    </div>
-    
-    <div class="savings-container">
-      <div class="saving-item">
-        <span class="saving-label">Saving 1:</span>
-        <span class="saving-amount">£${savings.saving1.toFixed(2)}</span>
-        <button class="saving-add-btn" data-saving="saving1" ${savings.saving1 <= 0 ? 'disabled' : ''}>Add</button>
-      </div>
-      <div class="saving-item">
-        <span class="saving-label">Saving 2:</span>
-        <span class="saving-amount">£${savings.saving2.toFixed(2)}</span>
-        <button class="saving-add-btn" data-saving="saving2" ${savings.saving2 <= 0 ? 'disabled' : ''}>Add</button>
-      </div>
-      <div class="saving-item">
-        <span class="saving-label">Saving 3:</span>
-        <span class="saving-amount">£${savings.saving3.toFixed(2)}</span>
-        <button class="saving-add-btn" data-saving="saving3" ${savings.saving3 <= 0 ? 'disabled' : ''}>Add</button>
-      </div>
-    </div>
-  `;
-  
-  kinfopaneltousContent.appendChild(resultPanel);
-  
-  if (!document.querySelector('link[href*="font-awesome"]')) {
-    const faLink = document.createElement('link');
-    faLink.rel = 'stylesheet';
-    faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
-    document.head.appendChild(faLink);
-  }
-  
-  const periodBtns = resultPanel.querySelectorAll('.period-btn');
-  periodBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      const period = this.getAttribute('data-period');
-      resultPanelData.currentPeriod = period;
-      getMoneyManagementData(period);
-      showResultPanel();
-    });
-  });
-  
-  const savingBtns = resultPanel.querySelectorAll('.saving-add-btn');
-  savingBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      const savingType = this.getAttribute('data-saving');
-      transferSaving(savingType);
-    });
-  });
-}
-
-// ============================================
-// WIDGETS MENU-1
-// ============================================
-
+// === WIDGETS MENU-1 ===
 function loadMenu1Widgets() {
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
     if (!kinfopaneltousContent) return;
@@ -517,90 +168,49 @@ function loadRandomBottomWidgets() {
 }
 
 // ============================================
-// GESTION DU PANELINFO POUR TOUS LES MENUS
-// ============================================
-
-function updatePanelInfo() {
-    const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
-    const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-    
-    if (!kinfopaneltousContainer || !kinfopaneltousContent) return;
-    
-    kinfopaneltousContainer.classList.add('active');
-    
-    // Si on change de menu et qu'on était en selected view, on le quitte
-    if (window.wasInSelectedView && window.currentMenuPage !== 'menu-2') {
-        window.isInSelectedView = false;
-        window.wasInSelectedView = false;
-    }
-    
-    // Les news ne s'affichent QUE si toutes ces conditions sont remplies
-    if (window.isInSelectedView && window.selectedAsset && window.currentMenuPage === 'menu-2') {
-        // Les news sont gérées par le bloc 1
-        return;
-    } else {
-        // Sinon, on désactive le selected view
-        if (window.isInSelectedView && window.currentMenuPage !== 'menu-2') {
-            window.isInSelectedView = false;
-        }
-        
-        if (window.currentMenuPage === 'menu-1') {
-            loadMenu1Widgets();
-        } else if (window.currentMenuPage === 'menu-4') {
-            getMoneyManagementData();
-            showResultPanel();
-        } else {
-            kinfopaneltousContent.innerHTML = '';
-            if (menu1WidgetsInterval) {
-                clearInterval(menu1WidgetsInterval);
-                menu1WidgetsInterval = null;
-            }
-        }
-    }
-}
-
-// ============================================
-// GESTION DU LOCALSTORAGE
-// ============================================
-
-const originalSetItem = localStorage.setItem;
-localStorage.setItem = function(key, value) {
-  originalSetItem.apply(this, arguments);
-  
-  if (key && key.includes('moneyManager')) {
-    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-      setTimeout(() => {
-        getMoneyManagementData();
-        showResultPanel();
-      }, 100);
-    }
-  }
-};
-
-const originalRemoveItem = localStorage.removeItem;
-localStorage.removeItem = function(key) {
-  originalRemoveItem.apply(this, arguments);
-  
-  if (key && key.includes('moneyManager')) {
-    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-      setTimeout(() => {
-        getMoneyManagementData();
-        showResultPanel();
-      }, 100);
-    }
-  }
-};
-
-// ============================================
-// SYSTÈME PRINCIPAL DES MENUS
+// GESTION DES MENUS ET PANELINFO
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialiser les variables globales
-    window.isInSelectedView = window.isInSelectedView || false;
-    window.wasInSelectedView = window.wasInSelectedView || false;
-    window.currentMenuPage = window.currentMenuPage || 'menu-1';
-    window.selectedAsset = window.selectedAsset || null;
+    // Cette fonction s'assure que le panelinfo affiche le bon contenu pour chaque menu
+    function updateMenuPanelInfo() {
+        const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
+        const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+        
+        if (!kinfopaneltousContainer || !kinfopaneltousContent) return;
+        
+        // Activer le conteneur
+        kinfopaneltousContainer.classList.add('active');
+        
+        // Vérifier si on est en selected view avec menu-2 (géré par le bloc 1)
+        if (window.isInSelectedView && window.currentMenuPage === 'menu-2') {
+            return; // Les news sont gérées par le bloc 1
+        }
+        
+        // Gérer les autres menus
+        switch(window.currentMenuPage) {
+            case 'menu-1':
+                loadMenu1Widgets();
+                break;
+                
+            case 'menu-3':
+                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 3 - Contenu à définir</div>';
+                break;
+                
+            case 'menu-4':
+                window.getMoneyManagementData();
+                window.showResultPanel();
+                break;
+                
+            case 'menu-5':
+                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 5 - Contenu à définir</div>';
+                break;
+                
+            default:
+                kinfopaneltousContainer.classList.remove('active');
+                break;
+        }
+    }
     
     // Observer les changements de menu
     const megaBox = document.getElementById('megaBox');
@@ -608,8 +218,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const observerMenuChange = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.attributeName === 'class') {
-                    const oldMenu = window.currentMenuPage;
-                    
                     // Mettre à jour la page courante
                     const classes = megaBox.classList;
                     if (classes.contains('menu-1')) window.currentMenuPage = 'menu-1';
@@ -618,13 +226,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     else if (classes.contains('menu-4')) window.currentMenuPage = 'menu-4';
                     else if (classes.contains('menu-5')) window.currentMenuPage = 'menu-5';
                     
-                    // Si on change de menu et qu'on était en selected view, on le quitte
-                    if (window.wasInSelectedView && oldMenu !== window.currentMenuPage) {
-                        window.isInSelectedView = false;
-                        window.wasInSelectedView = false;
-                    }
-                    
-                    updatePanelInfo();
+                    // Mettre à jour le panelinfo
+                    updateMenuPanelInfo();
                 }
             });
         });
@@ -635,23 +238,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initialisation
-    updatePanelInfo();
+    // Initialiser
+    setTimeout(() => {
+        updateMenuPanelInfo();
+    }, 300);
 });
 
-// ============================================
-// POLLING
-// ============================================
-
+// Polling pour menu-4
 setInterval(() => {
   if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    getMoneyManagementData();
-    showResultPanel();
+    if (window.getMoneyManagementData && window.showResultPanel) {
+      window.getMoneyManagementData();
+      window.showResultPanel();
+    }
   }
 }, 300);
 
 window.addEventListener('load', function() {
   setTimeout(() => {
-    updatePanelInfo();
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      if (window.getMoneyManagementData && window.showResultPanel) {
+        window.getMoneyManagementData();
+        window.showResultPanel();
+      }
+    }
   }, 300);
 });

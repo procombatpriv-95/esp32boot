@@ -1,11 +1,8 @@
 // ============================================
-// BLOC 1 - TradingView avec Carousel et Marchés
+// TRADINGVIEW CAROUSEL SYSTEM
 // ============================================
 
-// ============================================
-// VARIABLES GLOBALES - TradingView
-// ============================================
-
+// Variables globales pour le système TradingView
 let currentAssetType = 'crypto';
 let currentAssets = [];
 let selectedAsset = null;
@@ -14,7 +11,6 @@ let selectedTVWidget = null;
 let chartStates = {};
 let isInSelectedView = false;
 let wasInSelectedView = false;
-let currentMenuPage = 'menu-1';
 
 // Configuration des actifs
 const assetTypes = {
@@ -44,99 +40,87 @@ const assetTypes = {
     ]
 };
 
-if (!window.appTimezone) {
-    window.appTimezone = "Europe/London";
+// Éléments DOM
+const carousel = document.getElementById('mainCarousel');
+const carouselScene = document.getElementById('carouselScene');
+const selectedView = document.getElementById('selectedView');
+const backBtn = document.getElementById('backBtn');
+const loader = document.getElementById('loader');
+const menuSections = document.querySelectorAll('.menu-section');
+const sideMenu = document.getElementById('sideMenu');
+const megaBox = document.getElementById('megaBox');
+
+// === FONCTIONS UTILITAIRES ===
+function removeAllTooltips() {
+    const elements = document.querySelectorAll('[title]');
+    elements.forEach(el => {
+        if (el.title && el.title !== '') {
+            el.setAttribute('data-original-title', el.title);
+            el.removeAttribute('title');
+        }
+    });
 }
 
-// ============================================
-// FONCTIONS PRINCIPALES - TradingView
-// ============================================
+// === FONCTIONS TRADINGVIEW ===
+function createTradingViewWidget(containerId, symbol, assetId, isCarousel = false) {
+    if (!window.TradingView) {
+        setTimeout(() => createTradingViewWidget(containerId, symbol, assetId, isCarousel), 100);
+        return null;
+    }
 
-function initializeTradingView() {
-    console.log("Initialisation du TradingView...");
-    
-    // Vérifier si les éléments DOM existent
-    const carousel = document.getElementById('mainCarousel');
-    const carouselScene = document.getElementById('carouselScene');
-    const selectedView = document.getElementById('selectedView');
-    const backBtn = document.getElementById('backBtn');
-    const loader = document.getElementById('loader');
-    const menuSections = document.querySelectorAll('.menu-section');
-    const sideMenu = document.getElementById('sideMenu');
-    const megaBox = document.getElementById('megaBox');
-    
-    if (!carousel) {
-        console.error("❌ ERREUR: Élément 'mainCarousel' non trouvé!");
-        return;
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+
+    const widgetConfig = {
+        width: isCarousel ? '400' : '1000',
+        height: isCarousel ? '200' : '500',
+        symbol: symbol,
+        interval: '5',
+        timezone: window.appTimezone || "Europe/London",
+        theme: "dark",
+        style: "1",
+        locale: "fr",
+        enable_publishing: false,
+        allow_symbol_change: false,
+        save_image: false,
+        container_id: containerId
+    };
+
+    if (isCarousel) {
+        widgetConfig.toolbar_bg = "#111216";
+        widgetConfig.hide_legend = true;
+        widgetConfig.hide_side_toolbar = true;
+        widgetConfig.hide_top_toolbar = true;
+        widgetConfig.details = false;
+        widgetConfig.hotlist = false;
+        widgetConfig.calendar = false;
+        widgetConfig.show_popup_button = false;
+    } else {
+        widgetConfig.toolbar_bg = "#f1f3f6";
+        widgetConfig.hide_side_toolbar = false;
+        widgetConfig.hide_legend = false;
+        widgetConfig.details = true;
+        widgetConfig.hotlist = true;
+        widgetConfig.calendar = true;
     }
-    
-    console.log("Éléments DOM trouvés, initialisation en cours...");
-    
-    // Initialiser les sections de menu
-    if (menuSections.length > 0) {
-        menuSections.forEach(section => {
-            section.addEventListener('click', function() {
-                const type = this.getAttribute('data-type');
-                menuSections.forEach(s => s.classList.remove('active'));
-                this.classList.add('active');
-                currentAssetType = type;
-                currentAssets = assetTypes[type];
-                updateCarousel();
-            });
-        });
+
+    try {
+        return new TradingView.widget(widgetConfig);
+    } catch (error) {
+        console.error('Error creating TradingView widget:', error);
+        return null;
     }
-    
-    // Initialiser avec crypto par défaut
-    currentAssets = assetTypes.crypto;
-    updateCarousel();
-    
-    // Gestion du bouton retour
-    if (backBtn) {
-        backBtn.addEventListener('click', function() {
-            exitSelectedView();
-        });
-    }
-    
-    // Observateur pour les changements de menu
-    if (megaBox) {
-        const observerMenuChange = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.attributeName === 'class') {
-                    updateCurrentMenuPage();
-                    
-                    // Si on quitte le menu 2 (selected view), on sort de la vue détaillée
-                    if (currentMenuPage !== 'menu-2' && isInSelectedView) {
-                        exitSelectedView();
-                    }
-                }
-            });
-        });
-        
-        observerMenuChange.observe(megaBox, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
-    }
-    
-    console.log("✅ TradingView initialisé avec succès!");
 }
 
 function updateCarousel() {
-    const carousel = document.getElementById('mainCarousel');
-    if (!carousel) return;
-    
-    console.log("Mise à jour du carousel avec", currentAssets.length, "actifs");
-    
-    // Vider le carousel
     carousel.innerHTML = '';
     
-    // Créer les éléments du carousel
     currentAssets.forEach((asset, index) => {
         const carouselItem = document.createElement('div');
         carouselItem.className = 'carousel-item';
-        carouselItem.setAttribute('data-asset', asset.id);
+        carouselItem.setAttribute('data-crypto', asset.id);
         
-        const widgetId = `tv_${asset.id}_${Date.now()}`;
+        const widgetId = `${asset.id}_carousel_widget`;
         
         carouselItem.innerHTML = `
             <div class="market-name">${asset.displayName}</div>
@@ -147,307 +131,140 @@ function updateCarousel() {
         `;
         
         carousel.appendChild(carouselItem);
-        
-        // Positionner l'élément dans le carousel 3D
-        const angle = index * 90;
-        carouselItem.style.transform = `rotateY(${angle}deg) translateZ(280px)`;
-        
-        // Créer le widget TradingView après un délai
-        setTimeout(() => {
-            createTradingViewWidget(widgetId, asset.tradingViewSymbol, true);
-        }, 100 * index);
+        carouselItem.style.transform = `rotateY(${index * 90}deg) translateZ(280px)`;
     });
     
-    // Initialiser les clics après création
-    setTimeout(initCarouselClicks, 500);
+    setTimeout(() => {
+        currentAssets.forEach(asset => {
+            const widgetId = `${asset.id}_carousel_widget`;
+            tvWidgets[asset.id] = createTradingViewWidget(
+                widgetId,
+                asset.tradingViewSymbol,
+                asset.id,
+                true
+            );
+        });
+        
+        initCarouselClicks();
+    }, 1000);
 }
 
 function initCarouselClicks() {
-    const overlays = document.querySelectorAll('.carousel-overlay');
-    console.log("Initialisation des clics pour", overlays.length, "éléments");
-    
-    overlays.forEach(overlay => {
+    document.querySelectorAll('.carousel-overlay').forEach(overlay => {
         overlay.addEventListener('click', function(e) {
             e.stopPropagation();
             const assetId = this.getAttribute('data-asset-id');
-            console.log("Clic sur l'actif:", assetId);
             selectAsset(assetId);
         });
     });
 }
 
-function createTradingViewWidget(containerId, symbol, isCarousel = false) {
-    if (!window.TradingView) {
-        console.warn("TradingView SDK non chargé, nouvelle tentative...");
-        setTimeout(() => createTradingViewWidget(containerId, symbol, isCarousel), 500);
-        return null;
-    }
-    
-    const container = document.getElementById(containerId);
-    if (!container) {
-        console.error("Conteneur non trouvé:", containerId);
-        return null;
-    }
-    
-    try {
-        const widgetConfig = {
-            width: isCarousel ? '400' : '1000',
-            height: isCarousel ? '200' : '500',
-            symbol: symbol,
-            interval: '5',
-            timezone: window.appTimezone,
-            theme: "dark",
-            style: "1",
-            locale: "fr",
-            enable_publishing: false,
-            allow_symbol_change: false,
-            save_image: false,
-            container_id: containerId
-        };
-        
-        if (isCarousel) {
-            widgetConfig.toolbar_bg = "#111216";
-            widgetConfig.hide_legend = true;
-            widgetConfig.hide_side_toolbar = true;
-            widgetConfig.hide_top_toolbar = true;
-            widgetConfig.details = false;
-            widgetConfig.hotlist = false;
-            widgetConfig.calendar = false;
-            widgetConfig.show_popup_button = false;
-        } else {
-            widgetConfig.toolbar_bg = "#f1f3f6";
-            widgetConfig.hide_side_toolbar = false;
-            widgetConfig.hide_legend = false;
-            widgetConfig.details = true;
-            widgetConfig.hotlist = true;
-            widgetConfig.calendar = true;
-        }
-        
-        console.log("Création du widget TradingView pour:", symbol);
-        return new TradingView.widget(widgetConfig);
-    } catch (error) {
-        console.error("Erreur création widget TradingView:", error);
-        return null;
-    }
-}
-
 function selectAsset(assetId) {
     selectedAsset = currentAssets.find(c => c.id === assetId);
-    if (!selectedAsset) {
-        console.error("Actif non trouvé:", assetId);
-        return;
-    }
-    
-    console.log("Sélection de l'actif:", selectedAsset.displayName);
-    
+    if (!selectedAsset) return;
+
     isInSelectedView = true;
     wasInSelectedView = true;
-    
-    // Afficher la vue détaillée
-    const carousel = document.getElementById('mainCarousel');
-    const carouselScene = document.getElementById('carouselScene');
-    const sideMenu = document.getElementById('sideMenu');
-    const selectedView = document.getElementById('selectedView');
-    const backBtn = document.getElementById('backBtn');
-    const loader = document.getElementById('loader');
-    
-    if (carousel) carousel.classList.add('carousel-paused');
-    if (carouselScene) carouselScene.classList.add('hidden');
-    if (sideMenu) sideMenu.classList.add('hidden');
-    if (selectedView) selectedView.classList.add('active');
-    if (backBtn) backBtn.classList.remove('hidden');
-    if (loader) loader.classList.remove('hidden');
-    
-    // Préparer le conteneur pour le graphique détaillé
+    carousel.classList.add('carousel-paused');
+    carouselScene.classList.add('hidden');
+    sideMenu.classList.add('hidden');
+    selectedView.classList.add('active');
+    backBtn.classList.remove('hidden');
+    loader.classList.remove('hidden');
+
+    // Notifier le système de panel info qu'on est en selected view
+    if (window.onSelectedViewChange) {
+        window.onSelectedViewChange(true, selectedAsset);
+    }
+
     const tvContainer = document.getElementById('tradingview_selected');
     if (tvContainer) {
         tvContainer.innerHTML = '';
-        
-        // Créer le widget détaillé après un délai
-        setTimeout(() => {
-            if (selectedTVWidget) {
-                try {
-                    selectedTVWidget.remove();
-                } catch (e) {
-                    console.warn("Impossible de supprimer l'ancien widget:", e);
-                }
-            }
-            
-            selectedTVWidget = createTradingViewWidget(
-                'tradingview_selected',
-                selectedAsset.tradingViewSymbol,
-                false
-            );
-            
-            // Masquer le loader après 1.5 secondes
-            setTimeout(() => {
-                if (loader) loader.classList.add('hidden');
-            }, 1500);
-        }, 500);
     }
+
+    setTimeout(() => {
+        if (selectedTVWidget) {
+            window.removeEventListener('beforeunload', () => {});
+        }
+        
+        selectedTVWidget = createTradingViewWidget(
+            'tradingview_selected',
+            selectedAsset.tradingViewSymbol,
+            selectedAsset.id,
+            false
+        );
+        
+        setTimeout(() => {
+            loader.classList.add('hidden');
+        }, 1500);
+    }, 500);
 }
 
-function exitSelectedView() {
+// === INITIALISATION DU SYSTÈME TRADINGVIEW ===
+function initTradingViewSystem() {
+    const saved = localStorage.getItem('chartStates');
+    if (saved) {
+        try {
+            chartStates = JSON.parse(saved);
+        } catch (e) {
+            chartStates = {};
+        }
+    }
+    
+    // Initialiser les types d'actifs
+    currentAssets = assetTypes.crypto;
+    
+    // Configurer les sections de menu
+    menuSections.forEach(section => {
+        section.addEventListener('click', function() {
+            const type = this.getAttribute('data-type');
+            menuSections.forEach(s => s.classList.remove('active'));
+            this.classList.add('active');
+            currentAssetType = type;
+            currentAssets = assetTypes[type];
+            updateCarousel();
+        });
+    });
+    
+    updateCarousel();
+    setTimeout(removeAllTooltips, 1000);
+}
+
+// === ÉVÉNEMENTS ===
+backBtn.addEventListener('click', function() {
     isInSelectedView = false;
     wasInSelectedView = false;
+    selectedView.classList.remove('active');
+    carouselScene.classList.remove('hidden');
+    backBtn.classList.add('hidden');
+    sideMenu.classList.remove('hidden');
+    carousel.classList.remove('carousel-paused');
     
-    const selectedView = document.getElementById('selectedView');
-    const carouselScene = document.getElementById('carouselScene');
-    const backBtn = document.getElementById('backBtn');
-    const sideMenu = document.getElementById('sideMenu');
-    const carousel = document.getElementById('mainCarousel');
-    
-    if (selectedView) selectedView.classList.remove('active');
-    if (carouselScene) carouselScene.classList.remove('hidden');
-    if (backBtn) backBtn.classList.add('hidden');
-    if (sideMenu) sideMenu.classList.remove('hidden');
-    if (carousel) carousel.classList.remove('carousel-paused');
-    
-    // Nettoyer le widget détaillé
-    if (selectedTVWidget) {
-        try {
-            selectedTVWidget.remove();
-        } catch (e) {
-            console.warn("Erreur nettoyage widget:", e);
-        }
-        selectedTVWidget = null;
+    // Notifier le système de panel info qu'on a quitté la selected view
+    if (window.onSelectedViewChange) {
+        window.onSelectedViewChange(false, null);
     }
-}
-
-function updateCurrentMenuPage() {
-    const megaBox = document.getElementById('megaBox');
-    if (!megaBox) return;
-    
-    const classes = megaBox.classList;
-    if (classes.contains('menu-1')) currentMenuPage = 'menu-1';
-    else if (classes.contains('menu-2')) currentMenuPage = 'menu-2';
-    else if (classes.contains('menu-3')) currentMenuPage = 'menu-3';
-    else if (classes.contains('menu-4')) currentMenuPage = 'menu-4';
-    else if (classes.contains('menu-5')) currentMenuPage = 'menu-5';
-    
-    console.log("Menu changé vers:", currentMenuPage);
-}
-
-// ============================================
-// CHARGEMENT ET INITIALISATION
-// ============================================
-
-// S'assurer que TradingView SDK est chargé
-function loadTradingViewSDK() {
-    return new Promise((resolve) => {
-        if (window.TradingView) {
-            resolve();
-            return;
-        }
-        
-        console.log("Chargement du SDK TradingView...");
-        const script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.src = 'https://s3.tradingview.com/tv.js';
-        script.async = true;
-        script.onload = () => {
-            console.log("✅ SDK TradingView chargé");
-            resolve();
-        };
-        script.onerror = () => {
-            console.error("❌ Erreur chargement SDK TradingView");
-            // Réessayer après 2 secondes
-            setTimeout(() => loadTradingViewSDK().then(resolve), 2000);
-        };
-        document.head.appendChild(script);
-    });
-}
-
-// Initialisation principale
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM chargé, initialisation du TradingView...");
-    
-    // Charger le SDK TradingView d'abord
-    loadTradingViewSDK().then(() => {
-        // Attendre que tous les éléments soient prêts
-        setTimeout(() => {
-            initializeTradingView();
-            
-            // Exposer les variables globales
-            window.tvWidgets = tvWidgets;
-            window.selectedTVWidget = selectedTVWidget;
-            window.isInSelectedView = isInSelectedView;
-            window.currentMenuPage = currentMenuPage;
-            window.selectedAsset = selectedAsset;
-            
-            console.log("✅ Système TradingView prêt!");
-        }, 1000);
-    });
 });
 
-// Redimensionnement de la fenêtre
+// Gestion du redimensionnement
 window.addEventListener('resize', function() {
-    const sideMenu = document.getElementById('sideMenu');
     if (sideMenu) {
         sideMenu.style.top = '50%';
         sideMenu.style.transform = 'translateY(-50%)';
     }
 });
 
-// ============================================
-// GÉOLOCALISATION POUR FUSEAU HORAIRE
-// ============================================
+// Exporter les variables globales
+window.tvWidgets = tvWidgets;
+window.selectedTVWidget = selectedTVWidget;
+window.isInSelectedView = isInSelectedView;
+window.selectedAsset = selectedAsset;
+window.currentAssetType = currentAssetType;
+window.currentAssets = currentAssets;
 
-async function getTimezoneFromCoords(lat, lon) {
-    try {
-        // Utiliser une API gratuite pour le fuseau horaire
-        const res = await fetch(`https://api.ipgeolocation.io/timezone?apiKey=YOUR_API_KEY&lat=${lat}&long=${lon}`);
-        if (!res.ok) throw new Error("Erreur API fuseau horaire");
-        const data = await res.json();
-        return data.timezone || "Europe/London";
-    } catch (e) {
-        console.error("Erreur fuseau horaire, utilisation du fuseau par défaut:", e);
-        return "Europe/London";
-    }
-}
-
-function setupGeolocation() {
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const crd = pos.coords;
-                getTimezoneFromCoords(crd.latitude, crd.longitude).then(timezone => {
-                    window.appTimezone = timezone;
-                    console.log("Fuseau horaire détecté:", timezone);
-                    
-                    // Mettre à jour les widgets existants
-                    if (window.tvWidgets) {
-                        Object.values(window.tvWidgets).forEach(widget => {
-                            if (widget && widget.chart) {
-                                try {
-                                    widget.chart().setTimezone(timezone);
-                                } catch (e) {
-                                    console.warn("Impossible de mettre à jour le fuseau horaire du widget:", e);
-                                }
-                            }
-                        });
-                    }
-                });
-            },
-            (err) => {
-                console.warn("Géolocalisation non disponible, fuseau horaire par défaut:", err.message);
-                window.appTimezone = "Europe/London";
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
-        );
-    } else {
-        window.appTimezone = "Europe/London";
-        console.log("Géolocalisation non supportée, fuseau horaire par défaut");
-    }
-}
-
-// Démarrer la géolocalisation après le chargement
-setTimeout(setupGeolocation, 2000);
+// Initialiser lorsque le DOM est prêt
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTradingViewSystem);
 } else {
-  document.getElementById("output").textContent = "❌ Géolocalisation non supportée par ce navigateur.";
-  window.appTimezone = "Europe/London";
+    initTradingViewSystem();
 }

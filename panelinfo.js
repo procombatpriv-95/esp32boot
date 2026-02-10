@@ -20,6 +20,7 @@ let resultPanelData = {
 let lastTransactionHash = '';
 let lastGoalHash = '';
 let lastSavingsHash = '';
+let autoUpdateInterval = null;
 let menu1WidgetsInterval = null;
 let currentBottomLeftWidget = 'eurusd';
 let currentBottomRightWidget = 'apple';
@@ -103,7 +104,7 @@ function transferSaving(savingType) {
     
     setTimeout(() => {
       getMoneyManagementData();
-      showFinancialPanel();
+      showResultPanel();
     }, 100);
     
     window.dispatchEvent(new Event('storage'));
@@ -218,7 +219,7 @@ function getMoneyManagementData(period = null) {
   }
 }
 
-function showFinancialPanel() {
+function showResultPanel() {
   const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
   if (!kinfopaneltousContent) return;
   
@@ -326,13 +327,6 @@ function showFinancialPanel() {
   
   kinfopaneltousContent.appendChild(resultPanel);
   
-  // Activer le conteneur
-  const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
-  if (kinfopaneltousContainer) {
-    kinfopaneltousContainer.classList.add('active');
-  }
-  
-  // Charger Font Awesome si nécessaire
   if (!document.querySelector('link[href*="font-awesome"]')) {
     const faLink = document.createElement('link');
     faLink.rel = 'stylesheet';
@@ -340,14 +334,13 @@ function showFinancialPanel() {
     document.head.appendChild(faLink);
   }
   
-  // Gestion des événements
   const periodBtns = resultPanel.querySelectorAll('.period-btn');
   periodBtns.forEach(btn => {
     btn.addEventListener('click', function() {
       const period = this.getAttribute('data-period');
       resultPanelData.currentPeriod = period;
       getMoneyManagementData(period);
-      showFinancialPanel();
+      showResultPanel();
     });
   });
   
@@ -361,7 +354,7 @@ function showFinancialPanel() {
 }
 
 // ============================================
-// WIDGETS MENU-1 (dans le bloc 2 maintenant)
+// WIDGETS MENU-1
 // ============================================
 
 function loadMenu1Widgets() {
@@ -407,12 +400,6 @@ function loadMenu1Widgets() {
     `;
     
     kinfopaneltousContent.appendChild(widgetsContainer);
-    
-    // Activer le conteneur
-    const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
-    if (kinfopaneltousContainer) {
-        kinfopaneltousContainer.classList.add('active');
-    }
     
     // S'assurer que le conteneur principal est positionné correctement
     kinfopaneltousContent.style.cssText = `
@@ -530,16 +517,10 @@ function loadRandomBottomWidgets() {
 }
 
 // ============================================
-// GESTION DES MENUS ET PANELINFO
+// GESTION DU PANELINFO POUR TOUS LES MENUS
 // ============================================
 
 function updatePanelInfo() {
-    // Cette fonction gère tous les menus sauf les news du menu-2
-    if (window.isInSelectedView && window.currentMenuPage === 'menu-2') {
-        // Si on est en selected view avec menu-2, on laisse le bloc 1 gérer les news
-        return;
-    }
-    
     const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
     
@@ -547,31 +528,39 @@ function updatePanelInfo() {
     
     kinfopaneltousContainer.classList.add('active');
     
-    switch (window.currentMenuPage) {
-        case 'menu-1':
+    // Si on change de menu et qu'on était en selected view, on le quitte
+    if (window.wasInSelectedView && window.currentMenuPage !== 'menu-2') {
+        window.isInSelectedView = false;
+        window.wasInSelectedView = false;
+    }
+    
+    // Les news ne s'affichent QUE si toutes ces conditions sont remplies
+    if (window.isInSelectedView && window.selectedAsset && window.currentMenuPage === 'menu-2') {
+        // Les news sont gérées par le bloc 1
+        return;
+    } else {
+        // Sinon, on désactive le selected view
+        if (window.isInSelectedView && window.currentMenuPage !== 'menu-2') {
+            window.isInSelectedView = false;
+        }
+        
+        if (window.currentMenuPage === 'menu-1') {
             loadMenu1Widgets();
-            break;
-            
-        case 'menu-3':
-            kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 3 - Contenu à définir</div>';
-            break;
-            
-        case 'menu-4':
-            showFinancialPanel();
-            break;
-            
-        case 'menu-5':
-            kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 5 - Contenu à définir</div>';
-            break;
-            
-        default:
-            kinfopaneltousContainer.classList.remove('active');
-            break;
+        } else if (window.currentMenuPage === 'menu-4') {
+            getMoneyManagementData();
+            showResultPanel();
+        } else {
+            kinfopaneltousContent.innerHTML = '';
+            if (menu1WidgetsInterval) {
+                clearInterval(menu1WidgetsInterval);
+                menu1WidgetsInterval = null;
+            }
+        }
     }
 }
 
 // ============================================
-// GESTION DU LOCALSTORAGE POUR MENU-4
+// GESTION DU LOCALSTORAGE
 // ============================================
 
 const originalSetItem = localStorage.setItem;
@@ -582,7 +571,7 @@ localStorage.setItem = function(key, value) {
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
       setTimeout(() => {
         getMoneyManagementData();
-        showFinancialPanel();
+        showResultPanel();
       }, 100);
     }
   }
@@ -596,20 +585,22 @@ localStorage.removeItem = function(key) {
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
       setTimeout(() => {
         getMoneyManagementData();
-        showFinancialPanel();
+        showResultPanel();
       }, 100);
     }
   }
 };
 
 // ============================================
-// INITIALISATION ET OBSERVATEUR DE MENUS
+// SYSTÈME PRINCIPAL DES MENUS
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialiser les variables globales si elles n'existent pas
+    // Initialiser les variables globales
     window.isInSelectedView = window.isInSelectedView || false;
+    window.wasInSelectedView = window.wasInSelectedView || false;
     window.currentMenuPage = window.currentMenuPage || 'menu-1';
+    window.selectedAsset = window.selectedAsset || null;
     
     // Observer les changements de menu
     const megaBox = document.getElementById('megaBox');
@@ -627,16 +618,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     else if (classes.contains('menu-4')) window.currentMenuPage = 'menu-4';
                     else if (classes.contains('menu-5')) window.currentMenuPage = 'menu-5';
                     
-                    // Mettre à jour le panelinfo
-                    updatePanelInfo();
-                    
-                    // Arrêter l'intervalle des widgets si on quitte le menu-1
-                    if (oldMenu === 'menu-1' && window.currentMenuPage !== 'menu-1') {
-                        if (menu1WidgetsInterval) {
-                            clearInterval(menu1WidgetsInterval);
-                            menu1WidgetsInterval = null;
-                        }
+                    // Si on change de menu et qu'on était en selected view, on le quitte
+                    if (window.wasInSelectedView && oldMenu !== window.currentMenuPage) {
+                        window.isInSelectedView = false;
+                        window.wasInSelectedView = false;
                     }
+                    
+                    updatePanelInfo();
                 }
             });
         });
@@ -648,19 +636,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Initialisation
-    setTimeout(() => {
-        updatePanelInfo();
-    }, 300);
+    updatePanelInfo();
 });
 
 // ============================================
-// POLLING POUR MENU-4
+// POLLING
 // ============================================
 
 setInterval(() => {
   if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
     getMoneyManagementData();
-    showFinancialPanel();
+    showResultPanel();
   }
 }, 300);
 

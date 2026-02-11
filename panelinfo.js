@@ -2,7 +2,6 @@
 // FONCTIONS ET VARIABLES SPÉCIFIQUES AUX MENUS
 // ============================================
 
-// Ces variables sont déjà définies dans le bloc 1, mais nous les répétons ici pour le bon fonctionnement
 let menu1WidgetsInterval = null;
 let currentBottomLeftWidget = 'eurusd';
 let currentBottomRightWidget = 'apple';
@@ -12,160 +11,34 @@ function loadMenu1Widgets() {
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
     if (!kinfopaneltousContent) return;
     
+    // Vider le conteneur
     kinfopaneltousContent.innerHTML = '';
     
-    // Créer un conteneur principal pour les widgets
-    const widgetsContainer = document.createElement('div');
-    widgetsContainer.id = 'menu1WidgetsContainer';
-    widgetsContainer.style.cssText = `
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 250px;
-        height: 180px;
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 15px;
-        overflow: hidden;
-        z-index: 1;
-    `;
+    // Créer le conteneur du ticker tape
+    const tickerContainer = document.createElement('div');
+    tickerContainer.id = 'ticker-container-1';
+    tickerContainer.className = 'ticker-container';
     
-    // Créer la structure des 3 widgets
-    widgetsContainer.innerHTML = `
-        <!-- Widget du haut - SP500 -->
-        <div id="topWidget" style="position: absolute; top: 0; left: 0; width: 250px; height: 90px; border-radius: 15px 15px 0 0; overflow: hidden;">
-            <!-- SP500 sera chargé ici -->
-        </div>
-        
-        <!-- Widgets du bas -->
-        <div style="position: absolute; top: 90px; left: 0; width: 250px; height: 90px;">
-            <!-- Widget gauche -->
-            <div id="bottomLeftWidget" style="position: absolute; top: 0; left: 0; width: 125px; height: 90px; border-radius: 0 0 0 15px; overflow: hidden;">
-                <!-- FOREX sera chargé ici -->
-            </div>
-            
-            <!-- Widget droit -->
-            <div id="bottomRightWidget" style="position: absolute; top: 0; left: 125px; width: 125px; height: 90px; border-radius: 0 0 15px 0; overflow: hidden;">
-                <!-- Action/Crypto sera chargé ici -->
-            </div>
-        </div>
-    `;
+    // Créer l'élément tv-ticker-tape avec les symboles requis
+    const tickerTape = document.createElement('tv-ticker-tape');
+    tickerTape.setAttribute('symbols', 'FOREXCOM:SPXUSD,FX:EURUSD,CMCMARKETS:GOLD,OANDA:NZDUSD,OANDA:GBPUSD,FX_IDC:JPYUSD,FX_IDC:CADUSD,OANDA:AUDUSD');
+    tickerTape.setAttribute('direction', 'vertical');
+    tickerTape.setAttribute('theme', 'dark');
     
-    kinfopaneltousContent.appendChild(widgetsContainer);
+    // Assembler et insérer
+    tickerContainer.appendChild(tickerTape);
+    kinfopaneltousContent.appendChild(tickerContainer);
     
-    // S'assurer que le conteneur principal est positionné correctement
-    kinfopaneltousContent.style.cssText = `
-        position: relative;
-        width: 100%;
-        height: 100%;
-    `;
-    
-    // Charger les widgets
-    loadSP500Widget();
-    loadRandomBottomWidgets();
-    
-    // Démarrer l'intervalle pour changer les widgets du bas
+    // Nettoyer l'ancien intervalle s'il existe (plus nécessaire)
     if (menu1WidgetsInterval) {
         clearInterval(menu1WidgetsInterval);
+        menu1WidgetsInterval = null;
     }
-    
-    menu1WidgetsInterval = setInterval(() => {
-        loadRandomBottomWidgets();
-    }, 180000);
 }
 
-function loadSP500Widget() {
-    const topWidget = document.getElementById('topWidget');
-    if (!topWidget) return;
-    
-    topWidget.innerHTML = '';
-    const iframe = document.createElement('iframe');
-    iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=Vantage:SP500&width=250&height=90&colorTheme=dark&isTransparent=true`;
-    iframe.frameBorder = '0';
-    iframe.scrolling = 'no';
-    iframe.allowtransparency = 'true';
-    iframe.style.cssText = `
-        width: 100%;
-        height: 100%;
-        border: none;
-        display: block;
-        border-radius: 15px 15px 0 0;
-        transform: scale(0.8);
-        transform-origin: top left;
-        width: 125%;
-        height: 125%;
-    `;
-    topWidget.appendChild(iframe);
-}
-
-function loadRandomBottomWidgets() {
-    const forexSymbols = [
-        { id: 'eurusd', symbol: 'FX_IDC:EURUSD', name: 'EUR/USD' },
-        { id: 'gbpusd', symbol: 'FX_IDC:GBPUSD', name: 'GBP/USD' },
-        { id: 'nzdusd', symbol: 'FX_IDC:NZDUSD', name: 'NZD/USD' },
-        { id: 'audusd', symbol: 'FX_IDC:AUDUSD', name: 'AUD/USD' },
-        { id: 'jpyusd', symbol: 'FX_IDC:JPYUSD', name: 'JPY/USD' }
-    ];
-    
-    const stockCryptoSymbols = [
-        { id: 'apple', symbol: 'NASDAQ:AAPL', name: 'Apple' },
-        { id: 'tesla', symbol: 'NASDAQ:TSLA', name: 'Tesla' },
-        { id: 'bitcoin', symbol: 'BITSTAMP:BTCUSD', name: 'Bitcoin' },
-        { id: 'gold', symbol: 'OANDA:XAUUSD', name: 'XAUUSD' },
-        { id: 'nasdaq', symbol: 'NYSE:GME', name: 'NASDAQ' }
-    ];
-    
-    const randomForex = forexSymbols[Math.floor(Math.random() * forexSymbols.length)];
-    const randomStockCrypto = stockCryptoSymbols[Math.floor(Math.random() * stockCryptoSymbols.length)];
-    
-    currentBottomLeftWidget = randomForex.id;
-    currentBottomRightWidget = randomStockCrypto.id;
-    
-    // Widget gauche (FOREX)
-    const bottomLeftWidget = document.getElementById('bottomLeftWidget');
-    if (bottomLeftWidget) {
-        bottomLeftWidget.innerHTML = '';
-        const iframe = document.createElement('iframe');
-        iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomForex.symbol}&width=125&height=90&colorTheme=dark&isTransparent=true`;
-        iframe.frameBorder = '0';
-        iframe.scrolling = 'no';
-        iframe.allowtransparency = 'true';
-        iframe.style.cssText = `
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: block;
-            border-radius: 0 0 0 15px;
-            transform: scale(0.8);
-            transform-origin: top left;
-            width: 125%;
-            height: 125%;
-        `;
-        bottomLeftWidget.appendChild(iframe);
-    }
-    
-    // Widget droit (Action/Crypto)
-    const bottomRightWidget = document.getElementById('bottomRightWidget');
-    if (bottomRightWidget) {
-        bottomRightWidget.innerHTML = '';
-        const iframe = document.createElement('iframe');
-        iframe.src = `https://www.tradingview.com/embed-widget/single-quote/?locale=fr&symbol=${randomStockCrypto.symbol}&width=125&height=90&colorTheme=dark&isTransparent=true`;
-        iframe.frameBorder = '0';
-        iframe.scrolling = 'no';
-        iframe.allowtransparency = 'true';
-        iframe.style.cssText = `
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: block;
-            border-radius: 0 0 15px 0;
-            transform: scale(0.8);
-            transform-origin: top left;
-            width: 125%;
-            height: 125%;
-        `;
-        bottomRightWidget.appendChild(iframe);
-    }
-}
+// Les fonctions suivantes ne sont plus utilisées mais conservées pour compatibilité
+function loadSP500Widget() {}
+function loadRandomBottomWidgets() {}
 
 // ============================================
 // GESTION DES MENUS ET PANELINFO
@@ -212,13 +85,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Observer les changements de menu
+    
     const megaBox = document.getElementById('megaBox');
     if (megaBox) {
         const observerMenuChange = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.attributeName === 'class') {
-                    // Mettre à jour la page courante
+                  
                     const classes = megaBox.classList;
                     if (classes.contains('menu-1')) window.currentMenuPage = 'menu-1';
                     else if (classes.contains('menu-2')) window.currentMenuPage = 'menu-2';
@@ -264,5 +137,4 @@ window.addEventListener('load', function() {
     }
   }, 300);
 });
-
 

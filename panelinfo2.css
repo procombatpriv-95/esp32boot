@@ -1,4 +1,8 @@
-.panelinfo{
+/* ============================================
+   STYLES EXISTANTS (NON MODIFIÉS)
+   ============================================ */
+
+.panelinfo {
   width: 250px;
   height: 700px;
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
@@ -62,17 +66,17 @@
 
 /* KINFOPANELTOUS CONTAINER (Deuxième div) - MODIFIÉ */
 .kinfopaneltous-container {
-  width: 250px; /* Largeur fixe de 250px */
+  width: 250px;
   height: 620px;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 20px;
-  padding: 0; /* Pas de padding pour que le widget prenne toute la place */
+  padding: 0;
   display: none;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   margin-top: 80px;
-  align-self: center; /* Centre le container dans le panelinfo */
+  align-self: center;
 }
 
 .kinfopaneltous-container.active {
@@ -81,7 +85,7 @@
 
 /* KINFOPANELTOUS HEADER CACHÉ */
 .kinfopaneltous-header {
-  display: none; /* Cache le header des kinfopaneltous */
+  display: none;
 }
 
 /* KINFOPANELTOUS CONTENT DIRECT - CENTRÉ */
@@ -104,14 +108,12 @@
   text-decoration: none !important;
 }
 
-/* Cacher tous les tooltips */
 *[title]:hover::after,
 *[data-title]:hover::after,
 *[aria-label]:hover::after {
   display: none !important;
 }
 
-/* Désactiver les tooltips natifs */
 * {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -126,7 +128,6 @@ iframe {
   pointer-events: auto !important;
 }
 
-/* Cacher les tooltips spécifiques TradingView */
 .tradingview-widget-copyright,
 .tradingview-widget-copyright a,
 .tv-widget-copyright,
@@ -134,12 +135,10 @@ iframe {
   text-decoration: none !important;
 }
 
-/* Style pour éviter les tooltips sur les éléments cliquables */
 a, button, .clickable {
   text-decoration: none !important;
 }
 
-/* Supprimer les attributs title des éléments */
 [title=""] {
   text-decoration: none !important;
 }
@@ -187,7 +186,7 @@ a, button, .clickable {
 
 .progress-section {
   width: 100%;
-  margin-top:-10px;
+  margin-top: -10px;
   margin-bottom: 55px;
 }
 
@@ -249,12 +248,14 @@ a, button, .clickable {
   position: relative;
   z-index: 2;
 }
+
 .progress-filled.empty {
-    min-width: 0 !important;
-    padding-right: 0 !important;
-    background: transparent !important;
-    border-radius: 17.5px !important;
+  min-width: 0 !important;
+  padding-right: 0 !important;
+  background: transparent !important;
+  border-radius: 17.5px !important;
 }
+
 .progress-remaining {
   background: #e74c3c;
   height: 100%;
@@ -386,17 +387,109 @@ a, button, .clickable {
   display: none !important;
 }
 
-/* === STYLES POUR LE MENU 1 (MODIFIÉ) === */
-.menu1-sp500-container {
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
+/* === STYLES POUR LE MENU-1 === */
+/* Widget ticker tape vertical */
+.ticker-container {
+  width: 250px;
+  height: 240px;
+  border-radius: 30px;
   overflow: hidden;
+  bottom: 0px;
 }
 
-.menu1-sp500-container iframe {
+tv-ticker-tape {
+  width: 100% !important;
+  height: 120% !important;
+  display: block;
+}
+
+/* ============================================
+   STYLES AJOUTÉS (NOTIFICATIONS + NEWS)
+   ============================================ */
+
+/* === NOTIFICATIONS === */
+.notifications-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 5px;
   width: 100%;
-  height: 100%;
-  border: none;
+}
+
+.notification-item {
+  width: 100px;
+  height: 30px;
+  border-radius: 30px;
+  background: #111216;
+  background-color: rgba(17, 18, 22, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.notification-item .prime-label {
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+/* === BLOC NEWS SCROLLABLE === */
+.news-block-container {
+  width: 240px;
+  height: 370px;
+  background: #111216;
+  background-color: rgba(17, 18, 22, 0.7);
+  border-radius: 30px;
+  padding: 15px;
+  overflow-y: auto;
+  color: white;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.news-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.news-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+.news-source {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  justify-content: space-between;
+}
+
+.news-error,
+.news-loading {
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  padding: 20px;
+  font-size: 14px;
+}
+
+/* Espacement entre le bloc news et l'iframe */
+.ticker-container {
+  margin-top: 10px;
 }

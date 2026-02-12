@@ -49,13 +49,13 @@ function loadSP500Widget() {
     iframe.allowtransparency = 'true';
     iframe.style.cssText = `
         width: 100%;
-        height: 100%;
+
         border: none;
         display: block;
         border-radius: 15px 15px 0 0;
         transform: scale(0.8);
         transform-origin: top left;
-        width: 125%;
+
         height: 125%;
     `;
     topWidget.appendChild(iframe);
@@ -94,15 +94,15 @@ function loadRandomBottomWidgets() {
         iframe.scrolling = 'no';
         iframe.allowtransparency = 'true';
         iframe.style.cssText = `
-            width: 100%;
-            height: 100%;
+            width: 250px;
+
             border: none;
             display: block;
             border-radius: 0 0 0 15px;
             transform: scale(0.8);
             transform-origin: top left;
-            width: 125%;
-            height: 125%;
+
+            height: 240px;
         `;
         bottomLeftWidget.appendChild(iframe);
     }
@@ -118,13 +118,13 @@ function loadRandomBottomWidgets() {
         iframe.allowtransparency = 'true';
         iframe.style.cssText = `
             width: 100%;
-            height: 100%;
+
             border: none;
             display: block;
             border-radius: 0 0 15px 0;
             transform: scale(0.8);
             transform-origin: top left;
-            width: 125%;
+
             height: 125%;
         `;
         bottomRightWidget.appendChild(iframe);

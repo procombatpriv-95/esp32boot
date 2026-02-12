@@ -24,6 +24,14 @@ function loadMenu1Widgets() {
     // Assembler et insérer
     tickerContainer.appendChild(tickerTape);
     kinfopaneltousContent.appendChild(tickerContainer);
+    
+    // Charger le script TradingView s'il n'est pas déjà présent
+    if (!document.querySelector('script[src*="tv-ticker-tape.js"]')) {
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = 'https://widgets.tradingview-widget.com/w/en/tv-ticker-tape.js';
+        document.head.appendChild(script);
+    }
 }
 
 // ============================================

@@ -1,4 +1,4 @@
-.panelinfo{
+.panelinfo {
   width: 250px;
   height: 700px;
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
@@ -386,70 +386,19 @@ a, button, .clickable {
   display: none !important;
 }
 
-/* === STYLES POUR LES WIDGETS DU MENU-1 === */
-.menu-1-widgets {
-  width: 100%;
-  height: 180px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 15px;
+/* === STYLES POUR LE MENU-1 === */
+/* Widget ticker tape vertical */
+.ticker-container {
+  width: 250px;
+  height: 240px;
+  border-radius: 30px;
   overflow: hidden;
-  margin-top: 10px;
-  position: relative;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  margin: 20px auto;
 }
 
-.menu-1-widgets-container {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-.market-cell {
-  position: absolute;
-  overflow: hidden;
-  pointer-events: auto !important;
-}
-
-.market-cell iframe {
+tv-ticker-tape {
   width: 100% !important;
-  height: 100% !important;
-  border: none !important;
-  pointer-events: auto !important;
-}
-
-/* Widget du haut - SP500 */
-.top-widget {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 250px !important;
-  height: 90px !important;
-  z-index: 2;
-}
-
-/* Widgets du bas */
-.bottom-widgets {
-  position: absolute;
-  top: 90px;
-  left: 0;
-  width: 250px !important;
-  height: 90px !important;
-  display: flex;
-}
-
-.bottom-left-widget {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 124.5px !important;
-  height: 90px !important;
-  z-index: 2;
-}
-
-.bottom-right-widget {
-  position: absolute;
-  top: 0;
-  left: 124.5px;
-  width: 124.5px !important;
-  height: 90px !important;
-  z-index: 2;
+  height: 120% !important;
+  display: block;
 }

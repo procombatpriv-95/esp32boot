@@ -9,18 +9,18 @@ const NOTIF_PHRASES = [
     "meteo a 10 degree"
 ];
 
-// Liste des anniversaires (mois 0-indexé : janvier = 0, février = 1, ...)
+// Liste des anniversaires (mois 0-indexé)
 const birthdays = [
     { name: "Mohamed", day: 10, month: 6 },  // 10 juillet
-    { name: "Dad", day: 18, month: 6 },      // 18 juillet (ou octobre ? l'utilisateur a mis "Juillet = 6" donc OK)
-    { name: "Mom", day: 14, month: 3 },      // 14 avril (car mai = 4? L'utilisateur a mis "Mai = 4" donc mois 3 = avril, à vérifier mais on garde)
+    { name: "Dad", day: 18, month: 6 },      // 18 juillet
+    { name: "Mom", day: 14, month: 3 },      // 14 avril
     { name: "Bilal", day: 28, month: 10 },   // 28 novembre
     { name: "Assya", day: 21, month: 9 },    // 21 octobre
     { name: "Zackaria", day: 5, month: 4 }   // 5 mai
 ];
 
 // ============================================
-// GESTIONNAIRE DE NOTIFICATIONS (file d'attente avec priorité)
+// GESTIONNAIRE DE NOTIFICATIONS
 // ============================================
 class NotificationManager {
     constructor(containerSelector) {
@@ -34,26 +34,20 @@ class NotificationManager {
 
     add(message, prefix = "PRIME IA", priority = false, duration = 30000) {
         if (!this.container) return;
-        // Si c'est prioritaire, on met duration à 2 minutes par défaut
-        if (priority && duration === 30000) duration = 120000;
+        if (priority && duration === 30000) duration = 120000; // 2 min pour les prioritaires
         this.queue.push({ message, prefix, priority, duration });
         this.processQueue();
     }
 
     processQueue() {
         if (this.currentNotification) {
-            // Si une notification prioritaire est active et pas expirée
             if (this.priorityActive && Date.now() < this.priorityEndTime) {
-                // On vérifie s'il y a une autre prioritaire dans la file
                 const priorityIndex = this.queue.findIndex(n => n.priority);
                 if (priorityIndex !== -1) {
-                    // On remplace la courante par la nouvelle prioritaire
                     this.clearCurrent();
                     this.showNext();
                 }
-                // Sinon on garde la prioritaire actuelle
             } else {
-                // Pas de prioritaire active, on peut passer à la suivante si file non vide
                 if (this.queue.length > 0) {
                     this.clearCurrent();
                     this.showNext();
@@ -100,11 +94,9 @@ class NotificationManager {
             this.priorityEndTime = Date.now() + notifData.duration;
         }
 
-        // Animation : expansion après 2s
+        // Expansion après 2s
         setTimeout(() => {
-            if (notif.parentNode) {
-                notif.classList.add('expanded');
-            }
+            if (notif.parentNode) notif.classList.add('expanded');
         }, 2000);
 
         // Ajout du texte après 4s
@@ -114,22 +106,17 @@ class NotificationManager {
             }
         }, 4000);
 
-        // Durée d'affichage
+        // Fin de la notification
         this.timeoutId = setTimeout(() => {
             if (notifData.priority) {
                 this.priorityActive = false;
-                // Vérifier s'il reste des prioritaires en file
                 const nextPriority = this.queue.findIndex(n => n.priority);
-                if (nextPriority === -1) {
-                    this.clearCurrent();
-                } else {
-                    // On laisse la file décider (processQueue sera rappelé)
-                    this.clearCurrent();
-                }
+                if (nextPriority === -1) this.clearCurrent();
+                else this.clearCurrent(); // on efface et on laisse processQueue gérer
             } else {
                 this.clearCurrent();
             }
-            this.processQueue(); // relance
+            this.processQueue();
         }, notifData.duration);
     }
 }
@@ -144,13 +131,12 @@ let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedN
 function checkBirthdays() {
     const today = new Date();
     const currentDay = today.getDate();
-    const currentMonth = today.getMonth(); // 0-indexé
+    const currentMonth = today.getMonth();
 
     birthdays.forEach(bday => {
         if (bday.day === currentDay && bday.month === currentMonth) {
             const key = `${bday.name}-${currentDay}-${currentMonth}`;
             if (!displayedNotifications.has(key)) {
-                // Ajouter la notification d'anniversaire (non prioritaire, durée 1 minute par exemple)
                 notifManager?.add(`Joyeux anniversaire ${bday.name} ! 🎂`, "ANNIVERSAIRE", false, 60000);
                 displayedNotifications.add(key);
                 localStorage.setItem('displayedNotifications', JSON.stringify(Array.from(displayedNotifications)));
@@ -159,14 +145,12 @@ function checkBirthdays() {
     });
 }
 
-// Planifier la vérification quotidienne (à minuit)
 function scheduleDailyBirthdayCheck() {
     const now = new Date();
     const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
     const timeUntilMidnight = nextMidnight - now;
     setTimeout(() => {
         checkBirthdays();
-        // Puis répéter toutes les 24h
         setInterval(checkBirthdays, 24 * 60 * 60 * 1000);
     }, timeUntilMidnight);
 }
@@ -207,8 +191,6 @@ async function fetchNews() {
 
     Promise.all(promises).then(results => {
         let allArticles = results.flat();
-
-        // Déduplication par titre
         const unique = [];
         const titles = new Set();
         allArticles.forEach(article => {
@@ -217,11 +199,7 @@ async function fetchNews() {
                 unique.push(article);
             }
         });
-
-        // Tri par date
         unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-
-        // Garder les 10 premiers
         const top10 = unique.slice(0, 10);
         renderNews(top10);
     }).catch(error => {
@@ -285,7 +263,6 @@ async function updateStatusAndNotify() {
         const res = await fetch("/status");
         const data = await res.json();
 
-        // Detector
         if (data.esp2.online !== lastDetectorOnline) {
             if (data.esp2.online) {
                 notifManager?.add("Detector is Online !", "STATUS", true, 120000);
@@ -295,7 +272,6 @@ async function updateStatusAndNotify() {
             lastDetectorOnline = data.esp2.online;
         }
 
-        // Camera
         if (data.esp3.online !== lastCameraOnline) {
             if (data.esp3.online) {
                 notifManager?.add("Camera is Online !", "STATUS", true, 120000);
@@ -310,7 +286,7 @@ async function updateStatusAndNotify() {
 }
 
 // ============================================
-// CHARGEMENT DU MENU-1 (tout le contenu)
+// CHARGEMENT DU MENU-1 (NOUVEL ORDRE)
 // ============================================
 function loadMenu1Widgets() {
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
@@ -329,19 +305,19 @@ function loadMenu1Widgets() {
     layoutWrapper.style.maxHeight = '100%';
     layoutWrapper.style.paddingRight = '5px';
 
-    // 1. Conteneur des notifications
+    // 1. Notifications (en haut)
     const notifContainer = document.createElement('div');
     notifContainer.className = 'notifications-container';
     notifContainer.id = 'notification-container';
     layoutWrapper.appendChild(notifContainer);
 
-    // 2. Bloc news
+    // 2. Bloc news (au milieu)
     const newsContainer = document.createElement('div');
     newsContainer.className = 'news-block-container';
     newsContainer.innerHTML = '<div class="news-loading">Chargement des actualités...</div>';
     layoutWrapper.appendChild(newsContainer);
 
-    // 3. Widget TradingView
+    // 3. Widget TradingView (en bas)
     const tickerContainer = document.createElement('div');
     tickerContainer.id = 'ticker-container-1';
     tickerContainer.className = 'ticker-container';
@@ -354,7 +330,7 @@ function loadMenu1Widgets() {
 
     kinfopaneltousContent.appendChild(layoutWrapper);
 
-    // Initialiser le gestionnaire de notifications si nécessaire
+    // Initialiser le gestionnaire de notifications
     if (!notifManager) {
         notifManager = new NotificationManager('#notification-container');
     }
@@ -370,7 +346,7 @@ function loadMenu1Widgets() {
         document.head.appendChild(script);
     }
 
-    // Lancer le polling des statuts (toutes les secondes)
+    // Lancer le polling des statuts
     if (!window.statusInterval) {
         window.statusInterval = setInterval(updateStatusAndNotify, 1000);
         updateStatusAndNotify();
@@ -380,7 +356,6 @@ function loadMenu1Widgets() {
     if (!window.firstVisitNotifTriggered) {
         setTimeout(() => {
             window.firstVisitNotifTriggered = true;
-            // Deux notifications aléatoires
             for (let i = 0; i < 2; i++) {
                 const randomPhrase = NOTIF_PHRASES[Math.floor(Math.random() * NOTIF_PHRASES.length)];
                 notifManager?.add(randomPhrase, "PRIME IA", false, 30000);
@@ -388,7 +363,7 @@ function loadMenu1Widgets() {
         }, 7000);
     }
 
-    // Vérifier les anniversaires (une fois maintenant, et planifier le check quotidien)
+    // Vérifier les anniversaires
     checkBirthdays();
     scheduleDailyBirthdayCheck();
 }
@@ -457,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 300);
 });
 
-// Polling pour menu-4 (si nécessaire)
+// Polling pour menu-4
 setInterval(() => {
   if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
     if (window.getMoneyManagementData && window.showResultPanel) {

@@ -138,7 +138,7 @@ a, button, .clickable {
   text-decoration: none !important;
 }
 
-/* Styles pour le menu 4 (résultat) - inchangés */
+/* Styles pour le menu 4 (inchangés) */
 .result-panel {
   width: 100%;
   height: 100%;
@@ -379,40 +379,25 @@ a, button, .clickable {
   display: none !important;
 }
 
-/* Styles pour le menu-1 (ticker tape) */
-.ticker-container {
-  width: 250px;
-  height: 240px;
-  border-radius: 30px;
-  overflow: hidden;
-  bottom: 0px;
-}
-
-tv-ticker-tape {
-  width: 100% !important;
-  height: 120% !important;
-  display: block;
-}
-
 /* ============================================
-   STYLES AJOUTÉS (notifications, news, anniversaires)
+   STYLES MODIFIÉS POUR LE MENU-1
    ============================================ */
 
-/* Conteneur des notifications */
+/* Conteneur des notifications (centré) */
 .notifications-container {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;   /* centré horizontalement */
   width: 100%;
   min-height: 60px;
   position: relative;
   margin-bottom: 10px;
 }
 
-/* Élément de notification (cercle initial) */
+/* Élément de notification : cercle initial 30x30 */
 .notification-item {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: #111216;
   background-color: rgba(17, 18, 22, 0.7);
@@ -428,16 +413,17 @@ tv-ticker-tape {
   opacity: 1;
 }
 
-/* État expansé (après 2s) */
+/* État expansé (après 3s) : 200px de large, hauteur auto (minimum 40px) */
 .notification-item.expanded {
   width: 200px;
   height: auto;
+  min-height: 40px;
   border-radius: 30px;
   padding: 8px 12px;
   justify-content: flex-start;
 }
 
-/* Label "PRIME IA:" en gras */
+/* Label "PRIME IA:" */
 .notification-item .prime-label {
   font-weight: bold;
   margin-right: 4px;
@@ -448,9 +434,9 @@ tv-ticker-tape {
   border: 2px solid gold;
 }
 
-/* Bloc news */
+/* Bloc news : largeur 250px (au lieu de 240) */
 .news-block-container {
-  width: 240px;
+  width: 250px;
   height: 370px;
   background: #111216;
   background-color: rgba(17, 18, 22, 0.7);
@@ -522,4 +508,18 @@ tv-ticker-tape {
   color: rgba(255, 255, 255, 0.7);
   text-align: center;
   padding: 20px;
+}
+
+/* Widget TradingView : hauteur réduite à 180px */
+.ticker-container {
+  width: 250px;
+  height: 180px;          /* modifié de 240px à 180px */
+  border-radius: 30px;
+  overflow: hidden;
+}
+
+tv-ticker-tape {
+  width: 100% !important;
+  height: 120% !important;
+  display: block;
 }

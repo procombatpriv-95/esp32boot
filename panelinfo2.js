@@ -9,7 +9,7 @@ const NOTIF_PHRASES = [
     "meteo a 10 degree"
 ];
 
-// Liste des anniversaires
+// Liste des anniversaires (mois 0-indexé)
 const birthdays = [
     { name: "Mohamed", day: 10, month: 6 },
     { name: "Dad", day: 18, month: 6 },
@@ -20,116 +20,99 @@ const birthdays = [
 ];
 
 // ============================================
-// GESTIONNAIRE DE NOTIFICATIONS
+// GESTIONNAIRE DE NOTIFICATIONS (multiples simultanées)
 // ============================================
 class NotificationManager {
-    constructor(containerSelector) {
+    constructor(containerSelector, maxSlots = 2) {
         this.container = document.querySelector(containerSelector);
-        this.queue = [];
-        this.currentNotification = null;
-        this.timeoutId = null;
-        this.priorityActive = false;
-        this.priorityEndTime = 0;
+        this.maxSlots = maxSlots;
+        this.activeNotifications = []; // { element, priority, timeoutId, removeTimeout }
     }
 
     add(message, prefix = "PRIME IA", priority = false, duration = 30000) {
         if (!this.container) return;
-        if (priority && duration === 30000) duration = 120000;
-        this.queue.push({ message, prefix, priority, duration });
-        this.processQueue();
-    }
+        if (priority) duration = 120000; // 2 min pour les prioritaires
 
-    processQueue() {
-        if (this.currentNotification) {
-            if (this.priorityActive && Date.now() < this.priorityEndTime) {
-                const priorityIndex = this.queue.findIndex(n => n.priority);
-                if (priorityIndex !== -1) {
-                    this.clearCurrent();
-                    this.showNext();
-                }
+        // Si on a déjà atteint le max de notifications
+        if (this.activeNotifications.length >= this.maxSlots) {
+            // On cherche une notification non prioritaire à remplacer
+            const nonPriorityIndex = this.activeNotifications.findIndex(n => !n.priority);
+            if (nonPriorityIndex !== -1) {
+                // Remplacer la plus ancienne non prioritaire
+                this.removeNotification(this.activeNotifications[nonPriorityIndex]);
+            } else if (priority) {
+                // Si c'est une prioritaire et que toutes sont prioritaires, on remplace la plus ancienne prioritaire
+                this.removeNotification(this.activeNotifications[0]); // plus ancienne
             } else {
-                if (this.queue.length > 0) {
-                    this.clearCurrent();
-                    this.showNext();
-                }
+                // Sinon, on ignore la nouvelle notification non prioritaire
+                console.log("Too many notifications, ignoring");
+                return;
             }
-        } else {
-            this.showNext();
         }
-    }
 
-    clearCurrent() {
-        if (this.currentNotification && this.currentNotification.element) {
-            this.currentNotification.element.remove();
-        }
-        if (this.timeoutId) {
-            clearTimeout(this.timeoutId);
-            this.timeoutId = null;
-        }
-        this.currentNotification = null;
-        this.priorityActive = false;
-    }
-
-    showNext() {
-        if (this.queue.length === 0) return;
-        const next = this.queue.shift();
-        this.displayNotification(next);
-    }
-
-    displayNotification(notifData) {
-        if (!this.container) return;
-
+        // Créer l'élément
         const notif = document.createElement('div');
         notif.className = 'notification-item';
-        if (notifData.priority) notif.classList.add('priority');
+        if (priority) notif.classList.add('priority');
 
         this.container.appendChild(notif);
-        this.currentNotification = {
-            element: notif,
-            ...notifData
-        };
 
-        if (notifData.priority) {
-            this.priorityActive = true;
-            this.priorityEndTime = Date.now() + notifData.duration;
-        }
-
-        // Expansion après 3s
-        setTimeout(() => {
+        // Gestion des timeouts
+        const expandTimeout = setTimeout(() => {
             if (notif.parentNode) {
                 notif.classList.add('expanded');
             }
         }, 3000);
 
-        // Texte après 6s
-        setTimeout(() => {
+        const textTimeout = setTimeout(() => {
             if (notif.parentNode) {
-                notif.innerHTML = `<span class="prime-label">${notifData.prefix}:</span> ${notifData.message}`;
+                notif.innerHTML = `<span class="prime-label">${prefix}:</span> ${message}`;
             }
         }, 6000);
 
-        // Durée d'affichage
-        this.timeoutId = setTimeout(() => {
-            if (notifData.priority) {
-                this.priorityActive = false;
-                const nextPriority = this.queue.findIndex(n => n.priority);
-                if (nextPriority === -1) {
-                    this.clearCurrent();
-                } else {
-                    this.clearCurrent();
-                }
-            } else {
-                this.clearCurrent();
+        // Timeout pour supprimer la notification après durée
+        const removeTimeout = setTimeout(() => {
+            this.removeNotification({ element: notif });
+        }, duration);
+
+        // Stocker
+        this.activeNotifications.push({
+            element: notif,
+            priority,
+            expandTimeout,
+            textTimeout,
+            removeTimeout
+        });
+    }
+
+    removeNotification(notifObj) {
+        const index = this.activeNotifications.indexOf(notifObj);
+        if (index !== -1) {
+            // Nettoyer les timeouts
+            clearTimeout(notifObj.expandTimeout);
+            clearTimeout(notifObj.textTimeout);
+            clearTimeout(notifObj.removeTimeout);
+            // Retirer du DOM
+            if (notifObj.element.parentNode) {
+                notifObj.element.remove();
             }
-            this.processQueue();
-        }, notifData.duration);
+            // Retirer du tableau
+            this.activeNotifications.splice(index, 1);
+        }
+    }
+
+    // Optionnel : supprimer toutes les notifications (utile pour changer de menu)
+    clearAll() {
+        while (this.activeNotifications.length > 0) {
+            this.removeNotification(this.activeNotifications[0]);
+        }
     }
 }
 
 let notifManager = null;
 
 // ============================================
-// ANNIVERSAIRES
+// GESTION DES ANNIVERSAIRES
 // ============================================
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
 
@@ -161,7 +144,7 @@ function scheduleDailyBirthdayCheck() {
 }
 
 // ============================================
-// NEWS
+// FONCTIONS POUR LES NEWS
 // ============================================
 function escapeHTML(text) {
     if (!text) return '';
@@ -258,7 +241,7 @@ function renderNewsError() {
 }
 
 // ============================================
-// STATUTS DÉTECTEUR/CAMÉRA
+// FONCTIONS POUR LES STATUTS DÉTECTEUR/CAMÉRA
 // ============================================
 let lastDetectorOnline = null;
 let lastCameraOnline = null;
@@ -297,12 +280,14 @@ function loadMenu1Widgets() {
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
     if (!kinfopaneltousContent) return;
 
+    // Nettoyer le conteneur
     kinfopaneltousContent.innerHTML = '';
 
+    // Créer le layout
     const layoutWrapper = document.createElement('div');
     layoutWrapper.style.display = 'flex';
     layoutWrapper.style.flexDirection = 'column';
-    layoutWrapper.style.gap = '12px'; // légèrement réduit
+    layoutWrapper.style.gap = '12px';
     layoutWrapper.style.height = '100%';
     layoutWrapper.style.width = '100%';
     layoutWrapper.style.overflowY = 'auto';
@@ -334,12 +319,17 @@ function loadMenu1Widgets() {
 
     kinfopaneltousContent.appendChild(layoutWrapper);
 
-    if (!notifManager) {
-        notifManager = new NotificationManager('#notification-container');
+    // Initialiser le gestionnaire de notifications (en vidant l'ancien s'il existe)
+    if (notifManager) {
+        notifManager.clearAll();
+    } else {
+        notifManager = new NotificationManager('#notification-container', 2);
     }
 
+    // Charger les news
     fetchNews();
 
+    // Charger le script TradingView
     if (!document.querySelector('script[src*="tv-ticker-tape.js"]')) {
         const script = document.createElement('script');
         script.type = 'module';
@@ -347,6 +337,7 @@ function loadMenu1Widgets() {
         document.head.appendChild(script);
     }
 
+    // Lancer le polling des statuts (toutes les secondes)
     if (!window.statusInterval) {
         window.statusInterval = setInterval(updateStatusAndNotify, 1000);
         updateStatusAndNotify();
@@ -356,6 +347,7 @@ function loadMenu1Widgets() {
     if (!window.firstVisitNotifTriggered) {
         setTimeout(() => {
             window.firstVisitNotifTriggered = true;
+            // Ajouter deux notifications simultanément
             for (let i = 0; i < 2; i++) {
                 const randomPhrase = NOTIF_PHRASES[Math.floor(Math.random() * NOTIF_PHRASES.length)];
                 notifManager?.add(randomPhrase, "PRIME IA", false, 30000);

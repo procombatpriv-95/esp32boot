@@ -20,9 +20,9 @@ const birthdays = [
 ];
 
 // Durées
-const DURATION_PRIME = 2 * 60 * 1000; // 2 minutes 
+const DURATION_PRIME = 2 * 60 * 1000;      // 2 minutes
 const DURATION_BIRTHDAY = 5 * 60 * 60 * 1000; // 5 heures
-const DURATION_STATUS = 5 * 60 * 1000;    // 5 minutes
+const DURATION_STATUS = 5 * 60 * 1000;     // 5 minutes
 
 // ============================================
 // GESTIONNAIRE DE NOTIFICATIONS AVEC SLOTS
@@ -31,15 +31,14 @@ class NotificationManager {
     constructor(containerSelector, maxSlots = 2) {
         this.container = document.querySelector(containerSelector);
         this.maxSlots = maxSlots;
-        this.slots = new Array(maxSlots).fill(null); // notifications actuellement affichées
-        this.queue = []; // notifications en attente (non affichées)
+        this.slots = new Array(maxSlots).fill(null);
+        this.queue = [];
         this.nextId = 0;
         this.primeUpdateInterval = null;
     }
 
     // Ajouter une notification
     add(message, prefix, type, priority = false) {
-        // Déterminer la durée
         let duration;
         if (type === 'prime') duration = DURATION_PRIME;
         else if (type === 'birthday') duration = DURATION_BIRTHDAY;
@@ -54,62 +53,52 @@ class NotificationManager {
             priority,
             duration,
             createdAt: Date.now(),
-            element: null,          // sera créé lors de l'affichage
-            slotIndex: null,         // index du slot où elle est affichée
-            timeouts: {},            // pour stocker les timeouts
+            element: null,
+            slotIndex: null,
+            timeouts: {},
             typingInterval: null,
-            messageSpan: null,       // référence au span du message
+            labelSpan: null,
+            messageSpan: null
         };
 
-        // Si c'est une notification prioritaire, on essaie de l'afficher immédiatement
         if (priority) {
             this.tryDisplayPriority(notif);
         } else {
-            // Non prioritaire : on met en file d'attente
             this.queue.push(notif);
             this.processQueue();
         }
     }
 
-    // Essayer d'afficher une notification prioritaire
     tryDisplayPriority(notif) {
-        // Chercher un slot vide
         const emptySlot = this.slots.findIndex(s => s === null);
         if (emptySlot !== -1) {
             this.displayInSlot(notif, emptySlot);
             return;
         }
 
-        // Tous les slots occupés : chercher un slot avec une notification non prioritaire
         const nonPrioritySlot = this.slots.findIndex(s => s && !s.priority);
         if (nonPrioritySlot !== -1) {
-            // Remplacer : mettre l'ancienne en attente
             const oldNotif = this.slots[nonPrioritySlot];
             this.moveToQueue(oldNotif);
             this.displayInSlot(notif, nonPrioritySlot);
             return;
         }
 
-        // Tous les slots sont prioritaires : on met la nouvelle en attente (ou on ignore)
-        // Pour éviter de perdre des notifs, on met en queue
+        // Tous les slots sont prioritaires : on met en file d'attente
         this.queue.push(notif);
-        // On ne process pas tout de suite car rien ne changera tant qu'un slot ne se libère pas
     }
 
-    // Afficher une notification dans un slot donné
     displayInSlot(notif, slotIndex) {
         if (!this.container) return;
 
-        // Créer l'élément DOM
         const element = document.createElement('div');
         element.className = 'notification-item';
         if (notif.priority) element.classList.add('priority');
         element.dataset.id = notif.id;
 
-        // Structure interne : label + message
+        // Créer les spans mais les laisser vides (cercle initial sans texte)
         const labelSpan = document.createElement('span');
         labelSpan.className = 'prime-label';
-        labelSpan.textContent = notif.prefix + ':';
         const messageSpan = document.createElement('span');
         messageSpan.className = 'notification-message';
         element.appendChild(labelSpan);
@@ -118,42 +107,43 @@ class NotificationManager {
         this.container.appendChild(element);
 
         notif.element = element;
+        notif.labelSpan = labelSpan;
         notif.messageSpan = messageSpan;
         notif.slotIndex = slotIndex;
         this.slots[slotIndex] = notif;
 
-        // Planifier l'expansion après 4s
+        // Expansion après 4s
         notif.timeouts.expand = setTimeout(() => {
             if (element.parentNode) {
                 element.classList.add('expanded');
             }
         }, 4000);
 
-        // Planifier le début de l'écriture après 8s (4s d'expansion + 4s)
+        // Début de l'écriture après 8s (4s expansion + 4s)
         notif.timeouts.text = setTimeout(() => {
             this.startTyping(notif);
         }, 8000);
 
-        // Si la durée n'est pas infinie, planifier la suppression
         if (notif.duration !== Infinity) {
             notif.timeouts.remove = setTimeout(() => {
-                this.removeNotification(notif, true); // expiration
+                this.removeNotification(notif, true);
             }, notif.duration);
         }
     }
 
-    // Démarrer l'effet machine à écrire sur une notification
     startTyping(notif) {
-        if (!notif.messageSpan || !notif.element.parentNode) return;
+        if (!notif.element || !notif.element.parentNode) return;
 
         // Arrêter un éventuel intervalle précédent
         if (notif.typingInterval) clearInterval(notif.typingInterval);
 
+        // Ajouter le label maintenant (après expansion)
+        notif.labelSpan.textContent = notif.prefix + ':';
         const fullText = notif.message;
         const messageSpan = notif.messageSpan;
-        messageSpan.textContent = ''; // vider
+        messageSpan.textContent = '';
         let index = 0;
-        const speed = 4000 / fullText.length; // ms par caractère
+        const speed = 4000 / fullText.length;
 
         const interval = setInterval(() => {
             if (index < fullText.length) {
@@ -168,56 +158,36 @@ class NotificationManager {
         notif.typingInterval = interval;
     }
 
-    // Déplacer une notification de son slot vers la file d'attente
     moveToQueue(notif) {
         if (!notif) return;
-
-        // Nettoyer les timeouts et l'intervalle
         this.cleanupNotification(notif);
-
-        // Retirer du DOM
         if (notif.element && notif.element.parentNode) {
             notif.element.remove();
         }
-
-        // Retirer du slot
         if (notif.slotIndex !== null) {
             this.slots[notif.slotIndex] = null;
             notif.slotIndex = null;
         }
-
-        // Remettre dans la queue
         this.queue.push(notif);
     }
 
-    // Supprimer définitivement une notification (expiration)
     removeNotification(notif, expired = false) {
         if (!notif) return;
-
         this.cleanupNotification(notif);
-
         if (notif.element && notif.element.parentNode) {
             notif.element.remove();
         }
-
         if (notif.slotIndex !== null) {
             this.slots[notif.slotIndex] = null;
         }
-
-        // Si ce n'est pas une notification PRIME IA (qui ne doit jamais être supprimée définitivement),
-        // on la laisse disparaître. Pour les PRIME, on ne devrait jamais appeler removeNotification
-        // car leur durée est Infinity. Mais au cas où, on les remet dans la queue.
+        // Si c'est une PRIME (qui ne devrait pas expirer normalement), on la remet en queue
         if (notif.type === 'prime') {
-            // Une PRIME ne devrait pas être supprimée, mais si ça arrive, on la remet en queue
             notif.slotIndex = null;
             this.queue.push(notif);
         }
-
-        // Après suppression, essayer de remplir le slot libéré avec une notification en attente
         this.processQueue();
     }
 
-    // Nettoyer les timers d'une notification
     cleanupNotification(notif) {
         if (notif.timeouts.expand) clearTimeout(notif.timeouts.expand);
         if (notif.timeouts.text) clearTimeout(notif.timeouts.text);
@@ -226,13 +196,9 @@ class NotificationManager {
         notif.typingInterval = null;
     }
 
-    // Traiter la file d'attente : pour chaque slot vide, prendre la première notification éligible
     processQueue() {
         for (let i = 0; i < this.maxSlots; i++) {
             if (this.slots[i] === null && this.queue.length > 0) {
-                // On prend la première notification de la file (qui peut être prioritaire ou non)
-                // Mais on veut respecter un ordre : d'abord les prioritaires, puis les autres.
-                // On trie la queue avant de piocher.
                 this.queue.sort((a, b) => {
                     if (a.priority !== b.priority) return a.priority ? -1 : 1;
                     return a.createdAt - b.createdAt;
@@ -243,40 +209,32 @@ class NotificationManager {
         }
     }
 
-    // Mettre à jour le message d'une notification PRIME (appelé toutes les minutes)
     updatePrimeMessages() {
-        // Chercher toutes les notifications PRIME dans slots et queue
         const allPrimes = [
             ...this.slots.filter(s => s && s.type === 'prime'),
             ...this.queue.filter(q => q.type === 'prime')
         ];
 
         allPrimes.forEach(notif => {
-            // Choisir une nouvelle phrase différente de l'actuelle si possible
             let newMessage;
             do {
                 newMessage = NOTIF_PHRASES[Math.floor(Math.random() * NOTIF_PHRASES.length)];
             } while (NOTIF_PHRASES.length > 1 && newMessage === notif.message);
             notif.message = newMessage;
-
-            // Si elle est affichée, relancer l'écriture
-            if (notif.element && notif.messageSpan) {
+            if (notif.element && notif.labelSpan && notif.messageSpan) {
                 this.startTyping(notif);
             }
         });
     }
 
-    // Démarrer la mise à jour périodique des PRIME
     startPrimeUpdate() {
         if (this.primeUpdateInterval) clearInterval(this.primeUpdateInterval);
         this.primeUpdateInterval = setInterval(() => {
             this.updatePrimeMessages();
-        }, 60000); // toutes les minutes
+        }, 60000);
     }
 
-    // Nettoyer tout (changement de menu)
     clearAll() {
-        // Supprimer toutes les notifications affichées
         this.slots.forEach((notif, index) => {
             if (notif) {
                 this.cleanupNotification(notif);
@@ -286,7 +244,6 @@ class NotificationManager {
                 this.slots[index] = null;
             }
         });
-        // Vider la queue
         this.queue = [];
         if (this.primeUpdateInterval) {
             clearInterval(this.primeUpdateInterval);
@@ -335,7 +292,7 @@ function scheduleDailyBirthdayCheck() {
 }
 
 // ============================================
-// FONCTIONS POUR LES NEWS
+// FONCTIONS POUR LES NEWS (30 articles)
 // ============================================
 function escapeHTML(text) {
     if (!text) return '';
@@ -370,6 +327,8 @@ async function fetchNews() {
 
     Promise.all(promises).then(results => {
         let allArticles = results.flat();
+
+        // Déduplication par titre pour éviter les doublons entre pays
         const unique = [];
         const titles = new Set();
         allArticles.forEach(article => {
@@ -378,9 +337,12 @@ async function fetchNews() {
                 unique.push(article);
             }
         });
+
+        // Tri par date décroissante (les plus récentes en premier)
         unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-        const top10 = unique.slice(0, 10);
-        renderNews(top10);
+
+        // On garde tous les articles (jusqu'à 30)
+        renderNews(unique);
     }).catch(error => {
         console.error('Erreur globale news:', error);
         renderNewsError();
@@ -468,10 +430,15 @@ async function updateStatusAndNotify() {
 // CHARGEMENT DU MENU-1
 // ============================================
 function loadMenu1Widgets() {
+    const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-    if (!kinfopaneltousContent) return;
+    if (!kinfopaneltousContent || !kinfopaneltousContainer) return;
 
-    // Nettoyer le conteneur
+    // Rendre le fond transparent pour le menu-1
+    kinfopaneltousContainer.classList.add('transparent-bg');
+    kinfopaneltousContent.classList.add('transparent-bg');
+
+    // Nettoyer le contenu
     kinfopaneltousContent.innerHTML = '';
 
     // Créer le layout
@@ -517,11 +484,9 @@ function loadMenu1Widgets() {
     notifManager = new NotificationManager('#notification-container', 2);
     notifManager.startPrimeUpdate();
 
-    // Ajouter immédiatement les deux notifications PRIME IA (cercle visible tout de suite)
-    // On s'assure qu'elles aient des phrases différentes
+    // Ajouter immédiatement deux notifications PRIME IA avec des phrases différentes
     let phrases = [...NOTIF_PHRASES];
     if (phrases.length > 1) {
-        // Mélanger pour avoir deux différentes
         phrases = phrases.sort(() => Math.random() - 0.5);
     }
     notifManager.add(phrases[0], "PRIME IA", 'prime', false);
@@ -538,7 +503,7 @@ function loadMenu1Widgets() {
         document.head.appendChild(script);
     }
 
-    // Lancer le polling des statuts (toutes les secondes)
+    // Lancer le polling des statuts
     if (!window.statusInterval) {
         window.statusInterval = setInterval(updateStatusAndNotify, 1000);
         updateStatusAndNotify();
@@ -550,7 +515,7 @@ function loadMenu1Widgets() {
 }
 
 // ============================================
-// GESTION DES MENUS (inchangée)
+// GESTION DES MENUS
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
     function updateMenuPanelInfo() {
@@ -560,6 +525,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!kinfopaneltousContainer || !kinfopaneltousContent) return;
         
         kinfopaneltousContainer.classList.add('active');
+        
+        // Retirer la classe transparent-bg pour tous les menus par défaut
+        kinfopaneltousContainer.classList.remove('transparent-bg');
+        kinfopaneltousContent.classList.remove('transparent-bg');
         
         if (window.isInSelectedView && window.currentMenuPage === 'menu-2') {
             return;
@@ -573,6 +542,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 3 - Contenu à définir</div>';
                 break;
             case 'menu-4':
+                // Pour menu-4, on garde le fond normal (déjà retiré)
                 if (window.getMoneyManagementData) window.getMoneyManagementData();
                 if (window.showResultPanel) window.showResultPanel();
                 break;

@@ -9,18 +9,18 @@ const NOTIF_PHRASES = [
     "meteo a 10 degree"
 ];
 
-// Liste des anniversaires (mois 0-indexé)
+// Liste des anniversaires
 const birthdays = [
-    { name: "Mohamed", day: 10, month: 6 },  // 10 juillet
-    { name: "Dad", day: 18, month: 6 },      // 18 juillet
-    { name: "Mom", day: 14, month: 3 },      // 14 avril
-    { name: "Bilal", day: 28, month: 10 },   // 28 novembre
-    { name: "Assya", day: 21, month: 9 },    // 21 octobre
-    { name: "Zackaria", day: 5, month: 4 }   // 5 mai
+    { name: "Mohamed", day: 10, month: 6 },
+    { name: "Dad", day: 18, month: 6 },
+    { name: "Mom", day: 14, month: 3 },
+    { name: "Bilal", day: 28, month: 10 },
+    { name: "Assya", day: 21, month: 9 },
+    { name: "Zackaria", day: 5, month: 4 }
 ];
 
 // ============================================
-// GESTIONNAIRE DE NOTIFICATIONS (file d'attente avec priorité)
+// GESTIONNAIRE DE NOTIFICATIONS
 // ============================================
 class NotificationManager {
     constructor(containerSelector) {
@@ -34,7 +34,7 @@ class NotificationManager {
 
     add(message, prefix = "PRIME IA", priority = false, duration = 30000) {
         if (!this.container) return;
-        if (priority && duration === 30000) duration = 120000; // 2 min pour prioritaires
+        if (priority && duration === 30000) duration = 120000;
         this.queue.push({ message, prefix, priority, duration });
         this.processQueue();
     }
@@ -94,14 +94,14 @@ class NotificationManager {
             this.priorityEndTime = Date.now() + notifData.duration;
         }
 
-        // Animation : expansion après 3 secondes
+        // Expansion après 3s
         setTimeout(() => {
             if (notif.parentNode) {
                 notif.classList.add('expanded');
             }
         }, 3000);
 
-        // Ajout du texte après 6 secondes (3s + 3s)
+        // Texte après 6s
         setTimeout(() => {
             if (notif.parentNode) {
                 notif.innerHTML = `<span class="prime-label">${notifData.prefix}:</span> ${notifData.message}`;
@@ -129,7 +129,7 @@ class NotificationManager {
 let notifManager = null;
 
 // ============================================
-// GESTION DES ANNIVERSAIRES
+// ANNIVERSAIRES
 // ============================================
 let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
 
@@ -161,7 +161,7 @@ function scheduleDailyBirthdayCheck() {
 }
 
 // ============================================
-// FONCTIONS POUR LES NEWS
+// NEWS
 // ============================================
 function escapeHTML(text) {
     if (!text) return '';
@@ -196,7 +196,6 @@ async function fetchNews() {
 
     Promise.all(promises).then(results => {
         let allArticles = results.flat();
-
         const unique = [];
         const titles = new Set();
         allArticles.forEach(article => {
@@ -205,7 +204,6 @@ async function fetchNews() {
                 unique.push(article);
             }
         });
-
         unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
         const top10 = unique.slice(0, 10);
         renderNews(top10);
@@ -260,7 +258,7 @@ function renderNewsError() {
 }
 
 // ============================================
-// FONCTIONS POUR LES STATUTS DÉTECTEUR/CAMÉRA
+// STATUTS DÉTECTEUR/CAMÉRA
 // ============================================
 let lastDetectorOnline = null;
 let lastCameraOnline = null;
@@ -304,7 +302,7 @@ function loadMenu1Widgets() {
     const layoutWrapper = document.createElement('div');
     layoutWrapper.style.display = 'flex';
     layoutWrapper.style.flexDirection = 'column';
-    layoutWrapper.style.gap = '15px';
+    layoutWrapper.style.gap = '12px'; // légèrement réduit
     layoutWrapper.style.height = '100%';
     layoutWrapper.style.width = '100%';
     layoutWrapper.style.overflowY = 'auto';
@@ -323,7 +321,7 @@ function loadMenu1Widgets() {
     newsContainer.innerHTML = '<div class="news-loading">Chargement des actualités...</div>';
     layoutWrapper.appendChild(newsContainer);
 
-    // 3. Widget TradingView (hauteur réduite via CSS)
+    // 3. Widget TradingView
     const tickerContainer = document.createElement('div');
     tickerContainer.id = 'ticker-container-1';
     tickerContainer.className = 'ticker-container';

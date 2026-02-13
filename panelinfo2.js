@@ -25,36 +25,37 @@ const birthdays = [
 class NotificationManager {
     constructor(containerSelector) {
         this.container = document.querySelector(containerSelector);
-        this.queue = [];               // { message, prefix, priority, duration }
+        this.queue = [];
         this.currentNotification = null;
         this.timeoutId = null;
         this.priorityActive = false;
         this.priorityEndTime = 0;
+        console.log('NotificationManager initialisé avec container:', this.container);
     }
 
-    // Ajouter une notification
-    add(message, prefix = "PRIME IA", priority = false, duration = 120000) { // 2 min par défaut pour priority
-        if (!this.container) return;
+    add(message, prefix = "PRIME IA", priority = false, duration = 120000) {
+        if (!this.container) {
+            console.error('Container de notifications introuvable');
+            return;
+        }
         this.queue.push({ message, prefix, priority, duration });
+        console.log('Notification ajoutée à la file:', { message, prefix, priority, duration });
         this.processQueue();
     }
 
-    // Traiter la file
     processQueue() {
         if (this.currentNotification) {
             // Si une notification prioritaire est en cours, on ne la remplace que par une plus prioritaire
             if (this.priorityActive && Date.now() < this.priorityEndTime) {
-                // Vérifier si un élément de la file est prioritaire
                 const priorityIndex = this.queue.findIndex(n => n.priority);
                 if (priorityIndex !== -1) {
-                    // Remplacer la notification courante par la prioritaire
+                    console.log('Remplacement par une notification prioritaire');
                     this.clearCurrent();
                     this.showNext();
                 }
-                // Sinon on garde la prioritaire jusqu'à expiration
             } else {
-                // Pas de prioritaire active, on peut remplacer si la file n'est pas vide
                 if (this.queue.length > 0) {
+                    console.log('Chargement de la notification suivante (pas de prioritaire)');
                     this.clearCurrent();
                     this.showNext();
                 }
@@ -85,13 +86,10 @@ class NotificationManager {
     displayNotification(notifData) {
         if (!this.container) return;
 
-        // Créer l'élément
         const notif = document.createElement('div');
         notif.className = 'notification-item';
         if (notifData.priority) notif.classList.add('priority');
-
-        // Contenu initial (vide, juste le cercle)
-        notif.innerHTML = '';
+        notif.innerHTML = ''; // cercle vide initial
 
         this.container.appendChild(notif);
         this.currentNotification = {
@@ -104,41 +102,38 @@ class NotificationManager {
             this.priorityEndTime = Date.now() + notifData.duration;
         }
 
-        // Animation : après 2s, expansion
+        // Animation : expansion après 2s
         setTimeout(() => {
             if (notif.parentNode) {
                 notif.classList.add('expanded');
             }
         }, 2000);
 
-        // Après 4s, ajouter le texte
+        // Ajout du texte après 4s
         setTimeout(() => {
             if (notif.parentNode) {
                 notif.innerHTML = `<span class="prime-label">${notifData.prefix}:</span> ${notifData.message}`;
             }
         }, 4000);
 
-        // Durée d'affichage totale
+        // Durée d'affichage
         const displayDuration = notifData.priority ? notifData.duration : 30000;
         this.timeoutId = setTimeout(() => {
             if (notifData.priority) {
                 this.priorityActive = false;
-                // Vérifier s'il y a d'autres prioritaires en file
                 const nextPriority = this.queue.findIndex(n => n.priority);
-                if (nextPriority !== -1) {
-                    // Laisser la file décider
-                } else {
+                if (nextPriority === -1) {
                     this.clearCurrent();
                 }
             } else {
                 this.clearCurrent();
             }
-            this.processQueue(); // relancer le traitement
+            this.processQueue();
         }, displayDuration);
     }
 }
 
-// Initialisation du gestionnaire de notifications (sera créé après le chargement du DOM)
+// Gestionnaire global
 let notifManager = null;
 
 // ============================================
@@ -177,8 +172,6 @@ async function fetchNews() {
 
     Promise.all(promises).then(results => {
         let allArticles = results.flat();
-
-        // Déduplication par titre
         const unique = [];
         const titles = new Set();
         allArticles.forEach(article => {
@@ -187,11 +180,7 @@ async function fetchNews() {
                 unique.push(article);
             }
         });
-
-        // Tri par date décroissante
         unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-
-        // Garder les 10 premiers
         const top10 = unique.slice(0, 10);
         renderNews(top10);
     }).catch(error => {
@@ -255,7 +244,6 @@ async function updateStatusAndNotify() {
         const res = await fetch("/status");
         const data = await res.json();
 
-        // Detector
         if (data.esp2.online !== lastDetectorOnline) {
             if (data.esp2.online) {
                 notifManager?.add("Detector is Online !", "STATUS", true, 120000);
@@ -265,7 +253,6 @@ async function updateStatusAndNotify() {
             lastDetectorOnline = data.esp2.online;
         }
 
-        // Camera
         if (data.esp3.online !== lastCameraOnline) {
             if (data.esp3.online) {
                 notifManager?.add("Camera is Online !", "STATUS", true, 120000);
@@ -285,15 +272,13 @@ async function updateStatusAndNotify() {
 function checkBirthdays() {
     const today = new Date();
     const currentDay = today.getDate();
-    const currentMonth = today.getMonth(); // 0-11
+    const currentMonth = today.getMonth();
 
     birthdays.forEach(b => {
         if (b.day === currentDay && b.month === currentMonth) {
-            // Vérifier si déjà notifié aujourd'hui
             const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
             const key = `birthday_${b.name}_${todayStr}`;
             if (!localStorage.getItem(key)) {
-                // Ajouter la notification
                 notifManager?.add(`Joyeux anniversaire ${b.name} ! 🎂`, "ANNIVERSAIRE", true, 120000);
                 localStorage.setItem(key, 'true');
             }
@@ -305,9 +290,14 @@ function checkBirthdays() {
 // CHARGEMENT DU MENU-1 (NOTIFICATIONS + NEWS + TICKER)
 // ============================================
 function loadMenu1Widgets() {
+    console.log('loadMenu1Widgets appelé');
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-    if (!kinfopaneltousContent) return;
+    if (!kinfopaneltousContent) {
+        console.error('kinfopaneltousContent introuvable');
+        return;
+    }
 
+    // Vider le conteneur
     kinfopaneltousContent.innerHTML = '';
 
     // Layout wrapper
@@ -346,9 +336,12 @@ function loadMenu1Widgets() {
 
     kinfopaneltousContent.appendChild(layoutWrapper);
 
-    // Initialiser le gestionnaire de notifications
+    // Initialiser le gestionnaire de notifications si nécessaire
     if (!notifManager) {
         notifManager = new NotificationManager('#notification-container');
+    } else {
+        // Mettre à jour le container du manager
+        notifManager.container = document.querySelector('#notification-container');
     }
 
     // Charger les news
@@ -370,14 +363,15 @@ function loadMenu1Widgets() {
 
     // Lancer la vérification des anniversaires (toutes les heures)
     if (!window.birthdayInterval) {
-        window.birthdayInterval = setInterval(checkBirthdays, 3600000); // 1 heure
-        checkBirthdays(); // Vérifier tout de suite
+        window.birthdayInterval = setInterval(checkBirthdays, 3600000);
+        checkBirthdays();
     }
 
     // Déclencher les notifications PRIME IA 7s après la première visite
     if (!window.firstVisitNotifTriggered) {
         setTimeout(() => {
             window.firstVisitNotifTriggered = true;
+            console.log('Déclenchement des notifications PRIME IA');
             for (let i = 0; i < 2; i++) {
                 const randomPhrase = NOTIF_PHRASES[Math.floor(Math.random() * NOTIF_PHRASES.length)];
                 notifManager?.add(randomPhrase, "PRIME IA", false, 30000);
@@ -390,18 +384,32 @@ function loadMenu1Widgets() {
 // GESTION DES MENUS
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM prêt');
+
+    // Variables globales
+    window.currentMenuPage = null;
+    window.isInSelectedView = false;
+
     function updateMenuPanelInfo() {
         const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
         const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-        
-        if (!kinfopaneltousContainer || !kinfopaneltousContent) return;
-        
+
+        if (!kinfopaneltousContainer || !kinfopaneltousContent) {
+            console.error('Conteneurs manquants');
+            return;
+        }
+
+        console.log('updateMenuPanelInfo, currentMenuPage =', window.currentMenuPage);
+
+        // Activer le conteneur
         kinfopaneltousContainer.classList.add('active');
-        
+
+        // Si on est en selected view et menu-2, on ne fait rien (géré ailleurs)
         if (window.isInSelectedView && window.currentMenuPage === 'menu-2') {
             return;
         }
-        
+
+        // Gérer les différents menus
         switch(window.currentMenuPage) {
             case 'menu-1':
                 loadMenu1Widgets();
@@ -410,8 +418,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 3 - Contenu à définir</div>';
                 break;
             case 'menu-4':
-                if (window.getMoneyManagementData) window.getMoneyManagementData();
-                if (window.showResultPanel) window.showResultPanel();
+                if (typeof window.getMoneyManagementData === 'function') window.getMoneyManagementData();
+                if (typeof window.showResultPanel === 'function') window.showResultPanel();
                 break;
             case 'menu-5':
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 5 - Contenu à définir</div>';
@@ -421,7 +429,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
         }
     }
-    
+
+    // Observer les changements de classe sur megaBox
     const megaBox = document.getElementById('megaBox');
     if (megaBox) {
         const observerMenuChange = new MutationObserver(function(mutations) {
@@ -433,40 +442,54 @@ document.addEventListener('DOMContentLoaded', function() {
                     else if (classes.contains('menu-3')) window.currentMenuPage = 'menu-3';
                     else if (classes.contains('menu-4')) window.currentMenuPage = 'menu-4';
                     else if (classes.contains('menu-5')) window.currentMenuPage = 'menu-5';
-                    
+                    else window.currentMenuPage = null;
+
+                    console.log('Changement de classe megaBox:', window.currentMenuPage);
                     updateMenuPanelInfo();
                 }
             });
         });
-        
+
         observerMenuChange.observe(megaBox, {
             attributes: true,
             attributeFilter: ['class']
         });
+
+        // Vérifier la classe initiale
+        const initialClasses = megaBox.classList;
+        if (initialClasses.contains('menu-1')) window.currentMenuPage = 'menu-1';
+        else if (initialClasses.contains('menu-2')) window.currentMenuPage = 'menu-2';
+        else if (initialClasses.contains('menu-3')) window.currentMenuPage = 'menu-3';
+        else if (initialClasses.contains('menu-4')) window.currentMenuPage = 'menu-4';
+        else if (initialClasses.contains('menu-5')) window.currentMenuPage = 'menu-5';
+        else window.currentMenuPage = null;
+
+        // Premier appel
+        setTimeout(() => {
+            updateMenuPanelInfo();
+        }, 300);
+    } else {
+        console.error('megaBox introuvable');
     }
-    
-    setTimeout(() => {
-        updateMenuPanelInfo();
-    }, 300);
 });
 
 // Polling pour menu-4 (si nécessaire)
 setInterval(() => {
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    if (window.getMoneyManagementData && window.showResultPanel) {
-      window.getMoneyManagementData();
-      window.showResultPanel();
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+        if (typeof window.getMoneyManagementData === 'function' && typeof window.showResultPanel === 'function') {
+            window.getMoneyManagementData();
+            window.showResultPanel();
+        }
     }
-  }
 }, 300);
 
 window.addEventListener('load', function() {
-  setTimeout(() => {
-    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-      if (window.getMoneyManagementData && window.showResultPanel) {
-        window.getMoneyManagementData();
-        window.showResultPanel();
-      }
-    }
-  }, 300);
+    setTimeout(() => {
+        if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+            if (typeof window.getMoneyManagementData === 'function' && typeof window.showResultPanel === 'function') {
+                window.getMoneyManagementData();
+                window.showResultPanel();
+            }
+        }
+    }, 300);
 });

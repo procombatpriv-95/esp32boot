@@ -1,62 +1,184 @@
 // ============================================
-// VARIABLES GLOBALES AJOUTÉES
+// CONFIGURATION
 // ============================================
-window.firstVisitNotifTriggered = false;
-window.notificationsCreated = false;
+const GNEWS_API_KEY = 'b97899dfc31d70bf41c43c5b865654e6';
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 const NOTIF_PHRASES = [
     "bonjour mohamed",
     "aussi appel de papa",
     "meteo a 10 degree"
 ];
-const GNEWS_API_KEY = 'b97899dfc31d70bf41c43c5b865654e6';
-const CORS_PROXY = 'https://api.allorigins.win/raw?url='; // Proxy CORS fiable
+
+// Liste des anniversaires (mois : 0 = janvier, 11 = décembre)
+const birthdays = [
+    { name: "Mohamed", day: 10, month: 6 },   // 10 juillet
+    { name: "Dad", day: 18, month: 6 },       // 18 juillet
+    { name: "Mom", day: 14, month: 3 },       // 14 avril (mois 3 = avril)
+    { name: "Bilal", day: 28, month: 10 },    // 28 novembre
+    { name: "Assya", day: 21, month: 9 },     // 21 octobre
+    { name: "Zackaria", day: 5, month: 4 }    // 5 mai
+];
 
 // ============================================
-// FONCTIONS AJOUTÉES (NOTIFICATIONS + NEWS)
+// GESTIONNAIRE DE NOTIFICATIONS (file d'attente avec priorité)
 // ============================================
+class NotificationManager {
+    constructor(containerSelector) {
+        this.container = document.querySelector(containerSelector);
+        this.queue = [];               // { message, prefix, priority, duration }
+        this.currentNotification = null;
+        this.timeoutId = null;
+        this.priorityActive = false;
+        this.priorityEndTime = 0;
+    }
 
-/**
- * Crée deux notifications avec des phrases aléatoires
- */
-function createNotifications(container) {
-    if (!container || window.notificationsCreated) return;
-    container.innerHTML = '';
-    for (let i = 0; i < 2; i++) {
+    // Ajouter une notification
+    add(message, prefix = "PRIME IA", priority = false, duration = 120000) { // 2 min par défaut pour priority
+        if (!this.container) return;
+        this.queue.push({ message, prefix, priority, duration });
+        this.processQueue();
+    }
+
+    // Traiter la file
+    processQueue() {
+        if (this.currentNotification) {
+            // Si une notification prioritaire est en cours, on ne la remplace que par une plus prioritaire
+            if (this.priorityActive && Date.now() < this.priorityEndTime) {
+                // Vérifier si un élément de la file est prioritaire
+                const priorityIndex = this.queue.findIndex(n => n.priority);
+                if (priorityIndex !== -1) {
+                    // Remplacer la notification courante par la prioritaire
+                    this.clearCurrent();
+                    this.showNext();
+                }
+                // Sinon on garde la prioritaire jusqu'à expiration
+            } else {
+                // Pas de prioritaire active, on peut remplacer si la file n'est pas vide
+                if (this.queue.length > 0) {
+                    this.clearCurrent();
+                    this.showNext();
+                }
+            }
+        } else {
+            this.showNext();
+        }
+    }
+
+    clearCurrent() {
+        if (this.currentNotification && this.currentNotification.element) {
+            this.currentNotification.element.remove();
+        }
+        if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = null;
+        }
+        this.currentNotification = null;
+        this.priorityActive = false;
+    }
+
+    showNext() {
+        if (this.queue.length === 0) return;
+        const next = this.queue.shift();
+        this.displayNotification(next);
+    }
+
+    displayNotification(notifData) {
+        if (!this.container) return;
+
+        // Créer l'élément
         const notif = document.createElement('div');
         notif.className = 'notification-item';
-        const randomPhrase = NOTIF_PHRASES[Math.floor(Math.random() * NOTIF_PHRASES.length)];
-        notif.innerHTML = `<span class="prime-label">PRIME IA:</span> ${randomPhrase}`;
-        container.appendChild(notif);
+        if (notifData.priority) notif.classList.add('priority');
+
+        // Contenu initial (vide, juste le cercle)
+        notif.innerHTML = '';
+
+        this.container.appendChild(notif);
+        this.currentNotification = {
+            element: notif,
+            ...notifData
+        };
+
+        if (notifData.priority) {
+            this.priorityActive = true;
+            this.priorityEndTime = Date.now() + notifData.duration;
+        }
+
+        // Animation : après 2s, expansion
+        setTimeout(() => {
+            if (notif.parentNode) {
+                notif.classList.add('expanded');
+            }
+        }, 2000);
+
+        // Après 4s, ajouter le texte
+        setTimeout(() => {
+            if (notif.parentNode) {
+                notif.innerHTML = `<span class="prime-label">${notifData.prefix}:</span> ${notifData.message}`;
+            }
+        }, 4000);
+
+        // Durée d'affichage totale
+        const displayDuration = notifData.priority ? notifData.duration : 30000;
+        this.timeoutId = setTimeout(() => {
+            if (notifData.priority) {
+                this.priorityActive = false;
+                // Vérifier s'il y a d'autres prioritaires en file
+                const nextPriority = this.queue.findIndex(n => n.priority);
+                if (nextPriority !== -1) {
+                    // Laisser la file décider
+                } else {
+                    this.clearCurrent();
+                }
+            } else {
+                this.clearCurrent();
+            }
+            this.processQueue(); // relancer le traitement
+        }, displayDuration);
     }
-    window.notificationsCreated = true;
 }
 
-/**
- * Récupère les news depuis GNews (FR, GB, US) via un proxy CORS
- */
-function fetchNews() {
-    const urls = [
-        `https://gnews.io/api/v4/top-headlines?country=fr&max=10&token=${GNEWS_API_KEY}`,
-        `https://gnews.io/api/v4/top-headlines?country=gb&max=10&token=${GNEWS_API_KEY}`,
-        `https://gnews.io/api/v4/top-headlines?country=us&max=10&token=${GNEWS_API_KEY}`
+// Initialisation du gestionnaire de notifications (sera créé après le chargement du DOM)
+let notifManager = null;
+
+// ============================================
+// FONCTIONS POUR LES NEWS
+// ============================================
+function escapeHTML(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+async function fetchNews() {
+    const countries = [
+        { code: 'fr', label: 'FR' },
+        { code: 'gb', label: 'GB' },
+        { code: 'us', label: 'US' }
     ];
 
-    Promise.all(urls.map(url =>
-        fetch(CORS_PROXY + encodeURIComponent(url))
+    const promises = countries.map(country =>
+        fetch(CORS_PROXY + encodeURIComponent(`https://gnews.io/api/v4/top-headlines?country=${country.code}&max=10&token=${GNEWS_API_KEY}`))
             .then(res => res.ok ? res.json() : Promise.reject('Erreur réseau'))
-            .then(data => data.articles || [])
+            .then(data => {
+                const articles = data.articles || [];
+                articles.forEach(a => a.country = country.label);
+                return articles;
+            })
             .catch(err => {
-                console.error('Erreur fetch news:', err);
+                console.error(`Erreur fetch news ${country.code}:`, err);
                 return [];
             })
-    )).then(results => {
-        // Fusionner tous les articles
-        let allArticles = [];
-        results.forEach(articles => {
-            allArticles = allArticles.concat(articles);
-        });
+    );
 
-        // Déduplication basée sur le titre
+    Promise.all(promises).then(results => {
+        let allArticles = results.flat();
+
+        // Déduplication par titre
         const unique = [];
         const titles = new Set();
         allArticles.forEach(article => {
@@ -66,21 +188,18 @@ function fetchNews() {
             }
         });
 
-        // Tri du plus récent au plus ancien
+        // Tri par date décroissante
         unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
         // Garder les 10 premiers
         const top10 = unique.slice(0, 10);
         renderNews(top10);
     }).catch(error => {
-        console.error('Erreur lors du chargement des news:', error);
+        console.error('Erreur globale news:', error);
         renderNewsError();
     });
 }
 
-/**
- * Affiche les articles dans le bloc news
- */
 function renderNews(articles) {
     const newsContainer = document.querySelector('#kinfopaneltousContent .news-block-container');
     if (!newsContainer) return;
@@ -97,12 +216,19 @@ function renderNews(articles) {
         const time = article.publishedAt
             ? new Date(article.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : '';
+        const imageUrl = article.image || 'https://via.placeholder.com/50x50?text=News';
+        const country = article.country || '?';
+
         html += `
             <div class="news-item">
-                <div class="news-title">${escapeHTML(title)}</div>
-                <div class="news-source">
-                    <span>${escapeHTML(source)}</span>
-                    <span>${time}</span>
+                <img class="news-image" src="${escapeHTML(imageUrl)}" alt="news" loading="lazy" onerror="this.src='https://via.placeholder.com/50x50?text=Error'">
+                <div class="news-content">
+                    <div class="news-title">${escapeHTML(title)}</div>
+                    <div class="news-source">
+                        <span>${escapeHTML(source)}</span>
+                        <span class="news-country">${country}</span>
+                    </div>
+                    <div style="font-size:9px; color:#aaa;">${time}</div>
                 </div>
             </div>
         `;
@@ -111,9 +237,6 @@ function renderNews(articles) {
     newsContainer.innerHTML = html;
 }
 
-/**
- * Affiche un message d'erreur dans le bloc news
- */
 function renderNewsError() {
     const newsContainer = document.querySelector('#kinfopaneltousContent .news-block-container');
     if (newsContainer) {
@@ -121,54 +244,96 @@ function renderNewsError() {
     }
 }
 
-/**
- * Échappe les caractères HTML pour éviter les injections
- */
-function escapeHTML(text) {
-    if (!text) return '';
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+// ============================================
+// FONCTIONS POUR LES STATUTS DETECTEUR/CAMERA
+// ============================================
+let lastDetectorOnline = null;
+let lastCameraOnline = null;
+
+async function updateStatusAndNotify() {
+    try {
+        const res = await fetch("/status");
+        const data = await res.json();
+
+        // Detector
+        if (data.esp2.online !== lastDetectorOnline) {
+            if (data.esp2.online) {
+                notifManager?.add("Detector is Online !", "STATUS", true, 120000);
+            } else {
+                notifManager?.add("Detector is Offline !", "STATUS", true, 120000);
+            }
+            lastDetectorOnline = data.esp2.online;
+        }
+
+        // Camera
+        if (data.esp3.online !== lastCameraOnline) {
+            if (data.esp3.online) {
+                notifManager?.add("Camera is Online !", "STATUS", true, 120000);
+            } else {
+                notifManager?.add("Camera is Offline !", "STATUS", true, 120000);
+            }
+            lastCameraOnline = data.esp3.online;
+        }
+    } catch (e) {
+        console.error("Erreur status fetch", e);
+    }
 }
 
 // ============================================
-// FONCTIONS ET VARIABLES SPÉCIFIQUES AUX MENUS (MODIFIÉES)
+// FONCTION POUR LES ANNIVERSAIRES
 // ============================================
+function checkBirthdays() {
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth(); // 0-11
 
-// === WIDGETS MENU-1 (MODIFIÉ POUR INTÉGRER NOTIFICATIONS + NEWS) ===
+    birthdays.forEach(b => {
+        if (b.day === currentDay && b.month === currentMonth) {
+            // Vérifier si déjà notifié aujourd'hui
+            const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+            const key = `birthday_${b.name}_${todayStr}`;
+            if (!localStorage.getItem(key)) {
+                // Ajouter la notification
+                notifManager?.add(`Joyeux anniversaire ${b.name} ! 🎂`, "ANNIVERSAIRE", true, 120000);
+                localStorage.setItem(key, 'true');
+            }
+        }
+    });
+}
+
+// ============================================
+// CHARGEMENT DU MENU-1 (NOTIFICATIONS + NEWS + TICKER)
+// ============================================
 function loadMenu1Widgets() {
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
     if (!kinfopaneltousContent) return;
 
-    // Vider le conteneur
     kinfopaneltousContent.innerHTML = '';
 
-    // === NOUVEAU : Layout principal avec scroll si nécessaire ===
+    // Layout wrapper
     const layoutWrapper = document.createElement('div');
     layoutWrapper.style.display = 'flex';
     layoutWrapper.style.flexDirection = 'column';
     layoutWrapper.style.gap = '15px';
     layoutWrapper.style.height = '100%';
     layoutWrapper.style.width = '100%';
-    layoutWrapper.style.overflowY = 'auto';   // Permet de scroller si le contenu dépasse 620px
+    layoutWrapper.style.overflowY = 'auto';
     layoutWrapper.style.maxHeight = '100%';
-    layoutWrapper.style.paddingRight = '5px'; // Évite le chevauchement scrollbar
+    layoutWrapper.style.paddingRight = '5px';
 
-    // 1. Conteneur des notifications (sera rempli plus tard)
+    // 1. Conteneur des notifications
     const notifContainer = document.createElement('div');
     notifContainer.className = 'notifications-container';
+    notifContainer.id = 'notification-container';
     layoutWrapper.appendChild(notifContainer);
 
-    // 2. Bloc news (avec hauteur fixe de 370px demandée)
+    // 2. Bloc news
     const newsContainer = document.createElement('div');
     newsContainer.className = 'news-block-container';
     newsContainer.innerHTML = '<div class="news-loading">Chargement des actualités...</div>';
     layoutWrapper.appendChild(newsContainer);
 
-    // 3. Widget TradingView en bas
+    // 3. Widget TradingView
     const tickerContainer = document.createElement('div');
     tickerContainer.id = 'ticker-container-1';
     tickerContainer.className = 'ticker-container';
@@ -181,7 +346,15 @@ function loadMenu1Widgets() {
 
     kinfopaneltousContent.appendChild(layoutWrapper);
 
-    // Charger le script TradingView s'il n'est pas déjà présent
+    // Initialiser le gestionnaire de notifications
+    if (!notifManager) {
+        notifManager = new NotificationManager('#notification-container');
+    }
+
+    // Charger les news
+    fetchNews();
+
+    // Charger le script TradingView
     if (!document.querySelector('script[src*="tv-ticker-tape.js"]')) {
         const script = document.createElement('script');
         script.type = 'module';
@@ -189,22 +362,33 @@ function loadMenu1Widgets() {
         document.head.appendChild(script);
     }
 
-    // Lancer le chargement des news
-    fetchNews();
+    // Lancer le polling des statuts (toutes les secondes)
+    if (!window.statusInterval) {
+        window.statusInterval = setInterval(updateStatusAndNotify, 1000);
+        updateStatusAndNotify();
+    }
 
-    // Afficher les notifications si le délai de 7s est déjà passé
-    if (window.firstVisitNotifTriggered && !window.notificationsCreated) {
-        createNotifications(notifContainer);
+    // Lancer la vérification des anniversaires (toutes les heures)
+    if (!window.birthdayInterval) {
+        window.birthdayInterval = setInterval(checkBirthdays, 3600000); // 1 heure
+        checkBirthdays(); // Vérifier tout de suite
+    }
+
+    // Déclencher les notifications PRIME IA 7s après la première visite
+    if (!window.firstVisitNotifTriggered) {
+        setTimeout(() => {
+            window.firstVisitNotifTriggered = true;
+            for (let i = 0; i < 2; i++) {
+                const randomPhrase = NOTIF_PHRASES[Math.floor(Math.random() * NOTIF_PHRASES.length)];
+                notifManager?.add(randomPhrase, "PRIME IA", false, 30000);
+            }
+        }, 7000);
     }
 }
 
-// === AUTRES MENUS (inchangés) ===
-// (Les fonctions pour menu-2, menu-3, menu-4, menu-5 restent identiques)
-
 // ============================================
-// GESTION DES MENUS ET PANELINFO (INCHANGÉE)
+// GESTION DES MENUS
 // ============================================
-
 document.addEventListener('DOMContentLoaded', function() {
     function updateMenuPanelInfo() {
         const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
@@ -226,8 +410,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 3 - Contenu à définir</div>';
                 break;
             case 'menu-4':
-                window.getMoneyManagementData();
-                window.showResultPanel();
+                if (window.getMoneyManagementData) window.getMoneyManagementData();
+                if (window.showResultPanel) window.showResultPanel();
                 break;
             case 'menu-5':
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 5 - Contenu à définir</div>';
@@ -266,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 300);
 });
 
-// Polling pour menu-4
+// Polling pour menu-4 (si nécessaire)
 setInterval(() => {
   if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
     if (window.getMoneyManagementData && window.showResultPanel) {
@@ -285,20 +469,4 @@ window.addEventListener('load', function() {
       }
     }
   }, 300);
-});
-
-// ============================================
-// NOUVEAU : DÉCLENCHEMENT DES NOTIFICATIONS 7s APRÈS ARRIVÉE
-// ============================================
-window.addEventListener('load', function() {
-    setTimeout(function() {
-        window.firstVisitNotifTriggered = true;
-        // Si le menu-1 est déjà actif, on crée les notifications immédiatement
-        if (window.currentMenuPage === 'menu-1' && !window.notificationsCreated) {
-            const notifContainer = document.querySelector('#kinfopaneltousContent .notifications-container');
-            if (notifContainer) {
-                createNotifications(notifContainer);
-            }
-        }
-    }, 7000); // 7 secondes
 });

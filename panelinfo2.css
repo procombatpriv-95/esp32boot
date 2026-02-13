@@ -383,13 +383,13 @@ a, button, .clickable {
    STYLES POUR LE MENU-1 (TOUT DANS LE KINOPANEL)
    ============================================ */
 
-/* Conteneur des notifications (centré) */
+/* Conteneur des notifications (centré, peut contenir plusieurs notifications) */
 .notifications-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  min-height: 70px; /* pour laisser de la place à deux notifications */
+  min-height: 80px; /* pour deux notifications avec gap */
   gap: 8px;
   margin-bottom: 5px;
 }

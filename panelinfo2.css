@@ -380,18 +380,18 @@ a, button, .clickable {
 }
 
 /* ============================================
-   STYLES MODIFIÉS POUR LE MENU-1
+   STYLES POUR LE MENU-1 (TOUT DANS LE KINOPANEL)
    ============================================ */
 
 /* Conteneur des notifications (centré) */
 .notifications-container {
   display: flex;
   flex-direction: column;
-  align-items: center;   /* centré horizontalement */
+  align-items: center;
   width: 100%;
-  min-height: 60px;
-  position: relative;
-  margin-bottom: 10px;
+  min-height: 70px; /* pour laisser de la place à deux notifications */
+  gap: 8px;
+  margin-bottom: 5px;
 }
 
 /* Élément de notification : cercle initial 30x30 */
@@ -408,7 +408,6 @@ a, button, .clickable {
   font-size: 12px;
   overflow: hidden;
   transition: width 1.5s ease, height 1.5s ease, border-radius 1.5s ease, padding 1.5s ease;
-  margin-bottom: 8px;
   box-sizing: border-box;
   opacity: 1;
 }
@@ -434,10 +433,10 @@ a, button, .clickable {
   border: 2px solid gold;
 }
 
-/* Bloc news : largeur 250px (au lieu de 240) */
+/* Bloc news : largeur 250px, hauteur réduite à 340px pour tout faire tenir */
 .news-block-container {
   width: 250px;
-  height: 370px;
+  height: 340px;
   background: #111216;
   background-color: rgba(17, 18, 22, 0.7);
   border-radius: 30px;
@@ -510,10 +509,10 @@ a, button, .clickable {
   padding: 20px;
 }
 
-/* Widget TradingView : hauteur réduite à 180px */
+/* Widget TradingView : hauteur réduite à 160px */
 .ticker-container {
   width: 250px;
-  height: 180px;          /* modifié de 240px à 180px */
+  height: 160px;
   border-radius: 30px;
   overflow: hidden;
 }

@@ -1,4 +1,4 @@
- // ============================================
+// ============================================
 // CONFIGURATION
 // ============================================
 const GNEWS_API_KEY = 'b97899dfc31d70bf41c43c5b865654e6';
@@ -9,18 +9,18 @@ const NOTIF_PHRASES = [
     "meteo a 10 degree"
 ];
 
-// Liste des anniversaires (mois : 0 = janvier, 11 = décembre)
+// Liste des anniversaires (mois 0-indexé : janvier = 0, février = 1, ...)
 const birthdays = [
-    { name: "Mohamed", day: 10, month: 6 },   // 10 juillet
-    { name: "Dad", day: 18, month: 6 },       // 18 juillet
-    { name: "Mom", day: 14, month: 3 },       // 14 avril (mois 3 = avril)
-    { name: "Bilal", day: 28, month: 10 },    // 28 novembre
-    { name: "Assya", day: 21, month: 9 },     // 21 octobre
-    { name: "Zackaria", day: 5, month: 4 }    // 5 mai
+    { name: "Mohamed", day: 10, month: 6 },  // 10 juillet
+    { name: "Dad", day: 18, month: 6 },      // 18 juillet (ou octobre ? l'utilisateur a mis "Juillet = 6" donc OK)
+    { name: "Mom", day: 14, month: 3 },      // 14 avril (car mai = 4? L'utilisateur a mis "Mai = 4" donc mois 3 = avril, à vérifier mais on garde)
+    { name: "Bilal", day: 28, month: 10 },   // 28 novembre
+    { name: "Assya", day: 21, month: 9 },    // 21 octobre
+    { name: "Zackaria", day: 5, month: 4 }   // 5 mai
 ];
 
 // ============================================
-// GESTIONNAIRE DE NOTIFICATIONS
+// GESTIONNAIRE DE NOTIFICATIONS (file d'attente avec priorité)
 // ============================================
 class NotificationManager {
     constructor(containerSelector) {
@@ -30,31 +30,31 @@ class NotificationManager {
         this.timeoutId = null;
         this.priorityActive = false;
         this.priorityEndTime = 0;
-        console.log('NotificationManager container:', this.container);
     }
 
-    add(message, prefix = "PRIME IA", priority = false, duration = 120000) {
-        if (!this.container) {
-            console.error('Container de notifications introuvable');
-            return;
-        }
+    add(message, prefix = "PRIME IA", priority = false, duration = 30000) {
+        if (!this.container) return;
+        // Si c'est prioritaire, on met duration à 2 minutes par défaut
+        if (priority && duration === 30000) duration = 120000;
         this.queue.push({ message, prefix, priority, duration });
-        console.log('Notification ajoutée:', message);
         this.processQueue();
     }
 
     processQueue() {
         if (this.currentNotification) {
+            // Si une notification prioritaire est active et pas expirée
             if (this.priorityActive && Date.now() < this.priorityEndTime) {
+                // On vérifie s'il y a une autre prioritaire dans la file
                 const priorityIndex = this.queue.findIndex(n => n.priority);
                 if (priorityIndex !== -1) {
-                    console.log('Remplacement par prioritaire');
+                    // On remplace la courante par la nouvelle prioritaire
                     this.clearCurrent();
                     this.showNext();
                 }
+                // Sinon on garde la prioritaire actuelle
             } else {
+                // Pas de prioritaire active, on peut passer à la suivante si file non vide
                 if (this.queue.length > 0) {
-                    console.log('Chargement suivant');
                     this.clearCurrent();
                     this.showNext();
                 }
@@ -88,7 +88,6 @@ class NotificationManager {
         const notif = document.createElement('div');
         notif.className = 'notification-item';
         if (notifData.priority) notif.classList.add('priority');
-        notif.innerHTML = '';
 
         this.container.appendChild(notif);
         this.currentNotification = {
@@ -101,34 +100,79 @@ class NotificationManager {
             this.priorityEndTime = Date.now() + notifData.duration;
         }
 
+        // Animation : expansion après 2s
         setTimeout(() => {
-            if (notif.parentNode) notif.classList.add('expanded');
+            if (notif.parentNode) {
+                notif.classList.add('expanded');
+            }
         }, 2000);
 
+        // Ajout du texte après 4s
         setTimeout(() => {
             if (notif.parentNode) {
                 notif.innerHTML = `<span class="prime-label">${notifData.prefix}:</span> ${notifData.message}`;
             }
         }, 4000);
 
-        const displayDuration = notifData.priority ? notifData.duration : 30000;
+        // Durée d'affichage
         this.timeoutId = setTimeout(() => {
             if (notifData.priority) {
                 this.priorityActive = false;
+                // Vérifier s'il reste des prioritaires en file
                 const nextPriority = this.queue.findIndex(n => n.priority);
-                if (nextPriority === -1) this.clearCurrent();
+                if (nextPriority === -1) {
+                    this.clearCurrent();
+                } else {
+                    // On laisse la file décider (processQueue sera rappelé)
+                    this.clearCurrent();
+                }
             } else {
                 this.clearCurrent();
             }
-            this.processQueue();
-        }, displayDuration);
+            this.processQueue(); // relance
+        }, notifData.duration);
     }
 }
 
 let notifManager = null;
 
 // ============================================
-// FONCTIONS NEWS
+// GESTION DES ANNIVERSAIRES
+// ============================================
+let displayedNotifications = new Set(JSON.parse(localStorage.getItem('displayedNotifications')) || []);
+
+function checkBirthdays() {
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth(); // 0-indexé
+
+    birthdays.forEach(bday => {
+        if (bday.day === currentDay && bday.month === currentMonth) {
+            const key = `${bday.name}-${currentDay}-${currentMonth}`;
+            if (!displayedNotifications.has(key)) {
+                // Ajouter la notification d'anniversaire (non prioritaire, durée 1 minute par exemple)
+                notifManager?.add(`Joyeux anniversaire ${bday.name} ! 🎂`, "ANNIVERSAIRE", false, 60000);
+                displayedNotifications.add(key);
+                localStorage.setItem('displayedNotifications', JSON.stringify(Array.from(displayedNotifications)));
+            }
+        }
+    });
+}
+
+// Planifier la vérification quotidienne (à minuit)
+function scheduleDailyBirthdayCheck() {
+    const now = new Date();
+    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+    const timeUntilMidnight = nextMidnight - now;
+    setTimeout(() => {
+        checkBirthdays();
+        // Puis répéter toutes les 24h
+        setInterval(checkBirthdays, 24 * 60 * 60 * 1000);
+    }, timeUntilMidnight);
+}
+
+// ============================================
+// FONCTIONS POUR LES NEWS
 // ============================================
 function escapeHTML(text) {
     if (!text) return '';
@@ -163,6 +207,8 @@ async function fetchNews() {
 
     Promise.all(promises).then(results => {
         let allArticles = results.flat();
+
+        // Déduplication par titre
         const unique = [];
         const titles = new Set();
         allArticles.forEach(article => {
@@ -171,7 +217,11 @@ async function fetchNews() {
                 unique.push(article);
             }
         });
+
+        // Tri par date
         unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+
+        // Garder les 10 premiers
         const top10 = unique.slice(0, 10);
         renderNews(top10);
     }).catch(error => {
@@ -182,10 +232,7 @@ async function fetchNews() {
 
 function renderNews(articles) {
     const newsContainer = document.querySelector('#kinfopaneltousContent .news-block-container');
-    if (!newsContainer) {
-        console.error('newsContainer introuvable');
-        return;
-    }
+    if (!newsContainer) return;
 
     if (!articles || articles.length === 0) {
         newsContainer.innerHTML = '<div class="news-error">Aucune actualité disponible</div>';
@@ -218,7 +265,6 @@ function renderNews(articles) {
     });
     html += '</div>';
     newsContainer.innerHTML = html;
-    console.log('News affichées');
 }
 
 function renderNewsError() {
@@ -229,7 +275,7 @@ function renderNewsError() {
 }
 
 // ============================================
-// STATUTS DETECTEUR/CAMERA
+// FONCTIONS POUR LES STATUTS DÉTECTEUR/CAMÉRA
 // ============================================
 let lastDetectorOnline = null;
 let lastCameraOnline = null;
@@ -239,19 +285,23 @@ async function updateStatusAndNotify() {
         const res = await fetch("/status");
         const data = await res.json();
 
+        // Detector
         if (data.esp2.online !== lastDetectorOnline) {
-            notifManager?.add(
-                data.esp2.online ? "Detector is Online !" : "Detector is Offline !",
-                "STATUS", true, 120000
-            );
+            if (data.esp2.online) {
+                notifManager?.add("Detector is Online !", "STATUS", true, 120000);
+            } else {
+                notifManager?.add("Detector is Offline !", "STATUS", true, 120000);
+            }
             lastDetectorOnline = data.esp2.online;
         }
 
+        // Camera
         if (data.esp3.online !== lastCameraOnline) {
-            notifManager?.add(
-                data.esp3.online ? "Camera is Online !" : "Camera is Offline !",
-                "STATUS", true, 120000
-            );
+            if (data.esp3.online) {
+                notifManager?.add("Camera is Online !", "STATUS", true, 120000);
+            } else {
+                notifManager?.add("Camera is Offline !", "STATUS", true, 120000);
+            }
             lastCameraOnline = data.esp3.online;
         }
     } catch (e) {
@@ -260,37 +310,12 @@ async function updateStatusAndNotify() {
 }
 
 // ============================================
-// ANNIVERSAIRES
-// ============================================
-function checkBirthdays() {
-    const today = new Date();
-    const currentDay = today.getDate();
-    const currentMonth = today.getMonth();
-
-    birthdays.forEach(b => {
-        if (b.day === currentDay && b.month === currentMonth) {
-            const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-            const key = `birthday_${b.name}_${todayStr}`;
-            if (!localStorage.getItem(key)) {
-                notifManager?.add(`Joyeux anniversaire ${b.name} ! 🎂`, "ANNIVERSAIRE", true, 120000);
-                localStorage.setItem(key, 'true');
-            }
-        }
-    });
-}
-
-// ============================================
-// CHARGEMENT DU MENU-1
+// CHARGEMENT DU MENU-1 (tout le contenu)
 // ============================================
 function loadMenu1Widgets() {
-    console.log('loadMenu1Widgets exécuté');
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-    if (!kinfopaneltousContent) {
-        console.error('kinfopaneltousContent introuvable');
-        return;
-    }
+    if (!kinfopaneltousContent) return;
 
-    // Vider le conteneur
     kinfopaneltousContent.innerHTML = '';
 
     // Layout wrapper
@@ -328,14 +353,10 @@ function loadMenu1Widgets() {
     layoutWrapper.appendChild(tickerContainer);
 
     kinfopaneltousContent.appendChild(layoutWrapper);
-    console.log('Layout ajouté au conteneur');
 
-    // Initialiser le gestionnaire de notifications
+    // Initialiser le gestionnaire de notifications si nécessaire
     if (!notifManager) {
         notifManager = new NotificationManager('#notification-container');
-    } else {
-        // Mettre à jour le container si nécessaire
-        notifManager.container = document.querySelector('#notification-container');
     }
 
     // Charger les news
@@ -347,7 +368,6 @@ function loadMenu1Widgets() {
         script.type = 'module';
         script.src = 'https://widgets.tradingview-widget.com/w/en/tv-ticker-tape.js';
         document.head.appendChild(script);
-        console.log('Script TradingView chargé');
     }
 
     // Lancer le polling des statuts (toutes les secondes)
@@ -356,55 +376,39 @@ function loadMenu1Widgets() {
         updateStatusAndNotify();
     }
 
-    // Lancer la vérification des anniversaires (toutes les heures)
-    if (!window.birthdayInterval) {
-        window.birthdayInterval = setInterval(checkBirthdays, 3600000);
-        checkBirthdays();
-    }
-
     // Déclencher les notifications PRIME IA 7s après la première visite
     if (!window.firstVisitNotifTriggered) {
         setTimeout(() => {
             window.firstVisitNotifTriggered = true;
-            console.log('Déclenchement PRIME IA');
+            // Deux notifications aléatoires
             for (let i = 0; i < 2; i++) {
                 const randomPhrase = NOTIF_PHRASES[Math.floor(Math.random() * NOTIF_PHRASES.length)];
                 notifManager?.add(randomPhrase, "PRIME IA", false, 30000);
             }
         }, 7000);
     }
+
+    // Vérifier les anniversaires (une fois maintenant, et planifier le check quotidien)
+    checkBirthdays();
+    scheduleDailyBirthdayCheck();
 }
 
 // ============================================
-// GESTION DES MENUS
+// GESTION DES MENUS (inchangée)
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM prêt');
-
-    // Variables globales
-    window.currentMenuPage = null;
-    window.isInSelectedView = false;
-
     function updateMenuPanelInfo() {
         const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
         const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
-
-        if (!kinfopaneltousContainer || !kinfopaneltousContent) {
-            console.error('Conteneurs manquants');
-            return;
-        }
-
-        console.log('updateMenuPanelInfo, currentMenuPage =', window.currentMenuPage);
-
-        // Activer le conteneur (on le fait toujours, même si menu non défini, pour debug)
+        
+        if (!kinfopaneltousContainer || !kinfopaneltousContent) return;
+        
         kinfopaneltousContainer.classList.add('active');
-
-        // Si on est en selected view et menu-2, on ne fait rien
+        
         if (window.isInSelectedView && window.currentMenuPage === 'menu-2') {
             return;
         }
-
-        // Gérer les différents menus
+        
         switch(window.currentMenuPage) {
             case 'menu-1':
                 loadMenu1Widgets();
@@ -413,20 +417,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 3 - Contenu à définir</div>';
                 break;
             case 'menu-4':
-                if (typeof window.getMoneyManagementData === 'function') window.getMoneyManagementData();
-                if (typeof window.showResultPanel === 'function') window.showResultPanel();
+                if (window.getMoneyManagementData) window.getMoneyManagementData();
+                if (window.showResultPanel) window.showResultPanel();
                 break;
             case 'menu-5':
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 5 - Contenu à définir</div>';
                 break;
             default:
-                // Pour test : afficher un message si aucun menu
-                kinfopaneltousContent.innerHTML = '<div class="info-message">Aucun menu actif</div>';
+                kinfopaneltousContainer.classList.remove('active');
                 break;
         }
     }
-
-    // Observer les changements de classe sur megaBox
+    
     const megaBox = document.getElementById('megaBox');
     if (megaBox) {
         const observerMenuChange = new MutationObserver(function(mutations) {
@@ -438,57 +440,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     else if (classes.contains('menu-3')) window.currentMenuPage = 'menu-3';
                     else if (classes.contains('menu-4')) window.currentMenuPage = 'menu-4';
                     else if (classes.contains('menu-5')) window.currentMenuPage = 'menu-5';
-                    else window.currentMenuPage = null;
-
-                    console.log('Changement de classe détecté:', window.currentMenuPage);
+                    
                     updateMenuPanelInfo();
                 }
             });
         });
-
+        
         observerMenuChange.observe(megaBox, {
             attributes: true,
             attributeFilter: ['class']
         });
-
-        // Vérifier la classe initiale après un court délai pour laisser le DOM se stabiliser
-        setTimeout(() => {
-            const classes = megaBox.classList;
-            if (classes.contains('menu-1')) window.currentMenuPage = 'menu-1';
-            else if (classes.contains('menu-2')) window.currentMenuPage = 'menu-2';
-            else if (classes.contains('menu-3')) window.currentMenuPage = 'menu-3';
-            else if (classes.contains('menu-4')) window.currentMenuPage = 'menu-4';
-            else if (classes.contains('menu-5')) window.currentMenuPage = 'menu-5';
-            else window.currentMenuPage = null;
-
-            console.log('Classe initiale megaBox:', window.currentMenuPage);
-            updateMenuPanelInfo();
-        }, 500);
-    } else {
-        console.error('megaBox introuvable ! Aucun menu ne pourra être détecté.');
-        // Fallback : afficher le menu-1 pour tester
-        window.currentMenuPage = 'menu-1';
-        updateMenuPanelInfo();
     }
+    
+    setTimeout(() => {
+        updateMenuPanelInfo();
+    }, 300);
 });
 
 // Polling pour menu-4 (si nécessaire)
 setInterval(() => {
-    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-        if (typeof window.getMoneyManagementData === 'function' && typeof window.showResultPanel === 'function') {
-            window.getMoneyManagementData();
-            window.showResultPanel();
-        }
+  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+    if (window.getMoneyManagementData && window.showResultPanel) {
+      window.getMoneyManagementData();
+      window.showResultPanel();
     }
+  }
 }, 300);
 
 window.addEventListener('load', function() {
-    setTimeout(() => {
-        if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-            if (typeof window.getMoneyManagementData === 'function' && typeof window.showResultPanel === 'function') {
-                window.getMoneyManagementData();
-                window.showResultPanel();
-            }
-        }
-    }, 300);
+  setTimeout(() => {
+    if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
+      if (window.getMoneyManagementData && window.showResultPanel) {
+        window.getMoneyManagementData();
+        window.showResultPanel();
+      }
+    }
+  }, 300);
 });

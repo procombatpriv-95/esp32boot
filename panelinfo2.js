@@ -20,7 +20,7 @@ const birthdays = [
 ];
 
 // Durées
-const DURATION_PRIME = Infinity;          // jamais supprimée automatiquement
+const DURATION_PRIME = 2 * 60 * 1000; // 2 minutes 
 const DURATION_BIRTHDAY = 5 * 60 * 60 * 1000; // 5 heures
 const DURATION_STATUS = 5 * 60 * 1000;    // 5 minutes
 

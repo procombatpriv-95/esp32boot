@@ -62,11 +62,11 @@
   justify-content: center;
 }
 
-/* KINFOPANELTOUS CONTAINER */
+/* KINFOPANELTOUS CONTAINER - fond transparent */
 .kinfopaneltous-container {
   width: 250px;
   height: 620px;
-  background: rgba(0, 0, 0, 0.4);
+  background: transparent;  /* transparent */
   border-radius: 20px;
   padding: 0;
   display: none;
@@ -91,7 +91,7 @@
   height: 100%;
   border-radius: 10px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.3);
+  background: transparent;  /* transparent */
   padding: 0;
   margin: 0;
   display: flex;
@@ -380,21 +380,21 @@ a, button, .clickable {
 }
 
 /* ============================================
-   STYLES POUR LE MENU-1 (TOUT DANS LE KINOPANEL)
+   STYLES POUR LE MENU-1
    ============================================ */
 
-/* Conteneur des notifications (centré, peut contenir plusieurs notifications) */
+/* Conteneur des notifications (centré) */
 .notifications-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  min-height: 80px; /* pour deux notifications avec gap */
+  min-height: 80px; /* pour deux notifications */
   gap: 8px;
   margin-bottom: 5px;
 }
 
-/* Élément de notification : cercle initial 30x30 */
+/* Élément de notification */
 .notification-item {
   width: 30px;
   height: 30px;
@@ -403,16 +403,17 @@ a, button, .clickable {
   background-color: rgba(17, 18, 22, 0.7);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* pour aligner le texte à gauche après expansion */
   color: white;
   font-size: 12px;
   overflow: hidden;
   transition: width 1.5s ease, height 1.5s ease, border-radius 1.5s ease, padding 1.5s ease;
   box-sizing: border-box;
   opacity: 1;
+  padding: 0; /* pas de padding au début */
 }
 
-/* État expansé (après 3s) : 200px de large, hauteur auto (minimum 40px) */
+/* État expansé */
 .notification-item.expanded {
   width: 200px;
   height: auto;
@@ -422,18 +423,27 @@ a, button, .clickable {
   justify-content: flex-start;
 }
 
-/* Label "PRIME IA:" */
+/* Label en gras (commun à toutes les notifications) */
 .notification-item .prime-label {
   font-weight: bold;
   margin-right: 4px;
+  white-space: nowrap;
 }
 
-/* Notifications prioritaires (détecteur/caméra) */
+/* Conteneur du message (s'écrit progressivement) */
+.notification-item .notification-message {
+  display: inline-block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+}
+
+/* Notifications prioritaires */
 .notification-item.priority {
   border: 2px solid gold;
 }
 
-/* Bloc news : largeur 250px, hauteur réduite à 340px pour tout faire tenir */
+/* Bloc news */
 .news-block-container {
   width: 250px;
   height: 340px;
@@ -509,7 +519,7 @@ a, button, .clickable {
   padding: 20px;
 }
 
-/* Widget TradingView : hauteur réduite à 160px */
+/* Widget TradingView */
 .ticker-container {
   width: 250px;
   height: 160px;

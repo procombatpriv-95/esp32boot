@@ -4,9 +4,10 @@
 const GNEWS_API_KEY = 'b97899dfc31d70bf41c43c5b865654e6';
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 const NOTIF_PHRASES = [
-    "bonjour mohamed",
-    "aussi appel de papa",
-    "meteo a 10 degree"
+    "As tu appele ton pere",
+    "Verifie t est note",
+    "Bourse en hausse",
+    "As tu fait la priere"
 ];
 
 // Liste des anniversaires (mois 0-indexé)

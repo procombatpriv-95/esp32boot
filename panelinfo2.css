@@ -1,7 +1,6 @@
 /* ============================================
    STYLES EXISTANTS (NON MODIFIÉS)
    ============================================ */
-
 .panelinfo {
   width: 250px;
   height: 700px;
@@ -34,7 +33,6 @@
   font-family: 'Lobster', cursive;
 }
 
-/* INFO CONTENT (Premier div) */
 .info-content {
   flex: 1;
   display: flex;
@@ -64,7 +62,7 @@
   justify-content: center;
 }
 
-/* KINFOPANELTOUS CONTAINER (Deuxième div) */
+/* KINFOPANELTOUS CONTAINER */
 .kinfopaneltous-container {
   width: 250px;
   height: 620px;
@@ -83,12 +81,10 @@
   display: flex;
 }
 
-/* KINFOPANELTOUS HEADER CACHÉ */
 .kinfopaneltous-header {
   display: none;
 }
 
-/* KINFOPANELTOUS CONTENT DIRECT */
 .kinfopaneltous-content {
   flex: 1;
   width: 100%;
@@ -103,7 +99,7 @@
   align-items: center;
 }
 
-/* SUPPRESSION DES TOOLTIPS GÉNANTS */
+/* Suppression tooltips */
 [title] {
   text-decoration: none !important;
 }
@@ -123,7 +119,6 @@
   user-select: none;
 }
 
-/* Pour les iframes TradingView */
 iframe {
   pointer-events: auto !important;
 }
@@ -143,7 +138,7 @@ a, button, .clickable {
   text-decoration: none !important;
 }
 
-/* === STYLES POUR LE MENU 4 (RESULTAT) === */
+/* Styles pour le menu 4 (résultat) - inchangés */
 .result-panel {
   width: 100%;
   height: 100%;
@@ -215,7 +210,6 @@ a, button, .clickable {
   text-align: center;
 }
 
-/* Barre de progression */
 .progress-bar-container {
   width: 100%;
   height: 35px;
@@ -271,7 +265,6 @@ a, button, .clickable {
   z-index: 1;
 }
 
-/* Indicateurs Highest/Lowest */
 .indicators-container {
   display: flex;
   gap: 15px;
@@ -330,7 +323,6 @@ a, button, .clickable {
   color: #e74c3c;
 }
 
-/* SAVINGS SECTION */
 .savings-container {
   margin-top: -5px;
   display: flex;
@@ -382,13 +374,12 @@ a, button, .clickable {
   cursor: not-allowed;
 }
 
-/* Message par défaut - SUPPRIMÉ */
+/* Message par défaut - supprimé */
 .kinfopaneltous-default {
   display: none !important;
 }
 
-/* === STYLES POUR LE MENU-1 === */
-/* Widget ticker tape vertical */
+/* Styles pour le menu-1 (ticker tape) */
 .ticker-container {
   width: 250px;
   height: 240px;
@@ -404,14 +395,84 @@ tv-ticker-tape {
 }
 
 /* ============================================
-   STYLES AJOUTÉS POUR NEWS AVEC IMAGES & PAYS
+   STYLES AJOUTÉS (notifications, news, anniversaires)
    ============================================ */
+
+/* Conteneur des notifications */
+.notifications-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 100%;
+  min-height: 60px;
+  position: relative;
+  margin-bottom: 10px;
+}
+
+/* Élément de notification (cercle initial) */
+.notification-item {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #111216;
+  background-color: rgba(17, 18, 22, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  overflow: hidden;
+  transition: width 1.5s ease, height 1.5s ease, border-radius 1.5s ease, padding 1.5s ease;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+  opacity: 1;
+}
+
+/* État expansé (après 2s) */
+.notification-item.expanded {
+  width: 200px;
+  height: auto;
+  border-radius: 30px;
+  padding: 8px 12px;
+  justify-content: flex-start;
+}
+
+/* Label "PRIME IA:" en gras */
+.notification-item .prime-label {
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+/* Notifications prioritaires (détecteur/caméra) */
+.notification-item.priority {
+  border: 2px solid gold;
+}
+
+/* Bloc news */
+.news-block-container {
+  width: 240px;
+  height: 370px;
+  background: #111216;
+  background-color: rgba(17, 18, 22, 0.7);
+  border-radius: 30px;
+  padding: 15px;
+  overflow-y: auto;
+  color: white;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
 .news-item {
   display: flex;
   gap: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   padding-bottom: 10px;
-  margin-bottom: 10px;
 }
 
 .news-item:last-child {
@@ -461,52 +522,4 @@ tv-ticker-tape {
   color: rgba(255, 255, 255, 0.7);
   text-align: center;
   padding: 20px;
-}
-
-/* ============================================
-   STYLES POUR LES NOTIFICATIONS ANIMÉES
-   ============================================ */
-.notifications-container {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end; /* alignées à droite */
-  width: 100%;
-  min-height: 60px;
-  position: relative;
-  margin-bottom: 10px;
-}
-
-.notification-item {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #111216;
-  background-color: rgba(17, 18, 22, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 12px;
-  overflow: hidden;
-  transition: width 1.5s ease, height 1.5s ease, border-radius 1.5s ease, padding 1.5s ease;
-  margin-bottom: 8px;
-  box-sizing: border-box;
-  opacity: 1;
-}
-
-.notification-item.expanded {
-  width: 200px;
-  height: auto;
-  border-radius: 30px;
-  padding: 8px 12px;
-  justify-content: flex-start;
-}
-
-.notification-item .prime-label {
-  font-weight: bold;
-  margin-right: 4px;
-}
-
-.notification-item.priority {
-  border: 2px solid gold;
 }

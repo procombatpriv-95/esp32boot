@@ -20,7 +20,7 @@ const birthdays = [
 ];
 
 // ============================================
-// GESTIONNAIRE DE NOTIFICATIONS
+// GESTIONNAIRE DE NOTIFICATIONS (file d'attente avec priorité)
 // ============================================
 class NotificationManager {
     constructor(containerSelector) {
@@ -34,7 +34,7 @@ class NotificationManager {
 
     add(message, prefix = "PRIME IA", priority = false, duration = 30000) {
         if (!this.container) return;
-        if (priority && duration === 30000) duration = 120000; // 2 min pour les prioritaires
+        if (priority && duration === 30000) duration = 120000; // 2 min pour prioritaires
         this.queue.push({ message, prefix, priority, duration });
         this.processQueue();
     }
@@ -94,25 +94,30 @@ class NotificationManager {
             this.priorityEndTime = Date.now() + notifData.duration;
         }
 
-        // Expansion après 2s
+        // Animation : expansion après 3 secondes
         setTimeout(() => {
-            if (notif.parentNode) notif.classList.add('expanded');
-        }, 2000);
+            if (notif.parentNode) {
+                notif.classList.add('expanded');
+            }
+        }, 3000);
 
-        // Ajout du texte après 4s
+        // Ajout du texte après 6 secondes (3s + 3s)
         setTimeout(() => {
             if (notif.parentNode) {
                 notif.innerHTML = `<span class="prime-label">${notifData.prefix}:</span> ${notifData.message}`;
             }
-        }, 4000);
+        }, 6000);
 
-        // Fin de la notification
+        // Durée d'affichage
         this.timeoutId = setTimeout(() => {
             if (notifData.priority) {
                 this.priorityActive = false;
                 const nextPriority = this.queue.findIndex(n => n.priority);
-                if (nextPriority === -1) this.clearCurrent();
-                else this.clearCurrent(); // on efface et on laisse processQueue gérer
+                if (nextPriority === -1) {
+                    this.clearCurrent();
+                } else {
+                    this.clearCurrent();
+                }
             } else {
                 this.clearCurrent();
             }
@@ -191,6 +196,7 @@ async function fetchNews() {
 
     Promise.all(promises).then(results => {
         let allArticles = results.flat();
+
         const unique = [];
         const titles = new Set();
         allArticles.forEach(article => {
@@ -199,6 +205,7 @@ async function fetchNews() {
                 unique.push(article);
             }
         });
+
         unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
         const top10 = unique.slice(0, 10);
         renderNews(top10);
@@ -286,7 +293,7 @@ async function updateStatusAndNotify() {
 }
 
 // ============================================
-// CHARGEMENT DU MENU-1 (NOUVEL ORDRE)
+// CHARGEMENT DU MENU-1
 // ============================================
 function loadMenu1Widgets() {
     const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
@@ -294,7 +301,6 @@ function loadMenu1Widgets() {
 
     kinfopaneltousContent.innerHTML = '';
 
-    // Layout wrapper
     const layoutWrapper = document.createElement('div');
     layoutWrapper.style.display = 'flex';
     layoutWrapper.style.flexDirection = 'column';
@@ -305,19 +311,19 @@ function loadMenu1Widgets() {
     layoutWrapper.style.maxHeight = '100%';
     layoutWrapper.style.paddingRight = '5px';
 
-    // 1. Notifications (en haut)
+    // 1. Notifications
     const notifContainer = document.createElement('div');
     notifContainer.className = 'notifications-container';
     notifContainer.id = 'notification-container';
     layoutWrapper.appendChild(notifContainer);
 
-    // 2. Bloc news (au milieu)
+    // 2. Bloc news
     const newsContainer = document.createElement('div');
     newsContainer.className = 'news-block-container';
     newsContainer.innerHTML = '<div class="news-loading">Chargement des actualités...</div>';
     layoutWrapper.appendChild(newsContainer);
 
-    // 3. Widget TradingView (en bas)
+    // 3. Widget TradingView (hauteur réduite via CSS)
     const tickerContainer = document.createElement('div');
     tickerContainer.id = 'ticker-container-1';
     tickerContainer.className = 'ticker-container';
@@ -330,15 +336,12 @@ function loadMenu1Widgets() {
 
     kinfopaneltousContent.appendChild(layoutWrapper);
 
-    // Initialiser le gestionnaire de notifications
     if (!notifManager) {
         notifManager = new NotificationManager('#notification-container');
     }
 
-    // Charger les news
     fetchNews();
 
-    // Charger le script TradingView
     if (!document.querySelector('script[src*="tv-ticker-tape.js"]')) {
         const script = document.createElement('script');
         script.type = 'module';
@@ -346,13 +349,12 @@ function loadMenu1Widgets() {
         document.head.appendChild(script);
     }
 
-    // Lancer le polling des statuts
     if (!window.statusInterval) {
         window.statusInterval = setInterval(updateStatusAndNotify, 1000);
         updateStatusAndNotify();
     }
 
-    // Déclencher les notifications PRIME IA 7s après la première visite
+    // Déclencher les deux notifications PRIME IA 7s après la première visite
     if (!window.firstVisitNotifTriggered) {
         setTimeout(() => {
             window.firstVisitNotifTriggered = true;
@@ -363,7 +365,7 @@ function loadMenu1Widgets() {
         }, 7000);
     }
 
-    // Vérifier les anniversaires
+    // Anniversaires
     checkBirthdays();
     scheduleDailyBirthdayCheck();
 }

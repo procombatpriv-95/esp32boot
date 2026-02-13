@@ -64,7 +64,7 @@
   justify-content: center;
 }
 
-/* KINFOPANELTOUS CONTAINER (Deuxième div) - MODIFIÉ */
+/* KINFOPANELTOUS CONTAINER (Deuxième div) */
 .kinfopaneltous-container {
   width: 250px;
   height: 620px;
@@ -88,7 +88,7 @@
   display: none;
 }
 
-/* KINFOPANELTOUS CONTENT DIRECT - CENTRÉ */
+/* KINFOPANELTOUS CONTENT DIRECT */
 .kinfopaneltous-content {
   flex: 1;
   width: 100%;
@@ -330,7 +330,7 @@ a, button, .clickable {
   color: #e74c3c;
 }
 
-/* SAVINGS SECTION - NOUVEAU */
+/* SAVINGS SECTION */
 .savings-container {
   margin-top: -5px;
   display: flex;
@@ -404,74 +404,39 @@ tv-ticker-tape {
 }
 
 /* ============================================
-   STYLES AJOUTÉS (NOTIFICATIONS + NEWS)
+   STYLES AJOUTÉS POUR NEWS AVEC IMAGES & PAYS
    ============================================ */
-
-/* === NOTIFICATIONS === */
-.notifications-container {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 5px;
-  width: 100%;
-}
-
-.notification-item {
-  width: 100px;
-  height: 30px;
-  border-radius: 30px;
-  background: #111216;
-  background-color: rgba(17, 18, 22, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 0 10px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.notification-item .prime-label {
-  font-weight: bold;
-  margin-right: 4px;
-}
-
-/* === BLOC NEWS SCROLLABLE === */
-.news-block-container {
-  width: 240px;
-  height: 370px;
-  background: #111216;
-  background-color: rgba(17, 18, 22, 0.7);
-  border-radius: 30px;
-  padding: 15px;
-  overflow-y: auto;
-  color: white;
-  margin-bottom: 10px;
-  box-sizing: border-box;
-}
-
-.news-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
 .news-item {
+  display: flex;
+  gap: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   padding-bottom: 10px;
-  font-size: 12px;
-  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.news-item:last-child {
+  border-bottom: none;
+}
+
+.news-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.news-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .news-title {
   font-weight: bold;
+  font-size: 12px;
   margin-bottom: 4px;
-  color: #fff;
+  color: white;
+  word-wrap: break-word;
 }
 
 .news-source {
@@ -479,6 +444,16 @@ tv-ticker-tape {
   color: rgba(255, 255, 255, 0.6);
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+.news-country {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 9px;
 }
 
 .news-error,
@@ -486,10 +461,52 @@ tv-ticker-tape {
   color: rgba(255, 255, 255, 0.7);
   text-align: center;
   padding: 20px;
-  font-size: 14px;
 }
 
-/* Espacement entre le bloc news et l'iframe */
-.ticker-container {
-  margin-top: 10px;
+/* ============================================
+   STYLES POUR LES NOTIFICATIONS ANIMÉES
+   ============================================ */
+.notifications-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* alignées à droite */
+  width: 100%;
+  min-height: 60px;
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.notification-item {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #111216;
+  background-color: rgba(17, 18, 22, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  overflow: hidden;
+  transition: width 1.5s ease, height 1.5s ease, border-radius 1.5s ease, padding 1.5s ease;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+  opacity: 1;
+}
+
+.notification-item.expanded {
+  width: 200px;
+  height: auto;
+  border-radius: 30px;
+  padding: 8px 12px;
+  justify-content: flex-start;
+}
+
+.notification-item .prime-label {
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+.notification-item.priority {
+  border: 2px solid gold;
 }

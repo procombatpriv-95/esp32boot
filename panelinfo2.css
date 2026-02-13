@@ -62,11 +62,11 @@
   justify-content: center;
 }
 
-/* KINFOPANELTOUS CONTAINER - fond transparent */
+/* KINFOPANELTOUS CONTAINER - fond par défaut (utilisé pour les autres menus) */
 .kinfopaneltous-container {
   width: 250px;
   height: 620px;
-  background: transparent;  /* transparent */
+  background: rgba(0, 0, 0, 0.4);
   border-radius: 20px;
   padding: 0;
   display: none;
@@ -81,6 +81,11 @@
   display: flex;
 }
 
+/* Fond transparent pour le menu-1 */
+.kinfopaneltous-container.transparent-bg {
+  background: transparent;
+}
+
 .kinfopaneltous-header {
   display: none;
 }
@@ -91,12 +96,17 @@
   height: 100%;
   border-radius: 10px;
   overflow: hidden;
-  background: transparent;  /* transparent */
+  background: rgba(0, 0, 0, 0.3);
   padding: 0;
   margin: 0;
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* Fond transparent pour le contenu du menu-1 */
+.kinfopaneltous-content.transparent-bg {
+  background: transparent;
 }
 
 /* Suppression tooltips */
@@ -389,12 +399,12 @@ a, button, .clickable {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  min-height: 80px; /* pour deux notifications */
+  min-height: 80px;
   gap: 8px;
   margin-bottom: 5px;
 }
 
-/* Élément de notification */
+/* Élément de notification - cercle initial vide */
 .notification-item {
   width: 30px;
   height: 30px;
@@ -403,14 +413,14 @@ a, button, .clickable {
   background-color: rgba(17, 18, 22, 0.7);
   display: flex;
   align-items: center;
-  justify-content: flex-start; /* pour aligner le texte à gauche après expansion */
+  justify-content: flex-start;
   color: white;
   font-size: 12px;
   overflow: hidden;
   transition: width 1.5s ease, height 1.5s ease, border-radius 1.5s ease, padding 1.5s ease;
   box-sizing: border-box;
   opacity: 1;
-  padding: 0; /* pas de padding au début */
+  padding: 0;
 }
 
 /* État expansé */
@@ -423,7 +433,7 @@ a, button, .clickable {
   justify-content: flex-start;
 }
 
-/* Label en gras (commun à toutes les notifications) */
+/* Label en gras (apparaît après expansion) */
 .notification-item .prime-label {
   font-weight: bold;
   margin-right: 4px;
@@ -443,7 +453,7 @@ a, button, .clickable {
   border: 2px solid gold;
 }
 
-/* Bloc news */
+/* Bloc news - affiche 30 articles */
 .news-block-container {
   width: 250px;
   height: 340px;

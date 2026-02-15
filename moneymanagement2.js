@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const menu4Content = document.getElementById('menu4Content');
     if (!menu4Content) return;
     
-    // ===== VARIABLES DE DONNÉES =====
     let transactions = [];
     let investments = [];
     let monthlyGoals = {};
@@ -11,8 +10,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentYearView = 'current';
     let longTermOffset = 0;
     let currentTransactionForSaving = null;
+    let popupMode = 'balance'; // 'balance' ou 'transaction' (ce dernier est conservé pour compatibilité)
+    let popupLimit = 0;
     
-    // ===== VARIABLES DOM =====
     const amountInput = document.getElementById('amount');
     const descriptionInput = document.getElementById('description');
     const dateInput = document.getElementById('date');
@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const savingTypeSelect = document.getElementById('savingType');
     const allBtn = document.getElementById('allBtn');
     const monthlyBtn = document.getElementById('monthlyBtn');
+    const globalAddBtn = document.getElementById('globalAddBtn');
+    const recentTransactionsTitle = document.getElementById('recentTransactionsTitle');
+    const transactionsSummary = document.getElementById('transactionsSummary');
     const leftLegendText = document.getElementById('leftLegendText');
     const rightLegendText = document.getElementById('rightLegendText');
     const longTermContent = document.getElementById('longTermContent');
@@ -36,17 +39,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorMessage = document.getElementById('errorMessage');
     const confirmTransferBtn = document.getElementById('confirmTransferBtn');
     
-    let monthlyBarChart = null;
-    let categoryBarVerticalChart = null;
+    let monthlyBarChart, categoryBarVerticalChart;
     
-    // Date du jour
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
     
-    // ===== FONCTIONS UTILITAIRES =====
+    // ==================== FONCTIONS UTILITAIRES ====================
+    
     function getMonthNames() {
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     }
@@ -93,7 +95,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${day} ${month} ${year}`;
     }
     
+    // ==================== CALCULS ====================
+    
     function calculateTotalBalance() {
+        // Inclut toutes les transactions normales (saving='normal'), y compris les transferts
         const totalIncome = transactions
             .filter(t => t.type === 'income' && t.saving === 'normal')
             .reduce((sum, t) => sum + t.amount, 0);
@@ -109,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalSaving = 0;
         
         transactions.forEach(t => {
-            if (t.saving === 'saving1' || t.saving === 'saving2' || t.saving === 'saving3') {
+            if (t.saving !== 'normal') {
                 if (t.type === 'income') {
                     totalSaving += t.amount;
                 } else if (t.type === 'expense') {
@@ -121,67 +126,78 @@ document.addEventListener('DOMContentLoaded', function() {
         return totalSaving;
     }
     
-    // ===== FONCTIONS COMMUNICATION SERVEUR =====
-    async function saveMoneyDataToServer(data) {
-        try {
-            const response = await fetch('/saveMoneyManager?data=' + encodeURIComponent(JSON.stringify(data)), {
-                method: 'GET'
-            });
-            
-            if (response.ok) {
-                return await response.json();
-            }
-        } catch (error) {
-            console.error('Erreur sauvegarde:', error);
-        }
-        return { success: false };
-    }
-    
-    async function loadMoneyDataFromServer() {
-        try {
-            const response = await fetch('/loadMoneyManager');
-            
-            if (response.ok) {
-                return await response.json();
-            }
-        } catch (error) {
-            console.error('Erreur chargement:', error);
-        }
-        return null;
-    }
-    
-    // ===== FONCTIONS DE GESTION DES DONNÉES =====
-    async function loadData() {
-        const data = await loadMoneyDataFromServer();
+    function calculateSavingsDetail() {
+        const savings = { saving1: 0, saving2: 0, saving3: 0 };
         
-        if (data) {
-            transactions = data.transactions || [];
-            investments = data.investments || [];
-            monthlyGoals = data.monthlyGoals || {};
-            yearlyGoal = data.yearlyGoal || 0;
-        } else {
+        transactions.forEach(t => {
+            if (t.saving === 'saving1') {
+                if (t.type === 'income') savings.saving1 += t.amount;
+                else if (t.type === 'expense') savings.saving1 -= t.amount;
+            } else if (t.saving === 'saving2') {
+                if (t.type === 'income') savings.saving2 += t.amount;
+                else if (t.type === 'expense') savings.saving2 -= t.amount;
+            } else if (t.saving === 'saving3') {
+                if (t.type === 'income') savings.saving3 += t.amount;
+                else if (t.type === 'expense') savings.saving3 -= t.amount;
+            }
+        });
+        
+        return savings;
+    }
+    
+    function getColor(index) {
+        const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
+        return colors[index % colors.length];
+    }
+    
+    // ==================== CHARGEMENT / SAUVEGARDE ====================
+    
+    function loadData() {
+        try {
+            const savedTransactions = localStorage.getItem('moneyManagerTransactions');
+            const savedInvestments = localStorage.getItem('moneyManagerInvestments');
+            const savedGoals = localStorage.getItem('moneyManagerGoals');
+            const savedYearlyGoal = localStorage.getItem('moneyManagerYearlyGoal');
+            
+            if (savedTransactions) {
+                transactions = JSON.parse(savedTransactions);
+            }
+            
+            if (savedInvestments) {
+                investments = JSON.parse(savedInvestments);
+            }
+            
+            if (savedGoals) {
+                monthlyGoals = JSON.parse(savedGoals);
+            }
+            
+            if (savedYearlyGoal) {
+                yearlyGoal = parseFloat(savedYearlyGoal);
+            }
+        } catch (e) {
+            console.error("Erreur de chargement:", e);
             transactions = [];
             investments = [];
             monthlyGoals = {};
             yearlyGoal = 0;
         }
-        
-        updateDashboard();
     }
     
-    async function saveData() {
-        const moneyData = {
-            transactions: transactions,
-            investments: investments,
-            monthlyGoals: monthlyGoals,
-            yearlyGoal: yearlyGoal,
-            lastUpdated: new Date().toISOString()
-        };
-        
-        await saveMoneyDataToServer(moneyData);
+    function saveData() {
+        try {
+            localStorage.setItem('moneyManagerTransactions', JSON.stringify(transactions));
+            localStorage.setItem('moneyManagerInvestments', JSON.stringify(investments));
+            localStorage.setItem('moneyManagerGoals', JSON.stringify(monthlyGoals));
+            localStorage.setItem('moneyManagerYearlyGoal', yearlyGoal.toString());
+            
+            window.dispatchEvent(new Event('storage'));
+        } catch (e) {
+            console.error("Erreur de sauvegarde:", e);
+        }
     }
     
-    // ===== FONCTIONS D'AFFICHAGE =====
+    // ==================== MISE À JOUR DE L'INTERFACE ====================
+    
     function updateDashboard() {
         updateView();
         updateSummary();
@@ -189,6 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCharts();
         updateHorizontalBarGraph();
         updateLongTermSection();
+        saveData();
     }
     
     function updateLongTermSection() {
@@ -196,6 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const days = [];
         const today = new Date();
+        
         const startOffset = longTermOffset * 6;
         
         for (let i = 0; i < 6; i++) {
@@ -205,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         days.sort((a, b) => b - a);
+        
         longTermContent.innerHTML = '';
         
         days.forEach(day => {
@@ -254,11 +273,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // NOUVELLE VERSION avec catégories saving incluses
     function calculateCategoryData() {
-        const categories = [
+        // Catégories normales + 3 catégories saving
+        const baseCategories = [
             'General', 'Trading', 'Food', 'Order', 
             'Shopping', 'Investment', 'Salary', 'Bills', 'Other'
         ];
+        const savingCategories = ['Saving 1', 'Saving 2', 'Saving 3'];
+        const allCategories = [...baseCategories, ...savingCategories];
         
         const currentYear = new Date().getFullYear();
         const previousYear = currentYear - 1;
@@ -271,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const categoryExpenses = {};
         const categoryIncome = {};
         
-        categories.forEach(cat => {
+        allCategories.forEach(cat => {
             categoryExpenses[cat] = 0;
             categoryIncome[cat] = 0;
         });
@@ -280,22 +303,30 @@ document.addEventListener('DOMContentLoaded', function() {
             const transDate = new Date(transaction.date);
             const transYear = transDate.getFullYear();
             
-            if (transYear === selectedYear && transaction.saving === 'normal') {
-                if (!transaction.description.includes('Transfer to Saving')) {
-                    if (transaction.type === 'expense') {
-                        categoryExpenses[transaction.category] += transaction.amount;
-                    } else if (transaction.type === 'income') {
-                        categoryIncome[transaction.category] += transaction.amount;
-                    }
+            if (transYear === selectedYear) {
+                // Déterminer la catégorie d'affichage
+                let displayCategory = transaction.category;
+                if (transaction.saving !== 'normal') {
+                    // C'est une transaction saving : on l'affiche dans la catégorie saving correspondante
+                    if (transaction.saving === 'saving1') displayCategory = 'Saving 1';
+                    else if (transaction.saving === 'saving2') displayCategory = 'Saving 2';
+                    else if (transaction.saving === 'saving3') displayCategory = 'Saving 3';
+                }
+                
+                if (transaction.type === 'expense') {
+                    categoryExpenses[displayCategory] += transaction.amount;
+                } else if (transaction.type === 'income') {
+                    categoryIncome[displayCategory] += transaction.amount;
                 }
             }
         });
         
+        // Filtrer les catégories qui ont des données
         const validCategories = [];
         const expensesData = [];
         const incomeData = [];
         
-        categories.forEach(cat => {
+        allCategories.forEach(cat => {
             if (categoryExpenses[cat] > 0 || categoryIncome[cat] > 0) {
                 validCategories.push(cat);
                 expensesData.push(categoryExpenses[cat]);
@@ -310,34 +341,37 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
     
+    // NOUVELLE VERSION avec catégories saving incluses
     function calculateCategoryBarChartData() {
-        const categories = [
+        const baseCategories = [
             'General', 'Trading', 'Food', 'Order', 
             'Shopping', 'Investment', 'Salary', 'Bills', 'Other'
         ];
+        const savingCategories = ['Saving 1', 'Saving 2', 'Saving 3'];
+        const allCategories = [...baseCategories, ...savingCategories];
         
         const categoryBalances = {};
-        
-        categories.forEach(cat => {
-            categoryBalances[cat] = 0;
-        });
+        allCategories.forEach(cat => { categoryBalances[cat] = 0; });
         
         transactions.forEach(transaction => {
-            if (transaction.saving === 'normal' && categoryBalances.hasOwnProperty(transaction.category)) {
-                if (!transaction.description.includes('Transfer to Saving')) {
-                    if (transaction.type === 'income') {
-                        categoryBalances[transaction.category] += transaction.amount;
-                    } else if (transaction.type === 'expense') {
-                        categoryBalances[transaction.category] -= transaction.amount;
-                    }
-                }
+            let displayCategory = transaction.category;
+            if (transaction.saving !== 'normal') {
+                if (transaction.saving === 'saving1') displayCategory = 'Saving 1';
+                else if (transaction.saving === 'saving2') displayCategory = 'Saving 2';
+                else if (transaction.saving === 'saving3') displayCategory = 'Saving 3';
+            }
+            
+            if (transaction.type === 'income') {
+                categoryBalances[displayCategory] += transaction.amount;
+            } else if (transaction.type === 'expense') {
+                categoryBalances[displayCategory] -= transaction.amount;
             }
         });
         
+        // Filtrer les catégories avec solde non nul
         const validCategories = [];
         const balances = [];
-        
-        categories.forEach(cat => {
+        allCategories.forEach(cat => {
             if (categoryBalances[cat] !== 0) {
                 validCategories.push(cat);
                 balances.push(categoryBalances[cat]);
@@ -414,6 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         maxDisplayValue = Math.max(maxDisplayValue, Math.ceil(maxValue * 1.1));
+        
         const numIntervals = Math.min(4, Math.ceil(maxDisplayValue / 50));
         const intervalValue = maxDisplayValue / numIntervals;
         const pixelsPerValue = 50 / maxDisplayValue;
@@ -581,9 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${sign}£${transaction.amount.toFixed(2)}
                     </div>
                     <div class="transaction-actions">
-                        <button class="add-btn" onclick="showSavingPopup(${transaction.id})">
-                            <i class="fas fa-plus"></i> Add
-                        </button>
+                        <!-- Bouton +add supprimé -->
                         <button class="trash-icon-btn" onclick="deleteTransaction(${transaction.id})">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -595,23 +628,63 @@ document.addEventListener('DOMContentLoaded', function() {
         list.innerHTML = html;
     }
     
-    window.showSavingPopup = function(transactionId) {
+    // NOUVELLE FONCTION pour ouvrir le popup en mode balance
+function showSavingPopupForBalance() {
+    const balance = calculateTotalBalance();
+    if (balance <= 0) {
+        alert('Your balance is zero or negative. Cannot transfer.');
+        return;
+    }
+    
+    popupMode = 'balance';
+    popupLimit = balance;
+    currentTransactionForSaving = null;
+    
+    // Réinitialiser le popup
+    transferAmountInput.value = '';
+    errorMessage.textContent = '';
+    savingSelect.value = 'saving1';
+    selectedSavingText.textContent = 'Saving 1';
+    
+    // Forcer l'affichage du texte "BALANCE" sans montant
+    const balanceLabel = document.querySelector('.balance-label');
+    if (balanceLabel) {
+        balanceLabel.textContent = 'BALANCE';
+    }
+    
+    // Afficher le popup
+    savingPopupOverlay.style.display = 'flex';
+}
+    
+    // Ancienne fonction renommée pour le mode transaction (non utilisée actuellement mais conservée)
+    window.showSavingPopupForTransaction = function(transactionId) {
         const transaction = transactions.find(t => t.id === transactionId);
         if (!transaction) return;
         
+        popupMode = 'transaction';
+        popupLimit = transaction.amount;
         currentTransactionForSaving = transaction;
+        
+        // Réinitialiser le popup
         transferAmountInput.value = '';
         errorMessage.textContent = '';
         savingSelect.value = 'saving1';
         selectedSavingText.textContent = 'Saving 1';
+        
+        // Afficher le montant de la transaction dans le popup
+// Garder le texte fixe "BALANCE" sans montant
+const balanceLabel = document.querySelector('.balance-label');
+if (balanceLabel) {
+    balanceLabel.textContent = 'BALANCE';
+}
+        
         savingPopupOverlay.style.display = 'flex';
     }
     
-    window.deleteTransaction = async function(id) {
+    window.deleteTransaction = function(id) {
         if (confirm('Are you sure you want to delete this transaction?')) {
             transactions = transactions.filter(t => t.id !== id);
             updateDashboard();
-            await saveData();
         }
     }
     
@@ -630,6 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
             filtered = transactions;
         }
         
+        // Inclut toutes les transactions normales (saving='normal') pour income/expenses, y compris les transferts
         const normalTransactions = filtered.filter(t => t.saving === 'normal');
         
         const totalIncome = normalTransactions
@@ -641,6 +715,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .reduce((sum, t) => sum + t.amount, 0);
             
         const balance = totalIncome - totalExpenses;
+        
+        // Calculer le total des saving
         const totalSaving = calculateTotalSavings();
         
         const recentIncomeElem = document.getElementById('recentIncome');
@@ -648,32 +724,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const recentSavingElem = document.getElementById('recentSaving');
         const recentBalanceElem = document.getElementById('recentBalance');
         
-        if (recentIncomeElem) {
-            recentIncomeElem.textContent = '£' + totalIncome.toFixed(2);
-        }
+        if (recentIncomeElem) recentIncomeElem.textContent = '£' + totalIncome.toFixed(2);
+        if (recentExpensesElem) recentExpensesElem.textContent = '£' + totalExpenses.toFixed(2);
+        if (recentSavingElem) recentSavingElem.textContent = '£' + Math.max(totalSaving, 0).toFixed(2);
+        if (recentBalanceElem) recentBalanceElem.textContent = '£' + balance.toFixed(2);
         
-        if (recentExpensesElem) {
-            recentExpensesElem.textContent = '£' + totalExpenses.toFixed(2);
-        }
-        
-        if (recentSavingElem) {
-            recentSavingElem.textContent = '£' + Math.max(totalSaving, 0).toFixed(2);
-        }
-        
-        if (recentBalanceElem) {
-            recentBalanceElem.textContent = '£' + balance.toFixed(2);
+        // Activer/désactiver le bouton global +add en fonction de la balance
+        if (globalAddBtn) {
+            if (balance <= 0) {
+                globalAddBtn.disabled = true;
+                globalAddBtn.title = 'Insufficient balance';
+            } else {
+                globalAddBtn.disabled = false;
+                globalAddBtn.title = 'Transfer from balance to saving';
+            }
         }
     }
     
-    async function clearAllTransactions() {
-        if (transactions.length === 0) {
-            return;
-        }
-        
+    function clearAllTransactions() {
+        if (transactions.length === 0) return;
         if (confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.')) {
             transactions = [];
             updateDashboard();
-            await saveData();
         }
     }
     
@@ -682,39 +754,26 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentBalanceControl = document.getElementById('currentBalanceControl');
         const totalTransactionsElem = document.getElementById('totalTransactions');
         
-        if (currentBalanceControl) {
-            currentBalanceControl.textContent = '£' + balance.toFixed(2);
-        }
-        
-        if (totalTransactionsElem) {
-            totalTransactionsElem.textContent = transactions.length;
-        }
+        if (currentBalanceControl) currentBalanceControl.textContent = '£' + balance.toFixed(2);
+        if (totalTransactionsElem) totalTransactionsElem.textContent = transactions.length;
     }
+    
+    // ==================== GRAPHIQUES ====================
     
     function initCharts() {
         if (typeof Chart === 'undefined') {
-            console.error('Chart.js not loaded');
+            console.error('Chart.js n\'est pas chargé');
             setTimeout(initCharts, 100);
             return;
         }
         
-        // Détruire les anciens graphiques
-        if (monthlyBarChart) {
-            monthlyBarChart.destroy();
-            monthlyBarChart = null;
-        }
-        
-        if (categoryBarVerticalChart) {
-            categoryBarVerticalChart.destroy();
-            categoryBarVerticalChart = null;
-        }
+        if (monthlyBarChart) monthlyBarChart.destroy();
+        if (categoryBarVerticalChart) categoryBarVerticalChart.destroy();
         
         // Monthly Bar Chart
         const monthlyBarCanvas = document.getElementById('monthlyBarChart');
         if (monthlyBarCanvas) {
             const monthlyBarCtx = monthlyBarCanvas.getContext('2d');
-            
-            // Créer le graphique avec des données vides
             monthlyBarChart = new Chart(monthlyBarCtx, {
                 type: 'bar',
                 data: {
@@ -722,7 +781,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     datasets: [
                         {
                             label: 'Goal',
-                            data: new Array(12).fill(0),
+                            data: [],
                             backgroundColor: 'rgba(52, 152, 219, 0.5)',
                             borderColor: '#3498db',
                             borderWidth: 1,
@@ -730,7 +789,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         {
                             label: 'Income',
-                            data: new Array(12).fill(0),
+                            data: [],
                             backgroundColor: 'rgba(46, 204, 113, 0.5)',
                             borderColor: '#2ecc71',
                             borderWidth: 1,
@@ -738,7 +797,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         {
                             label: 'Expenses',
-                            data: new Array(12).fill(0),
+                            data: [],
                             backgroundColor: 'rgba(231, 76, 60, 0.5)',
                             borderColor: '#e74c3c',
                             borderWidth: 1,
@@ -746,7 +805,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         {
                             label: 'Balance Trend',
-                            data: new Array(12).fill(0),
+                            data: [],
                             backgroundColor: 'rgba(155, 89, 182, 0.2)',
                             borderColor: '#9b59b6',
                             borderWidth: 2,
@@ -764,48 +823,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    aspectRatio: 1.52,
+                    aspectRatio: 1.52, 
                     interaction: {
                         mode: 'index',
                         intersect: false
                     },
-                    scales: {
-                        x: {
-                            stacked: false,
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 45,
-                                font: {
-                                    size: 8
-                                },
-                                color: 'white'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            stacked: false,
-                            ticks: {
-                                font: {
-                                    size: 8
-                                },
-                                color: 'white',
-                                callback: function(value) {
-                                    return '£' + value;
-                                },
-                                stepSize: 5
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        }
-                    },
+scales: {
+    x: {
+        stacked: false,
+        ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            font: { size: 8 },
+            color: 'white'
+        },
+        grid: { display: false }
+    },
+    y: {
+        beginAtZero: true,
+        stacked: false,
+        ticks: {
+            font: { size: 8 },
+            color: 'white',
+            callback: function(value) { return '£' + value; },
+            stepSize: 5
+        },
+        grid: { display: false }
+    }
+},
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
                             mode: 'index',
                             intersect: false,
@@ -824,13 +871,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const categoryBarVerticalCanvas = document.getElementById('categoryBarChartVertical');
         if (categoryBarVerticalCanvas) {
             const categoryBarVerticalCtx = categoryBarVerticalCanvas.getContext('2d');
-            
             categoryBarVerticalChart = new Chart(categoryBarVerticalCtx, {
                 type: 'bar',
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'Amount',
+                        label: 'Balance',
                         data: [],
                         backgroundColor: '#FFA500',
                         borderColor: '#FF8C00',
@@ -845,39 +891,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         x: {
                             ticks: {
                                 color: 'white',
-                                font: {
-                                    size: 8
-                                },
+                                font: { size: 8 },
                                 maxRotation: 0,
                                 minRotation: 0
                             },
-                            grid: {
-                                display: false,
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
+                            grid: { display: false }
                         },
                         y: {
                             beginAtZero: true,
                             ticks: {
                                 color: 'white',
-                                font: {
-                                    size: 8
-                                },
-                                callback: function(value) {
-                                    return '£' + value;
-                                },
+                                font: { size: 8 },
+                                callback: function(value) { return '£' + value; },
                                 stepSize: 20
                             },
-                            grid: {
-                                display: false,
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
+                            grid: { display: false }
                         }
                     },
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
                             mode: 'index',
                             intersect: false,
@@ -921,75 +953,75 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateCharts() {
-        // Vérifier que les graphiques sont initialisés
-        if (!monthlyBarChart || !categoryBarVerticalChart) {
-            console.log('Graphiques non initialisés');
-            return;
-        }
-        
         // Monthly Bar Chart
-        const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
-        monthlyBarChart.data.labels = monthData.labels;
-        
-        const goalData = [];
-        const incomeData = [];
-        const expenseData = [];
-        const balanceTrendData = [];
-        
-        monthData.keys.forEach(monthKey => {
-            const [year, month] = monthKey.split('-');
-            const monthStart = new Date(year, month - 1, 1);
-            const monthEnd = new Date(year, month, 0);
+        if (monthlyBarChart) {
+            const monthData = getLast12Months(currentYearView === 'previous' ? 1 : 0);
+            monthlyBarChart.data.labels = monthData.labels;
             
-            const monthTransactions = transactions.filter(t => {
-                const tDate = new Date(t.date);
-                return tDate >= monthStart && tDate <= monthEnd;
+            const goalData = [];
+            const incomeData = [];
+            const expenseData = [];
+            const balanceTrendData = [];
+            
+            monthData.keys.forEach(monthKey => {
+                const [year, month] = monthKey.split('-');
+                const monthStart = new Date(year, month - 1, 1);
+                const monthEnd = new Date(year, month, 0);
+                
+                const monthTransactions = transactions.filter(t => {
+                    const tDate = new Date(t.date);
+                    return tDate >= monthStart && tDate <= monthEnd;
+                });
+                
+                // Revenus normaux (saving='normal') – on exclut les revenus de transfert (car ce sont des saving)
+                const monthIncome = monthTransactions
+                    .filter(t => t.type === 'income' && t.saving === 'normal')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                    
+                // Dépenses normales (saving='normal') – on inclut les transferts (catégorie 'Transfer')
+                const monthExpense = monthTransactions
+                    .filter(t => t.type === 'expense' && t.saving === 'normal')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                incomeData.push(monthIncome);
+                expenseData.push(monthExpense);
+                
+                // Balance trend : toutes les transactions normales (saving='normal')
+                const monthNormalIncome = monthTransactions
+                    .filter(t => t.type === 'income' && t.saving === 'normal')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                    
+                const monthNormalExpense = monthTransactions
+                    .filter(t => t.type === 'expense' && t.saving === 'normal')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                const monthBalance = monthNormalIncome - monthNormalExpense;
+                balanceTrendData.push(monthBalance);
+                
+                const goalKey = `${year}-${month}`;
+                const goalForMonth = monthlyGoals[goalKey] || 0;
+                goalData.push(goalForMonth);
             });
             
-            const monthIncome = monthTransactions
-                .filter(t => t.type === 'income' && t.saving === 'normal' && !t.description.includes('Transfer to Saving'))
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const monthExpense = monthTransactions
-                .filter(t => t.type === 'expense' && t.saving === 'normal' && !t.description.includes('Transfer to Saving'))
-                .reduce((sum, t) => sum + t.amount, 0);
+            monthlyBarChart.data.datasets[0].data = goalData;
+            monthlyBarChart.data.datasets[1].data = incomeData;
+            monthlyBarChart.data.datasets[2].data = expenseData;
+            monthlyBarChart.data.datasets[3].data = balanceTrendData;
             
-            incomeData.push(monthIncome);
-            expenseData.push(monthExpense);
+            const allData = [...goalData, ...incomeData, ...expenseData];
+            const maxValue = Math.max(...allData, 5);
+            const maxTick = Math.ceil(maxValue / 5) * 5;
+            monthlyBarChart.options.scales.y.max = maxTick;
             
-            const monthNormalIncome = monthTransactions
-                .filter(t => t.type === 'income' && t.saving === 'normal')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const monthNormalExpense = monthTransactions
-                .filter(t => t.type === 'expense' && t.saving === 'normal')
-                .reduce((sum, t) => sum + t.amount, 0);
-            
-            const monthBalance = monthNormalIncome - monthNormalExpense;
-            balanceTrendData.push(monthBalance);
-            
-            const goalKey = `${year}-${month}`;
-            const goalForMonth = monthlyGoals[goalKey] || 0;
-            goalData.push(goalForMonth);
-        });
+            monthlyBarChart.update();
+        }
         
-        monthlyBarChart.data.datasets[0].data = goalData;
-        monthlyBarChart.data.datasets[1].data = incomeData;
-        monthlyBarChart.data.datasets[2].data = expenseData;
-        monthlyBarChart.data.datasets[3].data = balanceTrendData;
-        
-        const allData = [...goalData, ...incomeData, ...expenseData];
-        const maxValue = Math.max(...allData, 5);
-        const maxTick = Math.ceil(maxValue / 5) * 5;
-        monthlyBarChart.options.scales.y.max = maxTick;
-        
-        monthlyBarChart.update();
-        
-        // Category Bar Chart Vertical
         updateCategoryBarChart();
     }
     
-    async function addTransaction() {
+    // ==================== ACTIONS UTILISATEUR ====================
+    
+    function addTransaction() {
         const amount = parseFloat(amountInput.value);
         const description = descriptionInput.value.trim();
         const date = dateInput.value;
@@ -1025,16 +1057,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         transactions.push(transaction);
         updateDashboard();
-        await saveData();
         
         amountInput.value = '';
         descriptionInput.value = '';
         savingTypeSelect.value = 'normal';
     }
     
-    async function setGoal() {
+    function setGoal() {
         const amount = parseFloat(goalAmountInput.value);
-        
         if (!amount || amount <= 0 || isNaN(amount)) {
             alert('Please enter a valid goal amount');
             return;
@@ -1047,27 +1077,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         monthlyGoals[goalKey] = amount;
         updateDashboard();
-        await saveData();
-        
         goalAmountInput.value = '';
     }
     
-    async function setAllGoals() {
+    function setAllGoals() {
         const amount = parseFloat(goalAllAmountInput.value);
-        
         if (!amount || amount <= 0 || isNaN(amount)) {
             alert('Please enter a valid goal amount');
             return;
         }
-        
         yearlyGoal = amount;
         updateDashboard();
-        await saveData();
-        
         goalAllAmountInput.value = '';
     }
     
-    // ===== INITIALISATION DES ÉVÉNEMENTS =====
+    // ==================== INITIALISATION ÉVÉNEMENTS ====================
+    
     const addTransactionBtn = document.getElementById('addTransactionBtn');
     const setGoalBtn = document.getElementById('setGoalBtn');
     const setAllGoalBtn = document.getElementById('setAllGoalBtn');
@@ -1096,6 +1121,10 @@ document.addEventListener('DOMContentLoaded', function() {
             updateView();
             updateRecentTransactionsSummary();
         });
+    }
+    
+    if (globalAddBtn) {
+        globalAddBtn.addEventListener('click', showSavingPopupForBalance);
     }
     
     if (prevDaysBtn) {
@@ -1138,10 +1167,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (transferAmountInput) {
         transferAmountInput.addEventListener('input', function() {
             const amount = parseFloat(this.value) || 0;
-            const transactionAmount = currentTransactionForSaving ? currentTransactionForSaving.amount : 0;
             
-            if (amount > transactionAmount) {
-                errorMessage.textContent = 'Not enough money in this transaction';
+            if (amount > popupLimit) {
+                if (popupMode === 'balance') {
+                    errorMessage.textContent = 'Insufficient money in your balance';
+                } else {
+                    errorMessage.textContent = 'Not enough money in this transaction';
+                }
+                confirmTransferBtn.disabled = true;
+            } else if (amount <= 0) {
+                errorMessage.textContent = 'Amount must be positive';
                 confirmTransferBtn.disabled = true;
             } else {
                 errorMessage.textContent = '';
@@ -1151,38 +1186,63 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (confirmTransferBtn) {
-        confirmTransferBtn.addEventListener('click', async function() {
-            if (!currentTransactionForSaving) return;
-            
+        confirmTransferBtn.addEventListener('click', function() {
             const amount = parseFloat(transferAmountInput.value) || 0;
-            const transactionAmount = currentTransactionForSaving.amount;
-            const savingType = savingSelect.value;
-            
-            if (amount > transactionAmount || amount <= 0) {
+            if (amount <= 0 || amount > popupLimit) {
                 errorMessage.textContent = 'Invalid amount';
                 return;
             }
             
-            const savingTransaction = {
-                id: Date.now(),
-                amount: amount,
-                category: currentTransactionForSaving.category,
-                description: `Transfer to ${savingSelect.options[savingSelect.selectedIndex].text}`,
-                date: currentTransactionForSaving.date,
-                type: 'income',
-                saving: savingType,
-                timestamp: new Date().getTime()
-            };
+            const savingType = savingSelect.value;
+            const savingName = savingSelect.options[savingSelect.selectedIndex].text;
             
-            transactions.push(savingTransaction);
-            currentTransactionForSaving.amount -= amount;
-            
-            if (currentTransactionForSaving.amount <= 0) {
-                transactions = transactions.filter(t => t.id !== currentTransactionForSaving.id);
+            if (popupMode === 'transaction' && currentTransactionForSaving) {
+                // Mode transaction : on réduit la transaction originale et on crée une transaction saving
+                const savingTransaction = {
+                    id: Date.now(),
+                    amount: amount,
+                    category: currentTransactionForSaving.category,
+                    description: `Transfer to ${savingName}`,
+                    date: currentTransactionForSaving.date,
+                    type: 'income',
+                    saving: savingType,
+                    timestamp: new Date().getTime()
+                };
+                transactions.push(savingTransaction);
+                
+                currentTransactionForSaving.amount -= amount;
+                if (currentTransactionForSaving.amount <= 0) {
+                    transactions = transactions.filter(t => t.id !== currentTransactionForSaving.id);
+                }
+                
+            } else if (popupMode === 'balance') {
+                // Mode balance : on crée une dépense normale (catégorie Transfer) et un revenu saving
+                const expenseTransaction = {
+                    id: Date.now(),
+                    amount: amount,
+                    category: 'Transfer',
+                    description: `Transfer to ${savingName}`,
+                    date: new Date().toISOString().split('T')[0],
+                    type: 'expense',
+                    saving: 'normal',
+                    timestamp: new Date().getTime()
+                };
+                
+                const incomeTransaction = {
+                    id: Date.now() + 1,
+                    amount: amount,
+                    category: 'Transfer',
+                    description: 'Transfer from Balance',
+                    date: new Date().toISOString().split('T')[0],
+                    type: 'income',
+                    saving: savingType,
+                    timestamp: new Date().getTime()
+                };
+                
+                transactions.push(expenseTransaction, incomeTransaction);
             }
             
             updateDashboard();
-            await saveData();
             savingPopupOverlay.style.display = 'none';
             currentTransactionForSaving = null;
         });
@@ -1206,30 +1266,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // ===== INITIALISATION DE L'APPLICATION =====
-    async function initApp() {
-        console.log("💰 Initialisation Money Management");
+    // ==================== INIT ====================
+    
+    function initApp() {
+        console.log("Initialisation de l'application Money Management");
+        loadData();
         
-        // Initialiser les graphiques d'abord
-        initCharts();
+        if (typeof Chart === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
+            script.onload = function() {
+                initCharts();
+                updateDashboard();
+            };
+            document.head.appendChild(script);
+        } else {
+            initCharts();
+            updateDashboard();
+        }
         
-        // Attendre un peu que Chart.js soit prêt
-        setTimeout(async () => {
-            // Charger les données
-            await loadData();
-            
-            console.log("✅ Money Management initialisé");
-        }, 100);
+        console.log("Application Money Management initialisée");
     }
     
-    // Démarrer l'application
     initApp();
     
-    // Redimensionnement de la fenêtre
     window.addEventListener('resize', function() {
         setTimeout(updateCharts, 100);
         setTimeout(updateHorizontalBarGraph, 100);
     });
-    
-    console.log('✅ Script Money Management chargé');
 });

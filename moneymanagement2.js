@@ -778,31 +778,44 @@ if (balanceLabel) {
                 type: 'bar',
                 data: {
                     labels: getLast12Months().labels,
-                    datasets: [
-                        {
-                            label: 'Goal',
-                            data: [],
-                            backgroundColor: 'rgba(52, 152, 219, 0.5)',
-                            borderColor: '#3498db',
-                            borderWidth: 1,
-                            type: 'bar'
-                        },
-                        {
-                            label: 'Income',
-                            data: [],
-                            backgroundColor: 'rgba(46, 204, 113, 0.5)',
-                            borderColor: '#2ecc71',
-                            borderWidth: 1,
-                            type: 'bar'
-                        },
-                        {
-                            label: 'Expenses',
-                            data: [],
-                            backgroundColor: 'rgba(231, 76, 60, 0.5)',
-                            borderColor: '#e74c3c',
-                            borderWidth: 1,
-                            type: 'bar'
-                        },
+// Dans initCharts(), pour le graphique monthlyBarChart :
+datasets: [
+// Dans la configuration du monthlyBarChart, pour les datasets "Goal", "Income", "Expenses"
+{
+    label: 'Goal',
+    data: [],
+    backgroundColor: 'rgba(52, 152, 219, 0.5)',
+    borderColor: '#3498db',
+    borderWidth: 1,
+    type: 'bar',
+    borderRadius: 20,
+barPercentage: 0.99,
+categoryPercentage: 0.8      // le groupe occupe toute la largeur du mois  // 80% pour le groupe → 20% d'espace entre les mois
+},
+{
+    label: 'Income',
+    data: [],
+    backgroundColor: 'rgba(46, 204, 113, 0.5)',
+    borderColor: '#2ecc71',
+    borderWidth: 1,
+    type: 'bar',
+    borderRadius: 20,
+barPercentage: 0.99,
+categoryPercentage: 0.8      // le groupe occupe toute la largeur du mois
+},
+{
+    label: 'Expenses',
+    data: [],
+    backgroundColor: 'rgba(231, 76, 60, 0.5)',
+    borderColor: '#e74c3c',
+    borderWidth: 1,
+    type: 'bar',
+    borderRadius: 20,
+barPercentage: 0.99,
+categoryPercentage: 0.8     // le groupe occupe toute la largeur du mois
+},
+    // ... le dataset line reste inchangé
+
                         {
                             label: 'Balance Trend',
                             data: [],
@@ -829,16 +842,16 @@ if (balanceLabel) {
                         intersect: false
                     },
 scales: {
-    x: {
-        stacked: false,
-        ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            font: { size: 8 },
-            color: 'white'
-        },
-        grid: { display: false }
+x: {
+    stacked: false,
+    ticks: {
+        maxRotation: 30,        // réduit de 45 à 30
+        minRotation: 30,        // idem
+        font: { size: 7 },      // taille réduite à 7px (au lieu de 8)
+        color: 'white'
     },
+    grid: { display: false }
+},
     y: {
         beginAtZero: true,
         stacked: false,
@@ -875,14 +888,19 @@ scales: {
                 type: 'bar',
                 data: {
                     labels: [],
-                    datasets: [{
-                        label: 'Balance',
-                        data: [],
-                        backgroundColor: '#FFA500',
-                        borderColor: '#FF8C00',
-                        borderWidth: 1,
-                        borderRadius: 3
-                    }]
+datasets: [{
+    label: 'Balance',
+    data: [],
+    backgroundColor: '#FFA500',
+    borderColor: '#FF8C00',
+    borderWidth: 1,
+    borderRadius: {
+        topLeft: 20,
+        topRight: 20,
+        bottomLeft: 0,
+        bottomRight: 0
+    }
+}]
                 },
                 options: {
                     responsive: true,
@@ -897,16 +915,17 @@ scales: {
                             },
                             grid: { display: false }
                         },
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                color: 'white',
-                                font: { size: 8 },
-                                callback: function(value) { return '£' + value; },
-                                stepSize: 20
-                            },
-                            grid: { display: false }
-                        }
+y: {
+    beginAtZero: true,
+    stacked: false,
+    ticks: {
+        font: { size: 8 },
+        color: 'white',
+        callback: function(value) { return '£' + value; }
+        // stepSize supprimé – Chart.js choisira automatiquement des graduations adaptées
+    },
+    grid: { display: false }
+}
                     },
                     plugins: {
                         legend: { display: false },
@@ -1008,10 +1027,10 @@ scales: {
             monthlyBarChart.data.datasets[2].data = expenseData;
             monthlyBarChart.data.datasets[3].data = balanceTrendData;
             
-            const allData = [...goalData, ...incomeData, ...expenseData];
-            const maxValue = Math.max(...allData, 5);
-            const maxTick = Math.ceil(maxValue / 5) * 5;
-            monthlyBarChart.options.scales.y.max = maxTick;
+const allData = [...goalData, ...incomeData, ...expenseData];
+const maxValue = Math.max(...allData, 0);
+const maxTick = maxValue + 50; // Ajoute 10 au-dessus de la valeur maximale
+monthlyBarChart.options.scales.y.max = maxTick;
             
             monthlyBarChart.update();
         }

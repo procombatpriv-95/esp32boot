@@ -1,3 +1,6 @@
+/* ============================================
+   STYLES EXISTANTS (NON MODIFIÉS)
+   ============================================ */
 .panelinfo {
   width: 250px;
   height: 700px;
@@ -30,7 +33,6 @@
   font-family: 'Lobster', cursive;
 }
 
-/* INFO CONTENT (Premier div) */
 .info-content {
   flex: 1;
   display: flex;
@@ -60,31 +62,34 @@
   justify-content: center;
 }
 
-/* KINFOPANELTOUS CONTAINER (Deuxième div) - MODIFIÉ */
+/* KINFOPANELTOUS CONTAINER - fond par défaut (utilisé pour les autres menus) */
 .kinfopaneltous-container {
-  width: 250px; /* Largeur fixe de 250px */
+  width: 250px;
   height: 620px;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 20px;
-  padding: 0; /* Pas de padding pour que le widget prenne toute la place */
+  padding: 0;
   display: none;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+
   margin-top: 80px;
-  align-self: center; /* Centre le container dans le panelinfo */
+  align-self: center;
 }
 
 .kinfopaneltous-container.active {
   display: flex;
 }
 
-/* KINFOPANELTOUS HEADER CACHÉ */
-.kinfopaneltous-header {
-  display: none; /* Cache le header des kinfopaneltous */
+/* Fond transparent pour le menu-1 */
+.kinfopaneltous-container.transparent-bg {
+  background: transparent;
 }
 
-/* KINFOPANELTOUS CONTENT DIRECT - CENTRÉ */
+.kinfopaneltous-header {
+  display: none;
+}
+
 .kinfopaneltous-content {
   flex: 1;
   width: 100%;
@@ -99,19 +104,22 @@
   align-items: center;
 }
 
-/* SUPPRESSION DES TOOLTIPS GÉNANTS */
+/* Fond transparent pour le contenu du menu-1 */
+.kinfopaneltous-content.transparent-bg {
+  background: transparent;
+}
+
+/* Suppression tooltips */
 [title] {
   text-decoration: none !important;
 }
 
-/* Cacher tous les tooltips */
 *[title]:hover::after,
 *[data-title]:hover::after,
 *[aria-label]:hover::after {
   display: none !important;
 }
 
-/* Désactiver les tooltips natifs */
 * {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -121,12 +129,10 @@
   user-select: none;
 }
 
-/* Pour les iframes TradingView */
 iframe {
   pointer-events: auto !important;
 }
 
-/* Cacher les tooltips spécifiques TradingView */
 .tradingview-widget-copyright,
 .tradingview-widget-copyright a,
 .tv-widget-copyright,
@@ -134,17 +140,15 @@ iframe {
   text-decoration: none !important;
 }
 
-/* Style pour éviter les tooltips sur les éléments cliquables */
 a, button, .clickable {
   text-decoration: none !important;
 }
 
-/* Supprimer les attributs title des éléments */
 [title=""] {
   text-decoration: none !important;
 }
 
-/* === STYLES POUR LE MENU 4 (RESULTAT) === */
+/* Styles pour le menu 4 (inchangés) */
 .result-panel {
   width: 100%;
   height: 100%;
@@ -187,7 +191,7 @@ a, button, .clickable {
 
 .progress-section {
   width: 100%;
-  margin-top:-10px;
+  margin-top: -10px;
   margin-bottom: 55px;
 }
 
@@ -216,7 +220,6 @@ a, button, .clickable {
   text-align: center;
 }
 
-/* Barre de progression */
 .progress-bar-container {
   width: 100%;
   height: 35px;
@@ -224,7 +227,7 @@ a, button, .clickable {
   border-radius: 17.5px;
   overflow: hidden;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+
 }
 
 .progress-bar {
@@ -249,12 +252,14 @@ a, button, .clickable {
   position: relative;
   z-index: 2;
 }
+
 .progress-filled.empty {
-    min-width: 0 !important;
-    padding-right: 0 !important;
-    background: transparent !important;
-    border-radius: 17.5px !important;
+  min-width: 0 !important;
+  padding-right: 0 !important;
+  background: transparent !important;
+  border-radius: 17.5px !important;
 }
+
 .progress-remaining {
   background: #e74c3c;
   height: 100%;
@@ -270,7 +275,6 @@ a, button, .clickable {
   z-index: 1;
 }
 
-/* Indicateurs Highest/Lowest */
 .indicators-container {
   display: flex;
   gap: 15px;
@@ -329,7 +333,6 @@ a, button, .clickable {
   color: #e74c3c;
 }
 
-/* SAVINGS SECTION - NOUVEAU */
 .savings-container {
   margin-top: -5px;
   display: flex;
@@ -381,21 +384,157 @@ a, button, .clickable {
   cursor: not-allowed;
 }
 
-/* Message par défaut - SUPPRIMÉ */
+/* Message par défaut - supprimé */
 .kinfopaneltous-default {
   display: none !important;
 }
 
-/* === STYLES POUR LE MENU-1 === */
-/* Widget ticker tape vertical */
+/* ============================================
+   STYLES POUR LE MENU-1
+   ============================================ */
+
+/* Conteneur des notifications (centré) */
+.notifications-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 80px;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+/* Élément de notification - cercle initial vide */
+.notification-item {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #111216;
+  background-color: rgba(17, 18, 22, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  color: white;
+  font-size: 12px;
+  overflow: hidden;
+  transition: width 1.5s ease, height 1.5s ease, border-radius 1.5s ease, padding 1.5s ease;
+  box-sizing: border-box;
+  opacity: 1;
+  padding: 0;
+}
+
+/* État expansé */
+.notification-item.expanded {
+  width: 200px;
+  height: auto;
+  min-height: 40px;
+  border-radius: 30px;
+  padding: 8px 12px;
+  justify-content: flex-start;
+}
+
+/* Label en gras (apparaît après expansion) */
+.notification-item .prime-label {
+  font-weight: bold;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+/* Conteneur du message (s'écrit progressivement) */
+.notification-item .notification-message {
+  display: inline-block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+}
+
+/* Notifications prioritaires */
+.notification-item.priority {
+  border: 2px solid gold;
+}
+
+/* Bloc news - affiche 30 articles */
+.news-block-container {
+  width: 250px;
+  height: 340px;
+  background: #111216;
+  background-color: rgba(17, 18, 22, 0.7);
+  border-radius: 30px;
+  padding: 15px;
+  overflow-y: auto;
+  color: white;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.news-item {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 10px;
+}
+
+.news-item:last-child {
+  border-bottom: none;
+}
+
+.news-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.news-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.news-title {
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: white;
+  word-wrap: break-word;
+}
+
+.news-source {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.news-country {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 9px;
+}
+
+.news-error,
+.news-loading {
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  padding: 20px;
+}
+
+/* Widget TradingView */
 .ticker-container {
   width: 250px;
-  height: 240px;
-  border-radius: 30px;
+  height: 160px;
+  border-radius: 20px;
   overflow: hidden;
-  
-  bottom: 0px;
-
 }
 
 tv-ticker-tape {

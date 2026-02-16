@@ -1024,7 +1024,7 @@ y: {
             
 const allData = [...goalData, ...incomeData, ...expenseData];
 const maxValue = Math.max(...allData, 0);
-const maxTick = maxValue + 50; // Ajoute 10 au-dessus de la valeur maximale
+const maxTick = maxValue + 20; // Ajoute 10 au-dessus de la valeur maximale
 monthlyBarChart.options.scales.y.max = maxTick;
             
             monthlyBarChart.update();

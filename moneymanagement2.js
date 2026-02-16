@@ -888,19 +888,14 @@ x: {
                 type: 'bar',
                 data: {
                     labels: [],
-datasets: [{
-    label: 'Balance',
-    data: [],
-    backgroundColor: '#FFA500',
-    borderColor: '#FF8C00',
-    borderWidth: 1,
-    borderRadius: {
-        topLeft: 20,
-        topRight: 20,
-        bottomLeft: 0,
-        bottomRight: 0
-    }
-}]
+                    datasets: [{
+                        label: 'Amount',
+                        data: [],
+                        backgroundColor: '#FFA500', // Orange color
+                        borderColor: '#FF8C00',
+                        borderWidth: 1,
+                        borderRadius: 3
+                    }]
                 },
                 options: {
                     responsive: true,

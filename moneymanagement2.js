@@ -1022,10 +1022,10 @@ y: {
             monthlyBarChart.data.datasets[2].data = expenseData;
             monthlyBarChart.data.datasets[3].data = balanceTrendData;
             
-const allData = [...goalData, ...incomeData, ...expenseData];
-const maxValue = Math.max(...allData, 0);
-const maxTick = maxValue + 20; // Ajoute 10 au-dessus de la valeur maximale
-monthlyBarChart.options.scales.y.max = maxTick;
+            const allData = [...goalData, ...incomeData, ...expenseData];
+            const maxValue = Math.max(...allData, 5);
+            const maxTick = Math.ceil(maxValue / 5) * 5;
+            monthlyBarChart.options.scales.y.max = maxTick;
             
             monthlyBarChart.update();
         }

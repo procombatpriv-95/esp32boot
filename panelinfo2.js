@@ -347,8 +347,8 @@ function showResultPanel() {
   // --- AJOUT DU GRAPHIQUE INCOME 3 ANS (sans titre) ---
   const chartContainer = document.createElement('div');
   chartContainer.style.width = '200px';
-  chartContainer.style.height = '120px';  // hauteur fixe (graphique 80px + légende 20px + marges)
-  chartContainer.style.marginTop = '10px';
+  chartContainer.style.height = '150px';  // hauteur fixe (graphique 80px + légende 20px + marges)
+  chartContainer.style.marginTop = '5px';
   chartContainer.style.padding = '10px';
   chartContainer.style.background = 'rgba(30, 31, 35, 0.8)';
   chartContainer.style.borderRadius = '10px';
@@ -361,7 +361,7 @@ function showResultPanel() {
   const canvas = document.createElement('canvas');
   canvas.id = 'incomeLineChart';
   canvas.style.width = '100%';
-  canvas.style.height = '80px';   // hauteur fixe pour le canvas
+  canvas.style.height = '90px';   // hauteur fixe pour le canvas
   canvas.width = 200;
   canvas.height = 80;
   chartContainer.appendChild(canvas);

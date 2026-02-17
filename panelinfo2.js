@@ -361,7 +361,7 @@ function showResultPanel() {
   const canvas = document.createElement('canvas');
   canvas.id = 'incomeLineChart';
   canvas.style.width = '100%';
-  canvas.style.height = '130px';   // hauteur fixe pour le canvas
+  canvas.style.height = '170px';   // hauteur fixe pour le canvas
   canvas.width = 200;
   canvas.height = 80;
   chartContainer.appendChild(canvas);

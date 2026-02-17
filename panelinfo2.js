@@ -1080,8 +1080,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Mise à jour uniquement lors des changements localStorage (plus de polling intempestif)
-// L'intervalle de 300ms a été supprimé pour éviter les recréations en boucle.
-
 window.addEventListener('load', function() {
   setTimeout(() => {
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {

@@ -355,7 +355,7 @@ function showResultPanel() {
   const chartContainer = document.createElement('div');
   chartContainer.style.width = '200px';
   chartContainer.style.height = '170px';  // hauteur totale du conteneur
-  chartContainer.style.marginTop = '5px';
+  chartContainer.style.marginTop = '1px';
   chartContainer.style.padding = '10px';
   chartContainer.style.background = 'rgba(30, 31, 35, 0.8)';
   chartContainer.style.borderRadius = '10px';

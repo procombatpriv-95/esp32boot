@@ -354,7 +354,7 @@ function showResultPanel() {
   // --- AJOUT DU GRAPHIQUE INCOME 3 ANS (sans titre) ---
   const chartContainer = document.createElement('div');
   chartContainer.style.width = '200px';
-  chartContainer.style.height = '150px';  // hauteur totale du conteneur
+  chartContainer.style.height = '170px';  // hauteur totale du conteneur
   chartContainer.style.marginTop = '5px';
   chartContainer.style.padding = '10px';
   chartContainer.style.background = 'rgba(30, 31, 35, 0.8)';
@@ -401,7 +401,7 @@ function showResultPanel() {
           datasets: years.map((year, index) => ({
               label: year.toString(),
               data: incomeData[year],
-              borderColor: index === 0 ? '#2ecc71' : (index === 1 ? '#3498db' : '#9b59b6'),
+              borderColor: index === 0 ? '#2ecc71' : (index === 1 ? '#3498db' : '#f7980a'),
               backgroundColor: 'transparent',
               borderWidth: 2,
               pointRadius: 2,

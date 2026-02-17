@@ -394,7 +394,7 @@ function showResultPanel() {
           datasets: years.map((year, index) => ({
               label: year.toString(),
               data: incomeData[year],
-              borderColor: index === 0 ? '#2ecc71' : (index === 1 ? '#3498db' : '#9b59b6'),
+              borderColor: index === 0 ? '#2ecc71' : (index === 1 ? '#3498db' : '#f7980a'),
               backgroundColor: 'transparent',
               borderWidth: 2,
               pointRadius: 2,

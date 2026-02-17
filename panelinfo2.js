@@ -52,11 +52,12 @@ function calculateSavings() {
   }
 }
 
-// Revenus mensuels des 3 dernières années (toujours 3 tableaux de 12 mois)
+// Revenus mensuels des 3 dernières années (toujours 3 tableaux de 12 mois, avec null pour les mois futurs de l'année courante)
 function getLast3YearsMonthlyIncome() {
     try {
         const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
         const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth(); // 0-11
         const years = [currentYear, currentYear - 1, currentYear - 2];
         const result = {};
 
@@ -71,6 +72,12 @@ function getLast3YearsMonthlyIncome() {
                     }
                 }
             });
+            if (year === currentYear) {
+                // Pour l'année en cours, remplacer les mois futurs par null pour que la courbe s'arrête
+                for (let m = currentMonth + 1; m < 12; m++) {
+                    monthly[m] = null;
+                }
+            }
             result[year] = monthly;
         });
         return result;
@@ -347,7 +354,7 @@ function showResultPanel() {
   // --- AJOUT DU GRAPHIQUE INCOME 3 ANS (sans titre) ---
   const chartContainer = document.createElement('div');
   chartContainer.style.width = '200px';
-  chartContainer.style.height = '150px';  // hauteur fixe (graphique 80px + légende 20px + marges)
+  chartContainer.style.height = '150px';  // hauteur totale du conteneur
   chartContainer.style.marginTop = '5px';
   chartContainer.style.padding = '10px';
   chartContainer.style.background = 'rgba(30, 31, 35, 0.8)';
@@ -361,9 +368,9 @@ function showResultPanel() {
   const canvas = document.createElement('canvas');
   canvas.id = 'incomeLineChart';
   canvas.style.width = '100%';
-  canvas.style.height = '170px';   // hauteur fixe pour le canvas
+  canvas.style.height = '100px';   // hauteur du graphique
   canvas.width = 200;
-  canvas.height = 80;
+  canvas.height = 100;
   chartContainer.appendChild(canvas);
 
   // Mini légende colorée
@@ -394,18 +401,19 @@ function showResultPanel() {
           datasets: years.map((year, index) => ({
               label: year.toString(),
               data: incomeData[year],
-              borderColor: index === 0 ? '#2ecc71' : (index === 1 ? '#3498db' : '#f7980a'),
+              borderColor: index === 0 ? '#2ecc71' : (index === 1 ? '#3498db' : '#9b59b6'),
               backgroundColor: 'transparent',
               borderWidth: 2,
               pointRadius: 2,
               pointHoverRadius: 4,
               tension: 0.1,
-              fill: false
+              fill: false,
+              spanGaps: false // important pour ne pas relier les points autour des null
           }))
       },
       options: {
           responsive: true,
-          maintainAspectRatio: false,  // important pour que le graphique remplisse le canvas
+          maintainAspectRatio: false,
           scales: {
               x: {
                   ticks: { font: { size: 8 }, color: 'white' },

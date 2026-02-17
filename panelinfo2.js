@@ -52,7 +52,7 @@ function calculateSavings() {
   }
 }
 
-// NOUVELLE FONCTION : revenus mensuels des 3 dernières années
+// Revenus mensuels des 3 dernières années (toujours 3 tableaux de 12 mois)
 function getLast3YearsMonthlyIncome() {
     try {
         const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
@@ -344,7 +344,7 @@ function showResultPanel() {
     </div>
   `;
   
-  // --- AJOUT DU GRAPHIQUE INCOME 3 ANS ---
+  // --- AJOUT DU GRAPHIQUE INCOME 3 ANS (sans titre) ---
   const chartContainer = document.createElement('div');
   chartContainer.style.width = '200px';
   chartContainer.style.marginTop = '10px';
@@ -352,15 +352,7 @@ function showResultPanel() {
   chartContainer.style.background = 'rgba(30, 31, 35, 0.8)';
   chartContainer.style.borderRadius = '10px';
   chartContainer.style.border = '1px solid rgba(255, 255, 255, 0.1)';
-  chartContainer.style.alignSelf = 'center'; // pour centrer dans le panneau
-
-  const chartTitle = document.createElement('div');
-  chartTitle.style.fontSize = '12px';
-  chartTitle.style.color = '#39d353';
-  chartTitle.style.marginBottom = '8px';
-  chartTitle.style.textAlign = 'center';
-  chartTitle.textContent = 'Income (3 years)';
-  chartContainer.appendChild(chartTitle);
+  chartContainer.style.alignSelf = 'center';
 
   const canvas = document.createElement('canvas');
   canvas.id = 'incomeLineChart';
@@ -370,7 +362,7 @@ function showResultPanel() {
   canvas.height = 100;
   chartContainer.appendChild(canvas);
 
-  // Mini légende
+  // Mini légende colorée
   const legendDiv = document.createElement('div');
   legendDiv.style.display = 'flex';
   legendDiv.style.justifyContent = 'center';
@@ -380,7 +372,7 @@ function showResultPanel() {
   legendDiv.style.color = 'white';
 
   const incomeData = getLast3YearsMonthlyIncome();
-  const years = Object.keys(incomeData).sort((a, b) => a - b); // tri croissant
+  const years = Object.keys(incomeData).sort((a, b) => a - b); // tri croissant (ancienne -> récente)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   // Destruction de l'ancien graphique s'il existe
@@ -430,7 +422,6 @@ function showResultPanel() {
       }
   });
 
-  // Remplir la légende
   years.forEach((year, index) => {
       const item = document.createElement('span');
       item.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background:${index === 0 ? '#2ecc71' : (index === 1 ? '#3498db' : '#9b59b6')}; border-radius:2px; margin-right:3px;"></span> ${year}`;
@@ -1088,15 +1079,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 300);
 });
 
-// Polling pour menu-4
-setInterval(() => {
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    if (window.getMoneyManagementData && window.showResultPanel) {
-      window.getMoneyManagementData();
-      window.showResultPanel();
-    }
-  }
-}, 300);
+// Mise à jour uniquement lors des changements localStorage (plus de polling intempestif)
+// L'intervalle de 300ms a été supprimé pour éviter les recréations en boucle.
 
 window.addEventListener('load', function() {
   setTimeout(() => {

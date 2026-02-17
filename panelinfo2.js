@@ -347,19 +347,23 @@ function showResultPanel() {
   // --- AJOUT DU GRAPHIQUE INCOME 3 ANS (sans titre) ---
   const chartContainer = document.createElement('div');
   chartContainer.style.width = '200px';
+  chartContainer.style.height = '120px';  // hauteur fixe (graphique 80px + légende 20px + marges)
   chartContainer.style.marginTop = '10px';
   chartContainer.style.padding = '10px';
   chartContainer.style.background = 'rgba(30, 31, 35, 0.8)';
   chartContainer.style.borderRadius = '10px';
   chartContainer.style.border = '1px solid rgba(255, 255, 255, 0.1)';
   chartContainer.style.alignSelf = 'center';
+  chartContainer.style.display = 'flex';
+  chartContainer.style.flexDirection = 'column';
+  chartContainer.style.boxSizing = 'border-box';
 
   const canvas = document.createElement('canvas');
   canvas.id = 'incomeLineChart';
   canvas.style.width = '100%';
-  canvas.style.height = '100px';
+  canvas.style.height = '80px';   // hauteur fixe pour le canvas
   canvas.width = 200;
-  canvas.height = 100;
+  canvas.height = 80;
   chartContainer.appendChild(canvas);
 
   // Mini légende colorée
@@ -370,6 +374,8 @@ function showResultPanel() {
   legendDiv.style.marginTop = '5px';
   legendDiv.style.fontSize = '8px';
   legendDiv.style.color = 'white';
+  legendDiv.style.flexShrink = '0';
+  chartContainer.appendChild(legendDiv);
 
   const incomeData = getLast3YearsMonthlyIncome();
   const years = Object.keys(incomeData).sort((a, b) => a - b); // tri croissant (ancienne -> récente)
@@ -399,7 +405,7 @@ function showResultPanel() {
       },
       options: {
           responsive: true,
-          maintainAspectRatio: false,
+          maintainAspectRatio: false,  // important pour que le graphique remplisse le canvas
           scales: {
               x: {
                   ticks: { font: { size: 8 }, color: 'white' },
@@ -427,7 +433,6 @@ function showResultPanel() {
       item.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background:${index === 0 ? '#2ecc71' : (index === 1 ? '#3498db' : '#9b59b6')}; border-radius:2px; margin-right:3px;"></span> ${year}`;
       legendDiv.appendChild(item);
   });
-  chartContainer.appendChild(legendDiv);
 
   resultPanel.appendChild(chartContainer);
   // --- FIN AJOUT ---

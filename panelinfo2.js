@@ -370,7 +370,7 @@ function showResultPanel() {
   canvas.style.width = '100%';
   canvas.style.height = '90px';   // hauteur du graphique
   canvas.width = 200;
-  canvas.height = 140;
+  canvas.height = 200;
   chartContainer.appendChild(canvas);
 
   // Mini légende colorée

@@ -262,7 +262,9 @@
 .menu-switch.menu-6 .menu-highlight {
   transform: translateX(500%);
 }
-
+.menu-switch.menu-7 .menu-highlight {
+  transform: translateX(600%);
+}
 
 .menu-btn {
   flex: 1;
@@ -302,6 +304,7 @@
 #menu4Content { transform: translateX(300%); }
 #menu5Content { transform: translateX(400%); }
 #menu6Content { transform: translateX(500%); }
+#menu7Content { transform: translateX(600%); }
 
 /* Quand menu 2 est actif */
 .mega.menu-2 #menu1Content { transform: translateX(-100%); }
@@ -310,7 +313,7 @@
 .mega.menu-2 #menu4Content { transform: translateX(200%); }
 .mega.menu-2 #menu5Content { transform: translateX(300%); }
 .mega.menu-2 #menu6Content { transform: translateX(400%); }
-
+.mega.menu-2 #menu7Content { transform: translateX(500%); }
 
 /* Quand menu 3 est actif */
 .mega.menu-3 #menu1Content { transform: translateX(-200%); }
@@ -319,13 +322,15 @@
 .mega.menu-3 #menu4Content { transform: translateX(100%); }
 .mega.menu-3 #menu5Content { transform: translateX(200%); }
 .mega.menu-3 #menu6Content { transform: translateX(300%); }
+.mega.menu-3 #menu7Content { transform: translateX(400%); }
 
 .mega.menu-4 #menu1Content { transform: translateX(-300%); }
 .mega.menu-4 #menu2Content { transform: translateX(-200%); }
 .mega.menu-4 #menu3Content { transform: translateX(-100%); }
 .mega.menu-4 #menu4Content { transform: translateX(0%); }
 .mega.menu-4 #menu5Content { transform: translateX(100%); }
-.mega.menu-4 #menu5Content { transform: translateX(200%); }
+.mega.menu-4 #menu6Content { transform: translateX(200%); }
+.mega.menu-4 #menu7Content { transform: translateX(300%); }
 
 .mega.menu-5 #menu1Content { transform: translateX(-400%); }
 .mega.menu-5 #menu2Content { transform: translateX(-300%); }
@@ -333,6 +338,7 @@
 .mega.menu-5 #menu4Content { transform: translateX(-100%); }
 .mega.menu-5 #menu5Content { transform: translateX(0%); }
 .mega.menu-5 #menu6Content { transform: translateX(100%); }
+.mega.menu-5 #menu7Content { transform: translateX(200%); }
 
 .mega.menu-6 #menu1Content { transform: translateX(-500%); }
 .mega.menu-6 #menu2Content { transform: translateX(-400%); }
@@ -340,9 +346,15 @@
 .mega.menu-6 #menu4Content { transform: translateX(-200%); }
 .mega.menu-6 #menu5Content { transform: translateX(-100%); }
 .mega.menu-6 #menu6Content { transform: translateX(0%); }
+.mega.menu-6 #menu7Content { transform: translateX(100%); }
 
-
-
+.mega.menu-7 #menu1Content { transform: translateX(-600%); }
+.mega.menu-7 #menu2Content { transform: translateX(-500%); }
+.mega.menu-7 #menu3Content { transform: translateX(-400%); }
+.mega.menu-7 #menu4Content { transform: translateX(-300%); }
+.mega.menu-7 #menu5Content { transform: translateX(-200%); }
+.mega.menu-7 #menu6Content { transform: translateX(100%); }
+.mega.menu-7 #menu7Content { transform: translateX(0%); }
 
 .menu-dots {
   position: absolute;

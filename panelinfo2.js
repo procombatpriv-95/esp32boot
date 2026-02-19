@@ -1061,18 +1061,6 @@ document.addEventListener('DOMContentLoaded', function() {
             default:
                 kinfopaneltousContainer.classList.remove('active');
                 break;
-            case 'menu-6':
-                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 6 - Contenu à définir</div>';
-                break;
-            default:
-                kinfopaneltousContainer.classList.remove('active');
-                break;
-              case 'menu-7':
-                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 7 - Contenu à définir</div>';
-                break;
-            default:
-                kinfopaneltousContainer.classList.remove('active');
-                break;
         }
     }
     

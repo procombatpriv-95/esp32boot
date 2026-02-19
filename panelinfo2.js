@@ -1061,6 +1061,18 @@ document.addEventListener('DOMContentLoaded', function() {
             default:
                 kinfopaneltousContainer.classList.remove('active');
                 break;
+            case 'menu-6':
+                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 6 - Contenu à définir</div>';
+                break;
+            default:
+                kinfopaneltousContainer.classList.remove('active');
+                break;
+              case 'menu-7':
+                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 7 - Contenu à définir</div>';
+                break;
+            default:
+                kinfopaneltousContainer.classList.remove('active');
+                break;
         }
     }
     
@@ -1075,6 +1087,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     else if (classes.contains('menu-3')) window.currentMenuPage = 'menu-3';
                     else if (classes.contains('menu-4')) window.currentMenuPage = 'menu-4';
                     else if (classes.contains('menu-5')) window.currentMenuPage = 'menu-5';
+                    else if (classes.contains('menu-6')) window.currentMenuPage = 'menu-6';
+                    else if (classes.contains('menu-7')) window.currentMenuPage = 'menu-7';
                     
                     updateMenuPanelInfo();
                 }

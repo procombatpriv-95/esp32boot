@@ -353,7 +353,7 @@
 .mega.menu-7 #menu3Content { transform: translateX(-400%); }
 .mega.menu-7 #menu4Content { transform: translateX(-300%); }
 .mega.menu-7 #menu5Content { transform: translateX(-200%); }
-.mega.menu-7 #menu6Content { transform: translateX(100%); }
+.mega.menu-7 #menu6Content { transform: translateX(-100%); }
 .mega.menu-7 #menu7Content { transform: translateX(0%); }
 
 .menu-dots {

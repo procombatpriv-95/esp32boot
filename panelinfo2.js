@@ -1058,6 +1058,12 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'menu-5':
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 5 - Contenu à définir</div>';
                 break;
+            case 'menu-6':
+                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 6 - Contenu à définir</div>';
+                break;
+            case 'menu-7':
+                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 7 - Contenu à définir</div>';
+                break;
             default:
                 kinfopaneltousContainer.classList.remove('active');
                 break;

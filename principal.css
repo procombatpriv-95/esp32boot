@@ -222,7 +222,7 @@
   display: flex;
   border-radius: 20px;
   overflow: hidden;
-  width: 300px; /* élargi pour 3 boutons */
+  width: 350px; /* élargi pour 3 boutons */
   height: 25px;
   z-index: 1200 !important;
   margin-top: 25px;
@@ -234,7 +234,7 @@
   z-index: 1200 !important;
   top: 0;
   left: 0;
-  width: 10.66%;
+  width: 16.66%;
   height: 100%;
   background:#111216;
   background-color: rgba(17, 18, 22, 0.5);

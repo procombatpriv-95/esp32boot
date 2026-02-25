@@ -44,7 +44,7 @@ function openBackgroundMenu(e){
     {name: 'Paysage', bg: 'https://cdn.pixabay.com/photo/2020/06/11/01/28/landscape-5284806_1280.jpg'},
     {name: 'City',  bg: 'https://www.wallpaperbetter.com/wallpaper/546/980/857/beautiful-city-lights-at-night-1080P-wallpaper.jpg'},
     {name: 'Chill', bg: 'https://img.tastelife.tv/assets/uploads/2022/01/New_Zealand_-_AMAZING_Beautiful_Nature_with_Relaxing_Music__Soundscapes_16x9.jpg'},
-    {name: 'Mountain', bg: 'https://wallpapers.com/images/hd/4k-mountain-l3f04sogeaabr5h0.jpg'},
+    {name: 'Sunset', bg: 'https://img.freepik.com/photos-gratuite/dock-brun-dans-plan-eau-au-lever-du-soleil_399305-28.jpg?semt=ais_user_personalization&w=740&q=80'},
     {name: 'Mosque', bg: 'https://images.unsplash.com/photo-1512632578888-169bbbc64f33?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8bW9zcXVlfGVufDB8fDB8fHww'}
   ];
 

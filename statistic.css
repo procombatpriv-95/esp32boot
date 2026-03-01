@@ -324,3 +324,72 @@
         grid-template-columns: 1fr 1fr;
         gap: 10px;
       }
+                  #currenties { 
+                background: transparent; 
+                width: 895px !important; 
+                height: 610px !important; 
+                min-width: 895px;
+                max-width: 895px;
+                min-height: 605px;
+                max-height: 605px;
+                display: flex;
+                flex-direction: column;
+                padding: 10px;
+                overflow: hidden;
+                margin-left:-7px;
+                margin-top:-7px;
+                z-index:2;
+            }
+
+            .header2 { 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                padding: 0 15px; 
+                background: #161a1e; 
+                border: 1px solid #2b2f36;
+                border-radius: 30px;
+                height: 50px !important;
+                min-height: 50px;
+                flex-shrink: 0;
+            }
+
+            .header2-title {
+                font-weight: bold; 
+                letter-spacing: 0.5px; 
+                font-size: 12px;
+                text-transform: uppercase;
+            }
+
+            .spacer {
+                height: 10px;
+                flex-shrink: 0;
+            }
+
+            .chart2-container {
+                flex-grow: 1;
+                position: relative;
+                background: #161a1e; 
+                border: 1px solid #2b2f36;
+                border-radius: 30px;
+                padding: 10px;
+                overflow: hidden;
+            }
+
+            .currentieschart {
+                width: 100% !important;
+                height: 100% !important;
+            }
+                              .image-container {
+                    width: 515px;
+                    height: 258px;
+                    overflow: hidden;
+                    border-radius: 30px;
+                    background-color: #f0f0f0;
+                  }
+                  .image-container img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: block;
+                  }

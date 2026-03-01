@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentYearView = 'current';
     let longTermOffset = 0;
     let currentTransactionForSaving = null;
+    let popupMode = 'balance'; // 'balance' ou 'transaction' (ce dernier est conservé pour compatibilité)
+    let popupLimit = 0;
     
     const amountInput = document.getElementById('amount');
     const descriptionInput = document.getElementById('description');
@@ -21,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const savingTypeSelect = document.getElementById('savingType');
     const allBtn = document.getElementById('allBtn');
     const monthlyBtn = document.getElementById('monthlyBtn');
+    const globalAddBtn = document.getElementById('globalAddBtn');
     const recentTransactionsTitle = document.getElementById('recentTransactionsTitle');
     const transactionsSummary = document.getElementById('transactionsSummary');
     const leftLegendText = document.getElementById('leftLegendText');
@@ -43,6 +46,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
+    
+    // ==================== FONCTIONS UTILITAIRES ====================
     
     function getMonthNames() {
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -90,12 +95,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${day} ${month} ${year}`;
     }
     
-    function getDayName(date) {
-        return date.toLocaleDateString('en-US', { weekday: 'short' });
-    }
+    // ==================== CALCULS ====================
     
     function calculateTotalBalance() {
-        // N'inclure que les transactions normales (pas les saving)
+        // Inclut toutes les transactions normales (saving='normal'), y compris les transferts
         const totalIncome = transactions
             .filter(t => t.type === 'income' && t.saving === 'normal')
             .reduce((sum, t) => sum + t.amount, 0);
@@ -111,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalSaving = 0;
         
         transactions.forEach(t => {
-            if (t.saving === 'saving1' || t.saving === 'saving2' || t.saving === 'saving3') {
+            if (t.saving !== 'normal') {
                 if (t.type === 'income') {
                     totalSaving += t.amount;
                 } else if (t.type === 'expense') {
@@ -123,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return totalSaving;
     }
     
-    function calculateSavingsTotal() {
+    function calculateSavingsDetail() {
         const savings = { saving1: 0, saving2: 0, saving3: 0 };
         
         transactions.forEach(t => {
@@ -146,6 +149,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
         return colors[index % colors.length];
     }
+    
+    // ==================== CHARGEMENT / SAUVEGARDE ====================
     
     function loadData() {
         try {
@@ -190,6 +195,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error("Erreur de sauvegarde:", e);
         }
     }
+    
+    // ==================== MISE À JOUR DE L'INTERFACE ====================
     
     function updateDashboard() {
         updateView();
@@ -266,11 +273,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // NOUVELLE VERSION avec catégories saving incluses
     function calculateCategoryData() {
-        const categories = [
+        // Catégories normales + 3 catégories saving
+        const baseCategories = [
             'General', 'Trading', 'Food', 'Order', 
             'Shopping', 'Investment', 'Salary', 'Bills', 'Other'
         ];
+        const savingCategories = ['Saving 1', 'Saving 2', 'Saving 3'];
+        const allCategories = [...baseCategories, ...savingCategories];
         
         const currentYear = new Date().getFullYear();
         const previousYear = currentYear - 1;
@@ -283,48 +294,45 @@ document.addEventListener('DOMContentLoaded', function() {
         const categoryExpenses = {};
         const categoryIncome = {};
         
-        categories.forEach(cat => {
+        allCategories.forEach(cat => {
             categoryExpenses[cat] = 0;
             categoryIncome[cat] = 0;
         });
         
-        // Ne prendre en compte que les transactions normales (pas les saving)
-        // ET exclure les transactions qui sont des transferts vers saving
         transactions.forEach(transaction => {
             const transDate = new Date(transaction.date);
             const transYear = transDate.getFullYear();
             
-            if (transYear === selectedYear && transaction.saving === 'normal') {
-                // Exclure les transactions de transfert (celles avec "Transfer to" dans la description)
-                if (!transaction.description.includes('Transfer to Saving')) {
-                    if (transaction.type === 'expense') {
-                        categoryExpenses[transaction.category] += transaction.amount;
-                    } else if (transaction.type === 'income') {
-                        categoryIncome[transaction.category] += transaction.amount;
-                    }
+            if (transYear === selectedYear) {
+                // Déterminer la catégorie d'affichage
+                let displayCategory = transaction.category;
+                if (transaction.saving !== 'normal') {
+                    // C'est une transaction saving : on l'affiche dans la catégorie saving correspondante
+                    if (transaction.saving === 'saving1') displayCategory = 'Saving 1';
+                    else if (transaction.saving === 'saving2') displayCategory = 'Saving 2';
+                    else if (transaction.saving === 'saving3') displayCategory = 'Saving 3';
+                }
+                
+                if (transaction.type === 'expense') {
+                    categoryExpenses[displayCategory] += transaction.amount;
+                } else if (transaction.type === 'income') {
+                    categoryIncome[displayCategory] += transaction.amount;
                 }
             }
         });
         
+        // Filtrer les catégories qui ont des données
         const validCategories = [];
         const expensesData = [];
         const incomeData = [];
         
-        categories.forEach(cat => {
+        allCategories.forEach(cat => {
             if (categoryExpenses[cat] > 0 || categoryIncome[cat] > 0) {
                 validCategories.push(cat);
                 expensesData.push(categoryExpenses[cat]);
                 incomeData.push(categoryIncome[cat]);
             }
         });
-        
-        if (validCategories.length === 0) {
-            return {
-                categories: [],
-                expenses: [],
-                income: []
-            };
-        }
         
         return {
             categories: validCategories,
@@ -333,40 +341,37 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
     
+    // NOUVELLE VERSION avec catégories saving incluses
     function calculateCategoryBarChartData() {
-        const categories = [
+        const baseCategories = [
             'General', 'Trading', 'Food', 'Order', 
             'Shopping', 'Investment', 'Salary', 'Bills', 'Other'
         ];
+        const savingCategories = ['Saving 1', 'Saving 2', 'Saving 3'];
+        const allCategories = [...baseCategories, ...savingCategories];
         
         const categoryBalances = {};
+        allCategories.forEach(cat => { categoryBalances[cat] = 0; });
         
-        // Initialiser toutes les catégories
-        categories.forEach(cat => {
-            categoryBalances[cat] = 0;
-        });
-        
-        // Calculer le solde (income - expenses) pour chaque catégorie
-        // Ne prendre en compte que les transactions normales
-        // ET exclure les transactions de transfert
         transactions.forEach(transaction => {
-            if (transaction.saving === 'normal' && categoryBalances.hasOwnProperty(transaction.category)) {
-                // Exclure les transactions de transfert
-                if (!transaction.description.includes('Transfer to Saving')) {
-                    if (transaction.type === 'income') {
-                        categoryBalances[transaction.category] += transaction.amount;
-                    } else if (transaction.type === 'expense') {
-                        categoryBalances[transaction.category] -= transaction.amount;
-                    }
-                }
+            let displayCategory = transaction.category;
+            if (transaction.saving !== 'normal') {
+                if (transaction.saving === 'saving1') displayCategory = 'Saving 1';
+                else if (transaction.saving === 'saving2') displayCategory = 'Saving 2';
+                else if (transaction.saving === 'saving3') displayCategory = 'Saving 3';
+            }
+            
+            if (transaction.type === 'income') {
+                categoryBalances[displayCategory] += transaction.amount;
+            } else if (transaction.type === 'expense') {
+                categoryBalances[displayCategory] -= transaction.amount;
             }
         });
         
-        // Filtrer les catégories qui ont des transactions (solde non nul)
+        // Filtrer les catégories avec solde non nul
         const validCategories = [];
         const balances = [];
-        
-        categories.forEach(cat => {
+        allCategories.forEach(cat => {
             if (categoryBalances[cat] !== 0) {
                 validCategories.push(cat);
                 balances.push(categoryBalances[cat]);
@@ -375,203 +380,193 @@ document.addEventListener('DOMContentLoaded', function() {
         
         return {
             categories: validCategories,
-            amounts: balances // Ce sont maintenant des soldes, pas des sommes
+            amounts: balances
         };
     }
     
-  function updateHorizontalBarGraph() {
-    const yAxis = document.getElementById('yAxis');
-    const barsContainer = document.getElementById('barsContainer');
-    const xAxisSpectrum = document.getElementById('xAxisSpectrum');
-    
-    if (!yAxis || !barsContainer || !xAxisSpectrum) return;
-    
-    const categoryData = calculateCategoryData();
-    const categories = categoryData.categories;
-    const expensesData = categoryData.expenses;
-    const incomeData = categoryData.income;
-    
-    if (leftLegendText && rightLegendText) {
-        const yearText = currentYearView === 'current' ? 'Current Year' : 'Previous Year';
-        leftLegendText.textContent = `${yearText} Expenses`;
-        rightLegendText.textContent = `${yearText} Income`;
-    }
-    
-    yAxis.innerHTML = '';
-    barsContainer.innerHTML = '';
-    xAxisSpectrum.innerHTML = '';
-    
-    if (categories.length === 0) {
-        const noDataMessage = document.createElement('div');
-        noDataMessage.className = 'no-data';
-        noDataMessage.innerHTML = `
-            <i class="fas fa-chart-bar"></i>
-            <div>No data available for selected year</div>
-        `;
-        barsContainer.appendChild(noDataMessage);
+    function updateHorizontalBarGraph() {
+        const yAxis = document.getElementById('yAxis');
+        const barsContainer = document.getElementById('barsContainer');
+        const xAxisSpectrum = document.getElementById('xAxisSpectrum');
+        
+        if (!yAxis || !barsContainer || !xAxisSpectrum) return;
+        
+        const categoryData = calculateCategoryData();
+        const categories = categoryData.categories;
+        const expensesData = categoryData.expenses;
+        const incomeData = categoryData.income;
+        
+        if (leftLegendText && rightLegendText) {
+            const yearText = currentYearView === 'current' ? 'Current Year' : 'Previous Year';
+            leftLegendText.textContent = `${yearText} Expenses`;
+            rightLegendText.textContent = `${yearText} Income`;
+        }
+        
+        yAxis.innerHTML = '';
+        barsContainer.innerHTML = '';
+        xAxisSpectrum.innerHTML = '';
+        
+        if (categories.length === 0) {
+            const noDataMessage = document.createElement('div');
+            noDataMessage.className = 'no-data';
+            noDataMessage.innerHTML = `
+                <i class="fas fa-chart-bar"></i>
+                <div>No data available for selected year</div>
+            `;
+            barsContainer.appendChild(noDataMessage);
+            
+            const zeroLabel = document.createElement('div');
+            zeroLabel.className = 'spectrum-label';
+            zeroLabel.textContent = '0';
+            zeroLabel.style.left = '50%';
+            xAxisSpectrum.appendChild(zeroLabel);
+            
+            return;
+        }
+        
+        const maxExpense = Math.max(...expensesData);
+        const maxIncome = Math.max(...incomeData);
+        const maxValue = Math.max(maxExpense, maxIncome);
+        
+        let maxDisplayValue;
+        if (maxValue === 0) {
+            maxDisplayValue = 100;
+        } else {
+            if (maxValue < 10) {
+                maxDisplayValue = Math.ceil(maxValue / 1) * 1;
+            } else if (maxValue < 50) {
+                maxDisplayValue = Math.ceil(maxValue / 10) * 10;
+            } else if (maxValue < 100) {
+                maxDisplayValue = Math.ceil(maxValue / 20) * 20;
+            } else if (maxValue < 500) {
+                maxDisplayValue = Math.ceil(maxValue / 100) * 100;
+            } else if (maxValue < 2000) {
+                maxDisplayValue = Math.ceil(maxValue / 500) * 500;
+            } else {
+                maxDisplayValue = Math.ceil(maxValue / 1000) * 1000;
+            }
+        }
+        
+        maxDisplayValue = Math.max(maxDisplayValue, Math.ceil(maxValue * 1.1));
+        
+        const numIntervals = Math.min(4, Math.ceil(maxDisplayValue / 50));
+        const intervalValue = maxDisplayValue / numIntervals;
+        const pixelsPerValue = 50 / maxDisplayValue;
+        
+        categories.forEach((category, index) => {
+            const categoryLabel = document.createElement('div');
+            categoryLabel.className = 'category-label';
+            categoryLabel.textContent = category;
+            categoryLabel.style.height = `${100 / categories.length}%`;
+            categoryLabel.style.display = 'flex';
+            categoryLabel.style.alignItems = 'center';
+            categoryLabel.style.justifyContent = 'flex-end';
+            yAxis.appendChild(categoryLabel);
+            
+            const barGroup = document.createElement('div');
+            barGroup.className = 'bar-group';
+            
+            const topPercentage = (index * 100) / categories.length;
+            barGroup.style.top = `${topPercentage}%`;
+            barGroup.style.height = `${100 / categories.length}%`;
+            barGroup.style.display = 'flex';
+            barGroup.style.alignItems = 'center';
+            
+            const expenseValue = expensesData[index];
+            const incomeValue = incomeData[index];
+            
+            const expenseWidth = Math.min(expenseValue * pixelsPerValue, 50);
+            const incomeWidth = Math.min(incomeValue * pixelsPerValue, 50);
+            
+            if (expenseValue > 0) {
+                const leftBar = document.createElement('div');
+                leftBar.className = 'bar left-bar';
+                leftBar.style.width = '0%';
+                leftBar.style.right = '50%';
+                leftBar.style.height = '70%';
+                
+                if (expenseValue >= 1000) {
+                    leftBar.textContent = `£${(expenseValue / 1000).toFixed(1)}k`;
+                } else {
+                    leftBar.textContent = `£${expenseValue.toFixed(0)}`;
+                }
+                barGroup.appendChild(leftBar);
+                
+                setTimeout(() => {
+                    leftBar.style.width = `${expenseWidth}%`;
+                }, 50 + (index * 100));
+            }
+            
+            if (incomeValue > 0) {
+                const rightBar = document.createElement('div');
+                rightBar.className = 'bar right-bar';
+                rightBar.style.width = '0%';
+                rightBar.style.left = '50%';
+                rightBar.style.height = '70%';
+                
+                if (incomeValue >= 1000) {
+                    rightBar.textContent = `£${(incomeValue / 1000).toFixed(1)}k`;
+                } else {
+                    rightBar.textContent = `£${incomeValue.toFixed(0)}`;
+                }
+                barGroup.appendChild(rightBar);
+                
+                setTimeout(() => {
+                    rightBar.style.width = `${incomeWidth}%`;
+                }, 50 + (index * 100));
+            }
+            
+            barsContainer.appendChild(barGroup);
+        });
+        
+        for (let i = 1; i <= numIntervals; i++) {
+            const value = i * intervalValue;
+            
+            const leftTick = document.createElement('div');
+            leftTick.className = 'spectrum-tick';
+            const leftPosition = 50 - (value * pixelsPerValue);
+            leftTick.style.left = `${leftPosition}%`;
+            xAxisSpectrum.appendChild(leftTick);
+            
+            const leftLabel = document.createElement('div');
+            leftLabel.className = 'spectrum-label';
+            if (value >= 1000) {
+                leftLabel.textContent = `-£${(value / 1000).toFixed(1)}k`;
+            } else {
+                leftLabel.textContent = `-£${Math.round(value)}`;
+            }
+            leftLabel.style.left = `${leftPosition}%`;
+            xAxisSpectrum.appendChild(leftLabel);
+            
+            const rightTick = document.createElement('div');
+            rightTick.className = 'spectrum-tick';
+            const rightPosition = 50 + (value * pixelsPerValue);
+            rightTick.style.left = `${rightPosition}%`;
+            xAxisSpectrum.appendChild(rightTick);
+            
+            const rightLabel = document.createElement('div');
+            rightLabel.className = 'spectrum-label';
+            if (value >= 1000) {
+                rightLabel.textContent = `£${(value / 1000).toFixed(1)}k`;
+            } else {
+                rightLabel.textContent = `£${Math.round(value)}`;
+            }
+            rightLabel.style.left = `${rightPosition}%`;
+            xAxisSpectrum.appendChild(rightLabel);
+        }
+        
+        const zeroTick = document.createElement('div');
+        zeroTick.className = 'spectrum-tick zero-tick';
+        zeroTick.style.left = '50%';
+        xAxisSpectrum.appendChild(zeroTick);
         
         const zeroLabel = document.createElement('div');
         zeroLabel.className = 'spectrum-label';
         zeroLabel.textContent = '0';
         zeroLabel.style.left = '50%';
+        zeroLabel.style.transform = 'translateX(-50%)';
         xAxisSpectrum.appendChild(zeroLabel);
-        
-        return;
     }
-    
-    const maxExpense = Math.max(...expensesData);
-    const maxIncome = Math.max(...incomeData);
-    const maxValue = Math.max(maxExpense, maxIncome);
-    
-    let maxDisplayValue;
-    if (maxValue === 0) {
-        maxDisplayValue = 100; // Valeur par défaut plus petite
-    } else {
-        // Calculer un maxDisplayValue adapté aux données
-        if (maxValue < 10) {
-            // Pour les très petites valeurs (< 10)
-            maxDisplayValue = Math.ceil(maxValue / 1) * 1;
-        } else if (maxValue < 50) {
-            // Pour les petites valeurs (10-50)
-            maxDisplayValue = Math.ceil(maxValue / 10) * 10;
-        } else if (maxValue < 100) {
-            // Pour les valeurs moyennes (50-100)
-            maxDisplayValue = Math.ceil(maxValue / 20) * 20;
-        } else if (maxValue < 500) {
-            // Pour les valeurs plus grandes (100-500)
-            maxDisplayValue = Math.ceil(maxValue / 100) * 100;
-        } else if (maxValue < 2000) {
-            // Pour les grandes valeurs (500-2000)
-            maxDisplayValue = Math.ceil(maxValue / 500) * 500;
-        } else {
-            // Pour les très grandes valeurs
-            maxDisplayValue = Math.ceil(maxValue / 1000) * 1000;
-        }
-    }
-    
-    // S'assurer que maxDisplayValue est au moins 10% plus grand que maxValue pour un peu d'espace
-    maxDisplayValue = Math.max(maxDisplayValue, Math.ceil(maxValue * 1.1));
-    
-    // Limiter le nombre d'intervalles pour éviter trop de labels
-    const numIntervals = Math.min(4, Math.ceil(maxDisplayValue / 50)); // Moins d'intervalles pour petites valeurs
-    
-    const intervalValue = maxDisplayValue / numIntervals;
-    const pixelsPerValue = 50 / maxDisplayValue;
-    
-    categories.forEach((category, index) => {
-        const categoryLabel = document.createElement('div');
-        categoryLabel.className = 'category-label';
-        categoryLabel.textContent = category;
-        categoryLabel.style.height = `${100 / categories.length}%`;
-        categoryLabel.style.display = 'flex';
-        categoryLabel.style.alignItems = 'center';
-        categoryLabel.style.justifyContent = 'flex-end';
-        yAxis.appendChild(categoryLabel);
-        
-        const barGroup = document.createElement('div');
-        barGroup.className = 'bar-group';
-        
-        const topPercentage = (index * 100) / categories.length;
-        barGroup.style.top = `${topPercentage}%`;
-        barGroup.style.height = `${100 / categories.length}%`;
-        barGroup.style.display = 'flex';
-        barGroup.style.alignItems = 'center';
-        
-        const expenseValue = expensesData[index];
-        const incomeValue = incomeData[index];
-        
-        const expenseWidth = Math.min(expenseValue * pixelsPerValue, 50);
-        const incomeWidth = Math.min(incomeValue * pixelsPerValue, 50);
-        
-        if (expenseValue > 0) {
-            const leftBar = document.createElement('div');
-            leftBar.className = 'bar left-bar';
-            leftBar.style.width = '0%';
-            leftBar.style.right = '50%';
-            leftBar.style.height = '70%';
-            
-            if (expenseValue >= 1000) {
-                leftBar.textContent = `£${(expenseValue / 1000).toFixed(1)}k`;
-            } else {
-                leftBar.textContent = `£${expenseValue.toFixed(0)}`;
-            }
-            barGroup.appendChild(leftBar);
-            
-            setTimeout(() => {
-                leftBar.style.width = `${expenseWidth}%`;
-            }, 50 + (index * 100));
-        }
-        
-        if (incomeValue > 0) {
-            const rightBar = document.createElement('div');
-            rightBar.className = 'bar right-bar';
-            rightBar.style.width = '0%';
-            rightBar.style.left = '50%';
-            rightBar.style.height = '70%';
-            
-            if (incomeValue >= 1000) {
-                rightBar.textContent = `£${(incomeValue / 1000).toFixed(1)}k`;
-            } else {
-                rightBar.textContent = `£${incomeValue.toFixed(0)}`;
-            }
-            barGroup.appendChild(rightBar);
-            
-            setTimeout(() => {
-                rightBar.style.width = `${incomeWidth}%`;
-            }, 50 + (index * 100));
-        }
-        
-        barsContainer.appendChild(barGroup);
-    });
-    
-    for (let i = 1; i <= numIntervals; i++) {
-        const value = i * intervalValue;
-        
-        const leftTick = document.createElement('div');
-        leftTick.className = 'spectrum-tick';
-        const leftPosition = 50 - (value * pixelsPerValue);
-        leftTick.style.left = `${leftPosition}%`;
-        xAxisSpectrum.appendChild(leftTick);
-        
-        const leftLabel = document.createElement('div');
-        leftLabel.className = 'spectrum-label';
-        if (value >= 1000) {
-            leftLabel.textContent = `-£${(value / 1000).toFixed(1)}k`;
-        } else {
-            leftLabel.textContent = `-£${Math.round(value)}`;
-        }
-        leftLabel.style.left = `${leftPosition}%`;
-        xAxisSpectrum.appendChild(leftLabel);
-        
-        const rightTick = document.createElement('div');
-        rightTick.className = 'spectrum-tick';
-        const rightPosition = 50 + (value * pixelsPerValue);
-        rightTick.style.left = `${rightPosition}%`;
-        xAxisSpectrum.appendChild(rightTick);
-        
-        const rightLabel = document.createElement('div');
-        rightLabel.className = 'spectrum-label';
-        if (value >= 1000) {
-            rightLabel.textContent = `£${(value / 1000).toFixed(1)}k`;
-        } else {
-            rightLabel.textContent = `£${Math.round(value)}`;
-        }
-        rightLabel.style.left = `${rightPosition}%`;
-        xAxisSpectrum.appendChild(rightLabel);
-    }
-    
-    const zeroTick = document.createElement('div');
-    zeroTick.className = 'spectrum-tick zero-tick';
-    zeroTick.style.left = '50%';
-    xAxisSpectrum.appendChild(zeroTick);
-    
-    const zeroLabel = document.createElement('div');
-    zeroLabel.className = 'spectrum-label';
-    zeroLabel.textContent = '0';
-    zeroLabel.style.left = '50%';
-    zeroLabel.style.transform = 'translateX(-50%)';
-    xAxisSpectrum.appendChild(zeroLabel);
-}
     
     function updateView() {
         const list = document.getElementById('transactionsList');
@@ -621,9 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${sign}£${transaction.amount.toFixed(2)}
                     </div>
                     <div class="transaction-actions">
-                        <button class="add-btn" onclick="showSavingPopup(${transaction.id})">
-                            <i class="fas fa-plus"></i> Add
-                        </button>
+                        <!-- Bouton +add supprimé -->
                         <button class="trash-icon-btn" onclick="deleteTransaction(${transaction.id})">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -635,10 +628,41 @@ document.addEventListener('DOMContentLoaded', function() {
         list.innerHTML = html;
     }
     
-    window.showSavingPopup = function(transactionId) {
+    // NOUVELLE FONCTION pour ouvrir le popup en mode balance
+function showSavingPopupForBalance() {
+    const balance = calculateTotalBalance();
+    if (balance <= 0) {
+        alert('Your balance is zero or negative. Cannot transfer.');
+        return;
+    }
+    
+    popupMode = 'balance';
+    popupLimit = balance;
+    currentTransactionForSaving = null;
+    
+    // Réinitialiser le popup
+    transferAmountInput.value = '';
+    errorMessage.textContent = '';
+    savingSelect.value = 'saving1';
+    selectedSavingText.textContent = 'Saving 1';
+    
+    // Forcer l'affichage du texte "BALANCE" sans montant
+    const balanceLabel = document.querySelector('.balance-label');
+    if (balanceLabel) {
+        balanceLabel.textContent = 'BALANCE';
+    }
+    
+    // Afficher le popup
+    savingPopupOverlay.style.display = 'flex';
+}
+    
+    // Ancienne fonction renommée pour le mode transaction (non utilisée actuellement mais conservée)
+    window.showSavingPopupForTransaction = function(transactionId) {
         const transaction = transactions.find(t => t.id === transactionId);
         if (!transaction) return;
         
+        popupMode = 'transaction';
+        popupLimit = transaction.amount;
         currentTransactionForSaving = transaction;
         
         // Réinitialiser le popup
@@ -647,22 +671,14 @@ document.addEventListener('DOMContentLoaded', function() {
         savingSelect.value = 'saving1';
         selectedSavingText.textContent = 'Saving 1';
         
-        // Afficher le popup
+        // Afficher le montant de la transaction dans le popup
+// Garder le texte fixe "BALANCE" sans montant
+const balanceLabel = document.querySelector('.balance-label');
+if (balanceLabel) {
+    balanceLabel.textContent = 'BALANCE';
+}
+        
         savingPopupOverlay.style.display = 'flex';
-    }
-    
-    function applySavingToTransaction(savingType) {
-        if (!currentTransactionForSaving) return;
-        
-        // Mettre à jour le type de saving de la transaction
-        currentTransactionForSaving.saving = savingType;
-        
-        // Mettre à jour le tableau de bord
-        updateDashboard();
-        
-        // Fermer le popup
-        savingPopupOverlay.style.display = 'none';
-        currentTransactionForSaving = null;
     }
     
     window.deleteTransaction = function(id) {
@@ -687,7 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
             filtered = transactions;
         }
         
-        // Calculer seulement les transactions normales pour income/expenses/balance
+        // Inclut toutes les transactions normales (saving='normal') pour income/expenses, y compris les transferts
         const normalTransactions = filtered.filter(t => t.saving === 'normal');
         
         const totalIncome = normalTransactions
@@ -700,37 +716,33 @@ document.addEventListener('DOMContentLoaded', function() {
             
         const balance = totalIncome - totalExpenses;
         
-        // Calculer le total des saving (tous les saving1, saving2, saving3)
+        // Calculer le total des saving
         const totalSaving = calculateTotalSavings();
         
-        // CORRECTION : Mettre à jour les éléments HTML avec les ID corrects
         const recentIncomeElem = document.getElementById('recentIncome');
         const recentExpensesElem = document.getElementById('recentExpenses');
         const recentSavingElem = document.getElementById('recentSaving');
         const recentBalanceElem = document.getElementById('recentBalance');
         
-        if (recentIncomeElem) {
-            recentIncomeElem.textContent = '£' + totalIncome.toFixed(2);
-        }
+        if (recentIncomeElem) recentIncomeElem.textContent = '£' + totalIncome.toFixed(2);
+        if (recentExpensesElem) recentExpensesElem.textContent = '£' + totalExpenses.toFixed(2);
+        if (recentSavingElem) recentSavingElem.textContent = '£' + Math.max(totalSaving, 0).toFixed(2);
+        if (recentBalanceElem) recentBalanceElem.textContent = '£' + balance.toFixed(2);
         
-        if (recentExpensesElem) {
-            recentExpensesElem.textContent = '£' + totalExpenses.toFixed(2);
-        }
-        
-        if (recentSavingElem) {
-            recentSavingElem.textContent = '£' + Math.max(totalSaving, 0).toFixed(2);
-        }
-        
-        if (recentBalanceElem) {
-            recentBalanceElem.textContent = '£' + balance.toFixed(2);
+        // Activer/désactiver le bouton global +add en fonction de la balance
+        if (globalAddBtn) {
+            if (balance <= 0) {
+                globalAddBtn.disabled = true;
+                globalAddBtn.title = 'Insufficient balance';
+            } else {
+                globalAddBtn.disabled = false;
+                globalAddBtn.title = 'Transfer from balance to saving';
+            }
         }
     }
     
     function clearAllTransactions() {
-        if (transactions.length === 0) {
-            return;
-        }
-        
+        if (transactions.length === 0) return;
         if (confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.')) {
             transactions = [];
             updateDashboard();
@@ -739,18 +751,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateSummary() {
         const balance = calculateTotalBalance();
-
         const currentBalanceControl = document.getElementById('currentBalanceControl');
         const totalTransactionsElem = document.getElementById('totalTransactions');
         
-        if (currentBalanceControl) {
-            currentBalanceControl.textContent = '£' + balance.toFixed(2);
-        }
-        
-        if (totalTransactionsElem) {
-            totalTransactionsElem.textContent = transactions.length;
-        }
+        if (currentBalanceControl) currentBalanceControl.textContent = '£' + balance.toFixed(2);
+        if (totalTransactionsElem) totalTransactionsElem.textContent = transactions.length;
     }
+    
+    // ==================== GRAPHIQUES ====================
     
     function initCharts() {
         if (typeof Chart === 'undefined') {
@@ -759,7 +767,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Détruire les anciens graphiques s'ils existent
         if (monthlyBarChart) monthlyBarChart.destroy();
         if (categoryBarVerticalChart) categoryBarVerticalChart.destroy();
         
@@ -771,31 +778,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 type: 'bar',
                 data: {
                     labels: getLast12Months().labels,
-                    datasets: [
-                        {
-                            label: 'Goal',
-                            data: [],
-                            backgroundColor: 'rgba(52, 152, 219, 0.5)',
-                            borderColor: '#3498db',
-                            borderWidth: 1,
-                            type: 'bar'
-                        },
-                        {
-                            label: 'Income',
-                            data: [],
-                            backgroundColor: 'rgba(46, 204, 113, 0.5)',
-                            borderColor: '#2ecc71',
-                            borderWidth: 1,
-                            type: 'bar'
-                        },
-                        {
-                            label: 'Expenses',
-                            data: [],
-                            backgroundColor: 'rgba(231, 76, 60, 0.5)',
-                            borderColor: '#e74c3c',
-                            borderWidth: 1,
-                            type: 'bar'
-                        },
+// Dans initCharts(), pour le graphique monthlyBarChart :
+datasets: [
+// Dans la configuration du monthlyBarChart, pour les datasets "Goal", "Income", "Expenses"
+{
+    label: 'Goal',
+    data: [],
+    backgroundColor: 'rgba(52, 152, 219, 0.5)',
+    borderColor: '#3498db',
+    borderWidth: 1,
+    type: 'bar',
+    borderRadius: 20,
+barPercentage: 0.99,
+categoryPercentage: 0.8      // le groupe occupe toute la largeur du mois  // 80% pour le groupe → 20% d'espace entre les mois
+},
+{
+    label: 'Income',
+    data: [],
+    backgroundColor: 'rgba(46, 204, 113, 0.5)',
+    borderColor: '#2ecc71',
+    borderWidth: 1,
+    type: 'bar',
+    borderRadius: 20,
+barPercentage: 0.99,
+categoryPercentage: 0.8      // le groupe occupe toute la largeur du mois
+},
+{
+    label: 'Expenses',
+    data: [],
+    backgroundColor: 'rgba(231, 76, 60, 0.5)',
+    borderColor: '#e74c3c',
+    borderWidth: 1,
+    type: 'bar',
+    borderRadius: 20,
+barPercentage: 0.99,
+categoryPercentage: 0.8     // le groupe occupe toute la largeur du mois
+},
+    // ... le dataset line reste inchangé
+
                         {
                             label: 'Balance Trend',
                             data: [],
@@ -821,43 +841,31 @@ document.addEventListener('DOMContentLoaded', function() {
                         mode: 'index',
                         intersect: false
                     },
-                    scales: {
-                        x: {
-                            stacked: false,
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 45,
-                                font: {
-                                    size: 8
-                                },
-                                color: 'white'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            stacked: false,
-                            ticks: {
-                                font: {
-                                    size: 8
-                                },
-                                color: 'white',
-                                callback: function(value) {
-                                    return '£' + value;
-                                },
-                                stepSize: 5
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        }
-                    },
+scales: {
+x: {
+    stacked: false,
+    ticks: {
+        maxRotation: 30,        // réduit de 45 à 30
+        minRotation: 30,        // idem
+        font: { size: 7 },      // taille réduite à 7px (au lieu de 8)
+        color: 'white'
+    },
+    grid: { display: false }
+},
+    y: {
+        beginAtZero: true,
+        stacked: false,
+        ticks: {
+            font: { size: 8 },
+            color: 'white',
+            callback: function(value) { return '£' + value; },
+            stepSize: 5
+        },
+        grid: { display: false }
+    }
+},
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
                             mode: 'index',
                             intersect: false,
@@ -872,7 +880,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Category Bar Chart Vertical - MODIFIÉ pour enlever le grillage
+        // Category Bar Chart Vertical
         const categoryBarVerticalCanvas = document.getElementById('categoryBarChartVertical');
         if (categoryBarVerticalCanvas) {
             const categoryBarVerticalCtx = categoryBarVerticalCanvas.getContext('2d');
@@ -896,39 +904,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         x: {
                             ticks: {
                                 color: 'white',
-                                font: {
-                                    size: 8
-                                },
+                                font: { size: 8 },
                                 maxRotation: 0,
                                 minRotation: 0
                             },
-                            grid: {
-                                display: false, // Désactivé
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
+                            grid: { display: false }
                         },
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                color: 'white',
-                                font: {
-                                    size: 8
-                                },
-                                callback: function(value) {
-                                    return '£' + value;
-                                },
-                                stepSize: 20
-                            },
-                            grid: {
-                                display: false, // Désactivé
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        }
+y: {
+    beginAtZero: true,
+    stacked: false,
+    ticks: {
+        font: { size: 8 },
+        color: 'white',
+        callback: function(value) { return '£' + value; }
+        // stepSize supprimé – Chart.js choisira automatiquement des graduations adaptées
+    },
+    grid: { display: false }
+}
                     },
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
                             mode: 'index',
                             intersect: false,
@@ -955,8 +950,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!categoryBarVerticalChart) return;
         
         const categoryData = calculateCategoryBarChartData();
-        
-        // Limiter à 6 catégories maximum pour une meilleure lisibilité
         const maxCategories = 10;
         const categories = categoryData.categories.slice(0, maxCategories);
         const amounts = categoryData.amounts.slice(0, maxCategories);
@@ -964,16 +957,15 @@ document.addEventListener('DOMContentLoaded', function() {
         categoryBarVerticalChart.data.labels = categories;
         categoryBarVerticalChart.data.datasets[0].data = amounts;
         
-        // Définir l'échelle Y avec un max arrondi au multiple de 20 supérieur
         const maxValue = Math.max(...amounts, 30);
         const maxTick = Math.ceil(maxValue / 30) * 30;
         
-        // Mettre à jour les options du graphique
         categoryBarVerticalChart.options.scales.y.max = maxTick;
-        categoryBarVerticalChart.options.scales.y.ticks.stepSize = 30; // Échelle de 20 en 20
+        categoryBarVerticalChart.options.scales.y.ticks.stepSize = 30;
         
         categoryBarVerticalChart.update();
     }
+    
     function updateCharts() {
         // Monthly Bar Chart
         if (monthlyBarChart) {
@@ -995,20 +987,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     return tDate >= monthStart && tDate <= monthEnd;
                 });
                 
-                // Inclure seulement les transactions normales pour les revenus et dépenses
-                // ET exclure les transactions de transfert
+                // Revenus normaux (saving='normal') – on exclut les revenus de transfert (car ce sont des saving)
                 const monthIncome = monthTransactions
-                    .filter(t => t.type === 'income' && t.saving === 'normal' && !t.description.includes('Transfer to Saving'))
+                    .filter(t => t.type === 'income' && t.saving === 'normal')
                     .reduce((sum, t) => sum + t.amount, 0);
                     
+                // Dépenses normales (saving='normal') – on inclut les transferts (catégorie 'Transfer')
                 const monthExpense = monthTransactions
-                    .filter(t => t.type === 'expense' && t.saving === 'normal' && !t.description.includes('Transfer to Saving'))
+                    .filter(t => t.type === 'expense' && t.saving === 'normal')
                     .reduce((sum, t) => sum + t.amount, 0);
                 
                 incomeData.push(monthIncome);
                 expenseData.push(monthExpense);
                 
-                // Pour la balance trend, utiliser seulement les transactions normales
+                // Balance trend : toutes les transactions normales (saving='normal')
                 const monthNormalIncome = monthTransactions
                     .filter(t => t.type === 'income' && t.saving === 'normal')
                     .reduce((sum, t) => sum + t.amount, 0);
@@ -1030,7 +1022,6 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyBarChart.data.datasets[2].data = expenseData;
             monthlyBarChart.data.datasets[3].data = balanceTrendData;
             
-            // Définir l'échelle Y avec un max arrondi au multiple de 5 supérieur
             const allData = [...goalData, ...incomeData, ...expenseData];
             const maxValue = Math.max(...allData, 5);
             const maxTick = Math.ceil(maxValue / 5) * 5;
@@ -1039,9 +1030,10 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyBarChart.update();
         }
         
-        // Category Bar Chart Vertical
         updateCategoryBarChart();
     }
+    
+    // ==================== ACTIONS UTILISATEUR ====================
     
     function addTransaction() {
         const amount = parseFloat(amountInput.value);
@@ -1080,7 +1072,6 @@ document.addEventListener('DOMContentLoaded', function() {
         transactions.push(transaction);
         updateDashboard();
         
-        // Réinitialiser les champs
         amountInput.value = '';
         descriptionInput.value = '';
         savingTypeSelect.value = 'normal';
@@ -1088,7 +1079,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function setGoal() {
         const amount = parseFloat(goalAmountInput.value);
-        
         if (!amount || amount <= 0 || isNaN(amount)) {
             alert('Please enter a valid goal amount');
             return;
@@ -1101,25 +1091,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         monthlyGoals[goalKey] = amount;
         updateDashboard();
-        
         goalAmountInput.value = '';
     }
     
     function setAllGoals() {
         const amount = parseFloat(goalAllAmountInput.value);
-        
         if (!amount || amount <= 0 || isNaN(amount)) {
             alert('Please enter a valid goal amount');
             return;
         }
-        
         yearlyGoal = amount;
         updateDashboard();
-        
         goalAllAmountInput.value = '';
     }
     
-    // Initialiser les événements
+    // ==================== INITIALISATION ÉVÉNEMENTS ====================
+    
     const addTransactionBtn = document.getElementById('addTransactionBtn');
     const setGoalBtn = document.getElementById('setGoalBtn');
     const setAllGoalBtn = document.getElementById('setAllGoalBtn');
@@ -1150,6 +1137,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    if (globalAddBtn) {
+        globalAddBtn.addEventListener('click', showSavingPopupForBalance);
+    }
+    
     if (prevDaysBtn) {
         prevDaysBtn.addEventListener('click', function() {
             longTermOffset++;
@@ -1173,7 +1164,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Fermer le popup en cliquant en dehors
     savingPopupOverlay.addEventListener('click', function(e) {
         if (e.target === savingPopupOverlay) {
             savingPopupOverlay.style.display = 'none';
@@ -1181,7 +1171,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Mettre à jour le texte du saving sélectionné
     if (savingSelect) {
         savingSelect.addEventListener('change', function() {
             const savingText = this.options[this.selectedIndex].text;
@@ -1189,14 +1178,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Valider le montant de transfert
     if (transferAmountInput) {
         transferAmountInput.addEventListener('input', function() {
             const amount = parseFloat(this.value) || 0;
-            const transactionAmount = currentTransactionForSaving ? currentTransactionForSaving.amount : 0;
             
-            if (amount > transactionAmount) {
-                errorMessage.textContent = 'Not enough money in this transaction';
+            if (amount > popupLimit) {
+                if (popupMode === 'balance') {
+                    errorMessage.textContent = 'Insufficient money in your balance';
+                } else {
+                    errorMessage.textContent = 'Not enough money in this transaction';
+                }
+                confirmTransferBtn.disabled = true;
+            } else if (amount <= 0) {
+                errorMessage.textContent = 'Amount must be positive';
                 confirmTransferBtn.disabled = true;
             } else {
                 errorMessage.textContent = '';
@@ -1205,47 +1199,64 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-
     if (confirmTransferBtn) {
         confirmTransferBtn.addEventListener('click', function() {
-            if (!currentTransactionForSaving) return;
-            
             const amount = parseFloat(transferAmountInput.value) || 0;
-            const transactionAmount = currentTransactionForSaving.amount;
-            const savingType = savingSelect.value;
-            
-            if (amount > transactionAmount || amount <= 0) {
+            if (amount <= 0 || amount > popupLimit) {
                 errorMessage.textContent = 'Invalid amount';
                 return;
             }
             
-            // Créer une nouvelle transaction pour le saving (type income)
-            const savingTransaction = {
-                id: Date.now(),
-                amount: amount,
-                category: currentTransactionForSaving.category,
-                description: `Transfer to ${savingSelect.options[savingSelect.selectedIndex].text}`,
-                date: currentTransactionForSaving.date,
-                type: 'income', // Changé de 'expense' à 'income' pour le saving
-                saving: savingType,
-                timestamp: new Date().getTime()
-            };
+            const savingType = savingSelect.value;
+            const savingName = savingSelect.options[savingSelect.selectedIndex].text;
             
-            // Ajouter la transaction de saving
-            transactions.push(savingTransaction);
-            
-            // Mettre à jour le montant de la transaction originale
-            currentTransactionForSaving.amount -= amount;
-            
-            // Si le montant devient 0, supprimer la transaction
-            if (currentTransactionForSaving.amount <= 0) {
-                transactions = transactions.filter(t => t.id !== currentTransactionForSaving.id);
+            if (popupMode === 'transaction' && currentTransactionForSaving) {
+                // Mode transaction : on réduit la transaction originale et on crée une transaction saving
+                const savingTransaction = {
+                    id: Date.now(),
+                    amount: amount,
+                    category: currentTransactionForSaving.category,
+                    description: `Transfer to ${savingName}`,
+                    date: currentTransactionForSaving.date,
+                    type: 'income',
+                    saving: savingType,
+                    timestamp: new Date().getTime()
+                };
+                transactions.push(savingTransaction);
+                
+                currentTransactionForSaving.amount -= amount;
+                if (currentTransactionForSaving.amount <= 0) {
+                    transactions = transactions.filter(t => t.id !== currentTransactionForSaving.id);
+                }
+                
+            } else if (popupMode === 'balance') {
+                // Mode balance : on crée une dépense normale (catégorie Transfer) et un revenu saving
+                const expenseTransaction = {
+                    id: Date.now(),
+                    amount: amount,
+                    category: 'Transfer',
+                    description: `Transfer to ${savingName}`,
+                    date: new Date().toISOString().split('T')[0],
+                    type: 'expense',
+                    saving: 'normal',
+                    timestamp: new Date().getTime()
+                };
+                
+                const incomeTransaction = {
+                    id: Date.now() + 1,
+                    amount: amount,
+                    category: 'Transfer',
+                    description: 'Transfer from Balance',
+                    date: new Date().toISOString().split('T')[0],
+                    type: 'income',
+                    saving: savingType,
+                    timestamp: new Date().getTime()
+                };
+                
+                transactions.push(expenseTransaction, incomeTransaction);
             }
             
-            // Mettre à jour le tableau de bord
             updateDashboard();
-            
-            // Fermer le popup
             savingPopupOverlay.style.display = 'none';
             currentTransactionForSaving = null;
         });
@@ -1269,12 +1280,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Initialiser l'application
+    // ==================== INIT ====================
+    
     function initApp() {
         console.log("Initialisation de l'application Money Management");
         loadData();
         
-        // Attendre que Chart.js soit chargé
         if (typeof Chart === 'undefined') {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
@@ -1293,9 +1304,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     initApp();
     
-    // Redimensionnement de la fenêtre
     window.addEventListener('resize', function() {
         setTimeout(updateCharts, 100);
         setTimeout(updateHorizontalBarGraph, 100);
     });
-});
+});;

@@ -52,6 +52,42 @@ function calculateSavings() {
   }
 }
 
+// Revenus mensuels des 3 dernières années (toujours 3 tableaux de 12 mois, avec null pour les mois futurs de l'année courante)
+function getLast3YearsMonthlyIncome() {
+    try {
+        const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth(); // 0-11
+        const years = [currentYear, currentYear - 1, currentYear - 2];
+        const result = {};
+
+        years.forEach(year => {
+            const monthly = new Array(12).fill(0);
+            transactions.forEach(t => {
+                if (t.type === 'income' && t.saving === 'normal') {
+                    const date = new Date(t.date);
+                    if (date.getFullYear() === year) {
+                        const month = date.getMonth(); // 0-11
+                        monthly[month] += t.amount;
+                    }
+                }
+            });
+            if (year === currentYear) {
+                // Pour l'année en cours, remplacer les mois futurs par null pour que la courbe s'arrête
+                for (let m = currentMonth + 1; m < 12; m++) {
+                    monthly[m] = null;
+                }
+            }
+            result[year] = monthly;
+        });
+        return result;
+    } catch (e) {
+        console.error('Erreur getLast3YearsMonthlyIncome:', e);
+        const currentYear = new Date().getFullYear();
+        return { [currentYear]: new Array(12).fill(0) };
+    }
+}
+
 function transferSaving(savingType) {
   try {
     const transactions = JSON.parse(localStorage.getItem('moneyManagerTransactions') || '[]');
@@ -315,6 +351,100 @@ function showResultPanel() {
     </div>
   `;
   
+  // --- AJOUT DU GRAPHIQUE INCOME 3 ANS (sans titre) ---
+  const chartContainer = document.createElement('div');
+  chartContainer.style.width = '200px';
+  chartContainer.style.height = '170px';  // hauteur totale du conteneur
+  chartContainer.style.marginTop = '1px';
+  chartContainer.style.padding = '10px';
+  chartContainer.style.background = 'rgba(30, 31, 35, 0.8)';
+  chartContainer.style.borderRadius = '10px';
+  chartContainer.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+  chartContainer.style.alignSelf = 'center';
+  chartContainer.style.display = 'flex';
+  chartContainer.style.flexDirection = 'column';
+  chartContainer.style.boxSizing = 'border-box';
+
+  const canvas = document.createElement('canvas');
+  canvas.id = 'incomeLineChart';
+  canvas.style.width = '100%';
+  canvas.style.height = '90px';   // hauteur du graphique
+  canvas.width = 200;
+  canvas.height = 200;
+  chartContainer.appendChild(canvas);
+
+  // Mini légende colorée
+  const legendDiv = document.createElement('div');
+  legendDiv.style.display = 'flex';
+  legendDiv.style.justifyContent = 'center';
+  legendDiv.style.gap = '10px';
+  legendDiv.style.marginTop = '5px';
+  legendDiv.style.fontSize = '8px';
+  legendDiv.style.color = 'white';
+  legendDiv.style.flexShrink = '0';
+  chartContainer.appendChild(legendDiv);
+
+  const incomeData = getLast3YearsMonthlyIncome();
+  const years = Object.keys(incomeData).sort((a, b) => a - b); // tri croissant (ancienne -> récente)
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Destruction de l'ancien graphique s'il existe
+  if (window.incomeLineChart) {
+      window.incomeLineChart.destroy();
+  }
+
+  const ctx = canvas.getContext('2d');
+  window.incomeLineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+          labels: months,
+          datasets: years.map((year, index) => ({
+              label: year.toString(),
+              data: incomeData[year],
+              borderColor: index === 0 ? '#2ecc71' : (index === 1 ? '#3498db' : '#f7980a'),
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              pointRadius: 2,
+              pointHoverRadius: 4,
+              tension: 0.1,
+              fill: false,
+              spanGaps: false // important pour ne pas relier les points autour des null
+          }))
+      },
+      options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+              x: {
+                  ticks: { font: { size: 8 }, color: 'white' },
+                  grid: { display: false }
+              },
+              y: {
+                  beginAtZero: true,
+                  ticks: { 
+                      font: { size: 8 }, 
+                      color: 'white', 
+                      callback: (v) => '£' + v 
+                  },
+                  grid: { color: 'rgba(255,255,255,0.1)' }
+              }
+          },
+          plugins: {
+              legend: { display: false },
+              tooltip: { enabled: true }
+          }
+      }
+  });
+
+  years.forEach((year, index) => {
+      const item = document.createElement('span');
+      item.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background:${index === 0 ? '#2ecc71' : (index === 1 ? '#3498db' : '#9b59b6')}; border-radius:2px; margin-right:3px;"></span> ${year}`;
+      legendDiv.appendChild(item);
+  });
+
+  resultPanel.appendChild(chartContainer);
+  // --- FIN AJOUT ---
+
   kinfopaneltousContent.appendChild(resultPanel);
   
   if (!document.querySelector('link[href*="font-awesome"]')) {
@@ -374,6 +504,11 @@ localStorage.removeItem = function(key) {
     }
   }
 }; 
+
+// ============================================
+// GESTION DES NOTIFICATIONS ET NEWS (menu-1)
+// ============================================
+
 const GNEWS_API_KEY = 'b97899dfc31d70bf41c43c5b865654e6';
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 const NOTIF_PHRASES = [
@@ -923,6 +1058,12 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'menu-5':
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 5 - Contenu à définir</div>';
                 break;
+            case 'menu-6':
+                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 6 - Contenu à définir</div>';
+                break;
+            case 'menu-7':
+                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 7 - Contenu à définir</div>';
+                break;
             default:
                 kinfopaneltousContainer.classList.remove('active');
                 break;
@@ -940,6 +1081,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     else if (classes.contains('menu-3')) window.currentMenuPage = 'menu-3';
                     else if (classes.contains('menu-4')) window.currentMenuPage = 'menu-4';
                     else if (classes.contains('menu-5')) window.currentMenuPage = 'menu-5';
+                    else if (classes.contains('menu-6')) window.currentMenuPage = 'menu-6';
+                    else if (classes.contains('menu-7')) window.currentMenuPage = 'menu-7';
                     
                     updateMenuPanelInfo();
                 }
@@ -957,16 +1100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 300);
 });
 
-// Polling pour menu-4
-setInterval(() => {
-  if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {
-    if (window.getMoneyManagementData && window.showResultPanel) {
-      window.getMoneyManagementData();
-      window.showResultPanel();
-    }
-  }
-}, 300);
-
+// Mise à jour uniquement lors des changements localStorage (plus de polling intempestif)
 window.addEventListener('load', function() {
   setTimeout(() => {
     if (window.currentMenuPage === 'menu-4' && !window.isInSelectedView) {

@@ -361,7 +361,7 @@
                 text-transform: uppercase;
             }
 
-            .spacer {
+            .spacer2 {
                 height: 10px;
                 flex-shrink: 0;
             }
@@ -386,6 +386,7 @@
                     overflow: hidden;
                     border-radius: 30px;
                     background-color: #f0f0f0;
+
                   }
                   .image-container img {
                     width: 100%;

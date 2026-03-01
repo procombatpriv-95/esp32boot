@@ -1308,4 +1308,4 @@ y: {
         setTimeout(updateCharts, 100);
         setTimeout(updateHorizontalBarGraph, 100);
     });
-});;
+});

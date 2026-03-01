@@ -34,3 +34,30 @@ function switchMenu(n) {
     dotsContainer.style.display = 'flex';   // réapparition (valeur d'origine)
   }
 }
+
+
+
+
+
+
+
+
+  window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.menu-btn').forEach((btn, index) => {
+      const savedName = localStorage.getItem('menuName_' + index);
+      if (savedName) {
+        btn.textContent = savedName;
+      }
+    });
+  });
+
+  // Ajouter l'écouteur pour double-clic sur chaque bouton
+  document.querySelectorAll('.menu-btn').forEach((btn, index) => {
+    btn.addEventListener('dblclick', () => {
+      const newName = prompt("Rename:", btn.textContent);
+      if (newName && newName.trim() !== "") {
+        btn.textContent = newName;
+        localStorage.setItem('menuName_' + index, newName);
+      }
+    });
+  });

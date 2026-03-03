@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentBottomLeftWidget = 'eurusd';
     let currentBottomRightWidget = 'apple';
     let wasInSelectedView = false;
-    let currentNewsAssetId = null;  // Nouvelle variable pour éviter les rechargements inutiles
+    let currentNewsAssetId = null;  // Pour éviter les rechargements inutiles
     
     if (!window.appTimezone) {
         window.appTimezone = "Europe/London";
@@ -74,9 +74,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // === ACTUALITÉS SELECTED VIEW - MODIFIÉES POUR ÉVITER LES RECHARGEMENTS INUTILES ===
+    // === ACTUALITÉS SELECTED VIEW ===
     function loadKinfopaneltousNews(asset) {
-        // Ne pas recharger si c'est le même actif
+        // Si c'est le même actif, on ne recharge pas (sauf si on force plus tard)
         if (currentNewsAssetId === asset.id) {
             return;
         }
@@ -137,17 +137,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
 
-    // === GESTION DU PANEL - MODIFIÉE ===
+    // === GESTION DU PANEL - MODIFIÉE POUR LE MENU 4 ===
     function updatePanelInfo() {
         kinfopaneltousContainer.classList.add('active');
         
-        // Afficher les actualités si la vue sélectionnée est active et qu'un actif est choisi
         if (isInSelectedView && selectedAsset) {
+            // Si on est dans le menu 4, on force le rechargement des actualités
+            // (en réinitialisant l'ID) pour éviter un écran blanc
+            if (currentMenuPage === 'menu-4') {
+                currentNewsAssetId = null;
+            }
             loadKinfopaneltousNews(selectedAsset);
-        } else {
-            // Optionnel : vider ou afficher un contenu par défaut quand la vue sélectionnée n'est pas active
-            // kinfopaneltousContent.innerHTML = ''; 
         }
+        // Sinon, on ne fait rien, le panneau reste tel quel (par exemple s'il affichait déjà des news)
     }
 
     function updateCurrentMenuPage() {
@@ -298,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
         backBtn.classList.remove('hidden');
         loader.classList.remove('hidden');
 
-        // Forcer la mise à jour du panneau d'actualités (qui ne rechargera que si l'actif change)
+        // Forcer la mise à jour du panneau d'actualités
         updatePanelInfo();
 
         const tvContainer = document.getElementById('tradingview_selected');
@@ -333,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
         backBtn.classList.add('hidden');
         sideMenu.classList.remove('hidden');
         carousel.classList.remove('carousel-paused');
-        updatePanelInfo(); // Met à jour le panneau (le vide ou affiche autre chose)
+        updatePanelInfo(); // Met à jour le panneau (ne fera rien car isInSelectedView = false)
     });
 
     // OBSERVATEUR DE CHANGEMENT DE MENU - MODIFIÉ POUR NE PAS QUITTER LA VUE SÉLECTIONNÉE

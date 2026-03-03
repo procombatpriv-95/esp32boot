@@ -1,3 +1,20 @@
+           if (!CanvasRenderingContext2D.prototype.roundRect) {
+              CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.moveTo(x + r, y);
+                this.lineTo(x + w - r, y);
+                this.quadraticCurveTo(x + w, y, x + w, y + r);
+                this.lineTo(x + w, y + h - r);
+                this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                this.lineTo(x + r, y + h);
+                this.quadraticCurveTo(x, y + h, x, y + h - r);
+                this.lineTo(x, y + r);
+                this.quadraticCurveTo(x, y, x + r, y);
+                return this;
+              };
+            }
+
             const API_KEY = 'f895c56c400a48c78ecd4cd8b8b75bd5';
             let myChart = null;
             const colors = {
@@ -7,9 +24,10 @@
 
             async function updateData() {
                 try {
+                    // Ajout d'un timestamp pour contourner le cache
                     const startDate = "2025-02-11";
                     const symbols = "EUR/USD,USD/JPY,EUR/JPY,GBP/USD,USD/CAD,USD/CHF,AUD/USD,NZD/USD";
-                    const url = `https://api.twelvedata.com/time_series?symbol=${symbols}&interval=1day&start_date=${startDate}&apikey=${API_KEY}`;
+                    const url = `https://api.twelvedata.com/time_series?symbol=${symbols}&interval=1day&start_date=${startDate}&apikey=${API_KEY}&_=${Date.now()}`;
                     
                     const response = await fetch(url);
                     const data = await response.json();
@@ -41,7 +59,9 @@
                     }
 
                     render(dates, indices);
-                } catch (e) { console.error(e); }
+                } catch (e) { 
+                    console.error('Erreur lors de la mise à jour des données :', e);
+                }
             }
 
             function render(labels, indices) {
@@ -137,4 +157,3 @@
             }
 
             window.addEventListener('load', updateData);
-          </script>

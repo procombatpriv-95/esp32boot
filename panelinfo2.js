@@ -537,16 +537,113 @@ const DURATION_BIRTHDAY = 5 * 60 * 60 * 1000; // 5 heures
 const DURATION_STATUS = 5 * 60 * 1000;     // 5 minutes
 
 // ============================================
-// GESTIONNAIRE DE NOTIFICATIONS AVEC SLOTS
+// GESTIONNAIRE DE NOTIFICATIONS AVEC SLOTS (version background)
 // ============================================
 class NotificationManager {
-    constructor(containerSelector, maxSlots = 2) {
-        this.container = document.querySelector(containerSelector);
+    constructor(maxSlots = 2) {
         this.maxSlots = maxSlots;
         this.slots = new Array(maxSlots).fill(null);
         this.queue = [];
         this.nextId = 0;
         this.primeUpdateInterval = null;
+        this.container = null; // sera défini plus tard via setContainer
+    }
+
+    // Associe un conteneur DOM et réaffiche toutes les notifications
+    setContainer(container) {
+        this.container = container;
+        if (container) {
+            this.renderAll();
+        } else {
+            // Si on enlève le conteneur, on supprime tous les éléments du DOM
+            this.clearDisplay();
+        }
+    }
+
+    // Supprime tous les éléments du DOM sans vider les données
+    clearDisplay() {
+        if (!this.container) return;
+        // Pour chaque slot, nettoyer les timeouts et enlever l'élément
+        this.slots.forEach(notif => {
+            if (notif) {
+                this.cleanupNotification(notif);
+                if (notif.element && notif.element.parentNode) {
+                    notif.element.remove();
+                }
+                notif.element = null;
+                notif.labelSpan = null;
+                notif.messageSpan = null;
+            }
+        });
+        // Vider le conteneur
+        this.container.innerHTML = '';
+    }
+
+    // Réaffiche toutes les notifications à partir des données internes
+    renderAll() {
+        if (!this.container) return;
+        this.clearDisplay(); // nettoie l'ancien affichage
+        // Reconstruit chaque slot
+        for (let i = 0; i < this.maxSlots; i++) {
+            if (this.slots[i]) {
+                this.renderNotification(this.slots[i], i);
+            }
+        }
+        // Traite la file d'attente pour remplir les slots vides
+        this.processQueue();
+    }
+
+    // Affiche une notification dans un slot spécifique (sans passer par la file)
+    renderNotification(notif, slotIndex) {
+        if (!this.container) return;
+
+        const element = document.createElement('div');
+        element.className = 'notification-item';
+        if (notif.priority) element.classList.add('priority');
+        element.dataset.id = notif.id;
+
+        // Créer les spans
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'prime-label';
+        const messageSpan = document.createElement('span');
+        messageSpan.className = 'notification-message';
+        element.appendChild(labelSpan);
+        element.appendChild(messageSpan);
+
+        this.container.appendChild(element);
+
+        notif.element = element;
+        notif.labelSpan = labelSpan;
+        notif.messageSpan = messageSpan;
+        notif.slotIndex = slotIndex;
+        this.slots[slotIndex] = notif;
+
+        // Planifier les étapes d'affichage (expansion, écriture) en fonction du temps déjà écoulé
+        const now = Date.now();
+        const elapsed = now - notif.createdAt; // temps depuis la création
+
+        // Expansion après 4s (si pas déjà fait)
+        const expandDelay = Math.max(0, 4000 - elapsed);
+        notif.timeouts = notif.timeouts || {};
+        notif.timeouts.expand = setTimeout(() => {
+            if (element.parentNode) {
+                element.classList.add('expanded');
+            }
+        }, expandDelay);
+
+        // Début de l'écriture après 8s (4s expansion + 4s) depuis la création
+        const typingStartDelay = Math.max(0, 8000 - elapsed);
+        notif.timeouts.text = setTimeout(() => {
+            this.startTyping(notif);
+        }, typingStartDelay);
+
+        // Suppression après la durée totale
+        if (notif.duration !== Infinity) {
+            const removeDelay = Math.max(0, notif.duration - elapsed);
+            notif.timeouts.remove = setTimeout(() => {
+                this.removeNotification(notif, true);
+            }, removeDelay);
+        }
     }
 
     // Ajouter une notification
@@ -584,7 +681,7 @@ class NotificationManager {
     tryDisplayPriority(notif) {
         const emptySlot = this.slots.findIndex(s => s === null);
         if (emptySlot !== -1) {
-            this.displayInSlot(notif, emptySlot);
+            this.assignToSlot(notif, emptySlot);
             return;
         }
 
@@ -592,7 +689,7 @@ class NotificationManager {
         if (nonPrioritySlot !== -1) {
             const oldNotif = this.slots[nonPrioritySlot];
             this.moveToQueue(oldNotif);
-            this.displayInSlot(notif, nonPrioritySlot);
+            this.assignToSlot(notif, nonPrioritySlot);
             return;
         }
 
@@ -600,74 +697,15 @@ class NotificationManager {
         this.queue.push(notif);
     }
 
-    displayInSlot(notif, slotIndex) {
-        if (!this.container) return;
-
-        const element = document.createElement('div');
-        element.className = 'notification-item';
-        if (notif.priority) element.classList.add('priority');
-        element.dataset.id = notif.id;
-
-        // Créer les spans mais les laisser vides (cercle initial sans texte)
-        const labelSpan = document.createElement('span');
-        labelSpan.className = 'prime-label';
-        const messageSpan = document.createElement('span');
-        messageSpan.className = 'notification-message';
-        element.appendChild(labelSpan);
-        element.appendChild(messageSpan);
-
-        this.container.appendChild(element);
-
-        notif.element = element;
-        notif.labelSpan = labelSpan;
-        notif.messageSpan = messageSpan;
-        notif.slotIndex = slotIndex;
-        this.slots[slotIndex] = notif;
-
-        // Expansion après 4s
-        notif.timeouts.expand = setTimeout(() => {
-            if (element.parentNode) {
-                element.classList.add('expanded');
-            }
-        }, 4000);
-
-        // Début de l'écriture après 8s (4s expansion + 4s)
-        notif.timeouts.text = setTimeout(() => {
-            this.startTyping(notif);
-        }, 8000);
-
-        if (notif.duration !== Infinity) {
-            notif.timeouts.remove = setTimeout(() => {
-                this.removeNotification(notif, true);
-            }, notif.duration);
+    assignToSlot(notif, slotIndex) {
+        // Si un conteneur est présent, on affiche directement
+        if (this.container) {
+            this.renderNotification(notif, slotIndex);
+        } else {
+            // Sinon on stocke simplement dans le slot
+            this.slots[slotIndex] = notif;
+            notif.slotIndex = slotIndex;
         }
-    }
-
-    startTyping(notif) {
-        if (!notif.element || !notif.element.parentNode) return;
-
-        // Arrêter un éventuel intervalle précédent
-        if (notif.typingInterval) clearInterval(notif.typingInterval);
-
-        // Ajouter le label maintenant (après expansion)
-        notif.labelSpan.textContent = notif.prefix + ':';
-        const fullText = notif.message;
-        const messageSpan = notif.messageSpan;
-        messageSpan.textContent = '';
-        let index = 0;
-        const speed = 4000 / fullText.length;
-
-        const interval = setInterval(() => {
-            if (index < fullText.length) {
-                messageSpan.textContent += fullText.charAt(index);
-                index++;
-            } else {
-                clearInterval(interval);
-                notif.typingInterval = null;
-            }
-        }, speed);
-
-        notif.typingInterval = interval;
     }
 
     moveToQueue(notif) {
@@ -708,7 +746,35 @@ class NotificationManager {
         notif.typingInterval = null;
     }
 
+    startTyping(notif) {
+        if (!notif.element || !notif.element.parentNode) return;
+
+        // Arrêter un éventuel intervalle précédent
+        if (notif.typingInterval) clearInterval(notif.typingInterval);
+
+        // Ajouter le label maintenant (après expansion)
+        notif.labelSpan.textContent = notif.prefix + ':';
+        const fullText = notif.message;
+        const messageSpan = notif.messageSpan;
+        messageSpan.textContent = '';
+        let index = 0;
+        const speed = 4000 / fullText.length;
+
+        const interval = setInterval(() => {
+            if (index < fullText.length) {
+                messageSpan.textContent += fullText.charAt(index);
+                index++;
+            } else {
+                clearInterval(interval);
+                notif.typingInterval = null;
+            }
+        }, speed);
+
+        notif.typingInterval = interval;
+    }
+
     processQueue() {
+        if (!this.container) return; // pas d'affichage possible
         for (let i = 0; i < this.maxSlots; i++) {
             if (this.slots[i] === null && this.queue.length > 0) {
                 this.queue.sort((a, b) => {
@@ -716,7 +782,7 @@ class NotificationManager {
                     return a.createdAt - b.createdAt;
                 });
                 const next = this.queue.shift();
-                this.displayInSlot(next, i);
+                this.renderNotification(next, i);
             }
         }
     }
@@ -733,7 +799,9 @@ class NotificationManager {
                 newMessage = NOTIF_PHRASES[Math.floor(Math.random() * NOTIF_PHRASES.length)];
             } while (NOTIF_PHRASES.length > 1 && newMessage === notif.message);
             notif.message = newMessage;
-            if (notif.element && notif.labelSpan && notif.messageSpan) {
+            // Si la notification est actuellement affichée, on met à jour le texte
+            if (notif.element && notif.messageSpan) {
+                // On relance l'écriture (ou on change simplement le texte ? On relance pour l'effet)
                 this.startTyping(notif);
             }
         });
@@ -764,6 +832,7 @@ class NotificationManager {
     }
 }
 
+// Instance unique du gestionnaire de notifications (créée plus tard)
 let notifManager = null;
 
 // ============================================
@@ -989,20 +1058,25 @@ function loadMenu1Widgets() {
 
     kinfopaneltousContent.appendChild(layoutWrapper);
 
-    // Initialiser le gestionnaire de notifications
-    if (notifManager) {
-        notifManager.clearAll();
+    // Associer le conteneur au gestionnaire de notifications
+    if (!notifManager) {
+        // Initialisation unique (ne devrait pas arriver car créé plus tôt)
+        notifManager = new NotificationManager(2);
+        notifManager.startPrimeUpdate();
     }
-    notifManager = new NotificationManager('#notification-container', 2);
-    notifManager.startPrimeUpdate();
+    notifManager.setContainer(notifContainer);
 
-    // Ajouter immédiatement deux notifications PRIME IA avec des phrases différentes
-    let phrases = [...NOTIF_PHRASES];
-    if (phrases.length > 1) {
-        phrases = phrases.sort(() => Math.random() - 0.5);
+    // Ajouter immédiatement deux notifications PRIME IA si ce n'est pas déjà fait
+    // Pour éviter les doublons à chaque chargement, on vérifie si des PRIME existent déjà
+    const existingPrimes = [...notifManager.slots, ...notifManager.queue].filter(n => n && n.type === 'prime');
+    if (existingPrimes.length === 0) {
+        let phrases = [...NOTIF_PHRASES];
+        if (phrases.length > 1) {
+            phrases = phrases.sort(() => Math.random() - 0.5);
+        }
+        notifManager.add(phrases[0], "PRIME IA", 'prime', false);
+        notifManager.add(phrases[1] || phrases[0], "PRIME IA", 'prime', false);
     }
-    notifManager.add(phrases[0], "PRIME IA", 'prime', false);
-    notifManager.add(phrases[1] || phrases[0], "PRIME IA", 'prime', false);
 
     // Charger les news
     fetchNews();
@@ -1015,15 +1089,7 @@ function loadMenu1Widgets() {
         document.head.appendChild(script);
     }
 
-    // Lancer le polling des statuts
-    if (!window.statusInterval) {
-        window.statusInterval = setInterval(updateStatusAndNotify, 1000);
-        updateStatusAndNotify();
-    }
-
-    // Anniversaires
-    checkBirthdays();
-    scheduleDailyBirthdayCheck();
+    // Anniversaires (déjà planifiés globalement)
 }
 
 // ============================================
@@ -1095,14 +1161,28 @@ function renderFinnhubNews(container, articles) {
         `;
         container.appendChild(item);
     });
-
-    // Ajouter le conteneur au DOM (déjà fait dans loadMenu6Widgets)
 }
 
 // ============================================
 // GESTION DES MENUS
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialisation globale du gestionnaire de notifications
+    notifManager = new NotificationManager(2);
+    notifManager.startPrimeUpdate();
+
+    // Lancer le polling des statuts (une seule fois)
+    if (!window.statusInterval) {
+        window.statusInterval = setInterval(updateStatusAndNotify, 1000);
+        updateStatusAndNotify();
+    }
+
+    // Planifier la vérification quotidienne des anniversaires
+    scheduleDailyBirthdayCheck();
+
+    // Variable pour garder trace du menu précédent
+    let previousMenuPage = null;
+
     function updateMenuPanelInfo() {
         const kinfopaneltousContainer = document.getElementById('kinfopaneltousContainer');
         const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
@@ -1115,7 +1195,13 @@ document.addEventListener('DOMContentLoaded', function() {
         kinfopaneltousContainer.classList.remove('transparent-bg');
         kinfopaneltousContent.classList.remove('transparent-bg');
         
+        // Si on quitte le menu-1, on retire le conteneur du gestionnaire
+        if (previousMenuPage === 'menu-1' && window.currentMenuPage !== 'menu-1') {
+            if (notifManager) notifManager.setContainer(null);
+        }
+
         if (window.isInSelectedView && window.currentMenuPage === 'menu-2') {
+            previousMenuPage = window.currentMenuPage;
             return;
         }
         
@@ -1144,6 +1230,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 kinfopaneltousContainer.classList.remove('active');
                 break;
         }
+
+        previousMenuPage = window.currentMenuPage;
     }
     
     const megaBox = document.getElementById('megaBox');

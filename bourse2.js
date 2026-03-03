@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentBottomLeftWidget = 'eurusd';
     let currentBottomRightWidget = 'apple';
     let wasInSelectedView = false;
-    let currentNewsAssetId = null;  // Pour éviter les rechargements inutiles
+    let currentNewsAssetId = null;  // Pour éviter les rechargements inutiles sauf pour menu 4
     
     if (!window.appTimezone) {
         window.appTimezone = "Europe/London";
@@ -75,9 +75,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // === ACTUALITÉS SELECTED VIEW ===
-    function loadKinfopaneltousNews(asset) {
-        // Si c'est le même actif, on ne recharge pas (sauf si on force plus tard)
-        if (currentNewsAssetId === asset.id) {
+    function loadKinfopaneltousNews(asset, forceReload = false) {
+        // Si on ne force pas le rechargement et que c'est le même actif, on ne fait rien
+        if (!forceReload && currentNewsAssetId === asset.id) {
             return;
         }
         currentNewsAssetId = asset.id;
@@ -137,19 +137,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
 
-    // === GESTION DU PANEL - MODIFIÉE POUR LE MENU 4 ===
+    // === GESTION DU PANEL - AVEC FORCE POUR MENU 4 ===
     function updatePanelInfo() {
         kinfopaneltousContainer.classList.add('active');
         
         if (isInSelectedView && selectedAsset) {
             // Si on est dans le menu 4, on force le rechargement des actualités
-            // (en réinitialisant l'ID) pour éviter un écran blanc
-            if (currentMenuPage === 'menu-4') {
-                currentNewsAssetId = null;
-            }
-            loadKinfopaneltousNews(selectedAsset);
+            const forceReload = (currentMenuPage === 'menu-4');
+            loadKinfopaneltousNews(selectedAsset, forceReload);
         }
-        // Sinon, on ne fait rien, le panneau reste tel quel (par exemple s'il affichait déjà des news)
+        // Sinon, on ne fait rien (le panneau reste tel quel)
     }
 
     function updateCurrentMenuPage() {
@@ -300,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
         backBtn.classList.remove('hidden');
         loader.classList.remove('hidden');
 
-        // Forcer la mise à jour du panneau d'actualités
+        // Mise à jour du panneau d'actualités
         updatePanelInfo();
 
         const tvContainer = document.getElementById('tradingview_selected');
@@ -335,15 +332,15 @@ document.addEventListener('DOMContentLoaded', function() {
         backBtn.classList.add('hidden');
         sideMenu.classList.remove('hidden');
         carousel.classList.remove('carousel-paused');
-        updatePanelInfo(); // Met à jour le panneau (ne fera rien car isInSelectedView = false)
+        updatePanelInfo(); // Ne fera rien car isInSelectedView = false
     });
 
-    // OBSERVATEUR DE CHANGEMENT DE MENU - MODIFIÉ POUR NE PAS QUITTER LA VUE SÉLECTIONNÉE
+    // OBSERVATEUR DE CHANGEMENT DE MENU - SANS QUITTER LA VUE SÉLECTIONNÉE
     const observerMenuChange = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.attributeName === 'class') {
                 updateCurrentMenuPage();
-                updatePanelInfo(); // Met à jour le panneau sans masquer la vue sélectionnée
+                updatePanelInfo(); // Met à jour le panneau (forcera le rechargement si menu 4)
             }
         });
     });

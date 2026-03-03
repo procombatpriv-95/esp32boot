@@ -1,0 +1,628 @@
+/* ============================================
+   STYLES EXISTANTS (NON MODIFIÉS)
+   ============================================ */
+.panelinfo {
+  width: 250px;
+  height: 700px;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border-radius: 20px;
+}
+
+.status-container {
+  position: fixed;
+  margin-top: 10px;
+  margin-right: 10px;
+  border: 1px solid white;
+  border-radius: 30px;
+  padding: 10px;
+  background: transparent;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 5px;
+  display: inline-block;
+}
+
+.status-text {
+  color: white;
+  font-size: 18px;
+  font-family: 'Lobster', cursive;
+}
+
+.info-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  color: #39d353;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(57, 211, 83, 0.3);
+}
+
+.info-message {
+  color: #ccc;
+  text-align: center;
+  padding: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* KINFOPANELTOUS CONTAINER - fond par défaut (utilisé pour les autres menus) */
+.kinfopaneltous-container {
+  width: 250px;
+  height: 620px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 20px;
+  padding: 0;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+
+  margin-top: 80px;
+  align-self: center;
+}
+
+.kinfopaneltous-container.active {
+  display: flex;
+}
+
+/* Fond transparent pour le menu-1 */
+.kinfopaneltous-container.transparent-bg {
+  background: transparent;
+}
+
+.kinfopaneltous-header {
+  display: none;
+}
+
+.kinfopaneltous-content {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Fond transparent pour le contenu du menu-1 */
+.kinfopaneltous-content.transparent-bg {
+  background: transparent;
+}
+
+/* Suppression tooltips */
+[title] {
+  text-decoration: none !important;
+}
+
+*[title]:hover::after,
+*[data-title]:hover::after,
+*[aria-label]:hover::after {
+  display: none !important;
+}
+
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+iframe {
+  pointer-events: auto !important;
+}
+
+.tradingview-widget-copyright,
+.tradingview-widget-copyright a,
+.tv-widget-copyright,
+.tv-widget-copyright a {
+  text-decoration: none !important;
+}
+
+a, button, .clickable {
+  text-decoration: none !important;
+}
+
+[title=""] {
+  text-decoration: none !important;
+}
+
+/* Styles pour le menu 4 (inchangés) */
+.result-panel {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: white;
+}
+
+.period-selector {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.period-btn {
+  padding: 8px 16px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.period-btn.active {
+  background: #3498db;
+  color: white;
+}
+
+.period-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.progress-section {
+  width: 100%;
+  margin-top: -10px;
+  margin-bottom: 55px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.period-label {
+  color: #39d353;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.percentage-label {
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 10px;
+  border-radius: 15px;
+  min-width: 60px;
+  text-align: center;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 35px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 17.5px;
+  overflow: hidden;
+  position: relative;
+
+}
+
+.progress-bar {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.progress-filled {
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+  height: 100%;
+  border-radius: 17.5px 0 0 17.5px;
+  transition: width 0.5s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 15px;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  min-width: 50px;
+  position: relative;
+  z-index: 2;
+}
+
+.progress-filled.empty {
+  min-width: 0 !important;
+  padding-right: 0 !important;
+  background: transparent !important;
+  border-radius: 17.5px !important;
+}
+
+.progress-remaining {
+  background: #e74c3c;
+  height: 100%;
+  border-radius: 0 17.5px 17.5px 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding-left: 15px;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.indicators-container {
+  display: flex;
+  gap: 15px;
+  margin-top: -57px;
+}
+
+.indicator-box {
+  flex: 1;
+  background: rgba(30, 31, 35, 0.8);
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 70px;
+}
+
+.indicator-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.indicator-label i {
+  font-size: 14px;
+}
+
+.indicator-value {
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1.3;
+}
+
+.indicator-highest .indicator-label {
+  color: #2ecc71;
+}
+
+.indicator-highest .indicator-label i {
+  color: #2ecc71;
+}
+
+.indicator-highest .indicator-value {
+  color: #2ecc71;
+}
+
+.indicator-lowest .indicator-label {
+  color: #e74c3c;
+}
+
+.indicator-lowest .indicator-label i {
+  color: #e74c3c;
+}
+
+.indicator-lowest .indicator-value {
+  color: #e74c3c;
+}
+
+.savings-container {
+  margin-top: -5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.saving-item {
+  background: rgba(30, 31, 35, 0.8);
+  border-radius: 30px;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.saving-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.saving-amount {
+  font-size: 14px;
+  font-weight: bold;
+  color: #3498db;
+}
+
+.saving-add-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.saving-add-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.saving-add-btn:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+}
+
+/* Message par défaut - supprimé */
+.kinfopaneltous-default {
+  display: none !important;
+}
+
+/* ============================================
+   STYLES POUR LE MENU-1
+   ============================================ */
+
+/* Conteneur des notifications (centré) */
+.notifications-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 80px;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+/* Élément de notification - cercle initial vide */
+.notification-item {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #111216;
+  background-color: rgba(17, 18, 22, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  color: white;
+  font-size: 12px;
+  overflow: hidden;
+  transition: width 1.5s ease, height 1.5s ease, border-radius 1.5s ease, padding 1.5s ease;
+  box-sizing: border-box;
+  opacity: 1;
+  padding: 0;
+}
+
+/* État expansé */
+.notification-item.expanded {
+  width: 200px;
+  height: auto;
+  min-height: 40px;
+  border-radius: 30px;
+  padding: 8px 12px;
+  justify-content: flex-start;
+}
+
+/* Label en gras (apparaît après expansion) */
+.notification-item .prime-label {
+  font-weight: bold;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+/* Conteneur du message (s'écrit progressivement) */
+.notification-item .notification-message {
+  display: inline-block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+}
+
+/* Notifications prioritaires */
+.notification-item.priority {
+  border: 2px solid gold;
+}
+
+/* Bloc news - affiche 30 articles */
+.news-block-container {
+  width: 250px;
+  height: 340px;
+  background: #111216;
+  background-color: rgba(17, 18, 22, 0.7);
+  border-radius: 30px;
+  padding: 15px;
+  overflow-y: auto;
+  color: white;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.news-item {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 10px;
+}
+
+.news-item:last-child {
+  border-bottom: none;
+}
+
+.news-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.news-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.news-title {
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: white;
+  word-wrap: break-word;
+}
+
+.news-source {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.news-country {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 9px;
+}
+
+.news-error,
+.news-loading {
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  padding: 20px;
+}
+
+/* Widget TradingView */
+.ticker-container {
+  width: 250px;
+  height: 160px;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+tv-ticker-tape {
+  width: 100% !important;
+  height: 120% !important;
+  display: block;
+}
+
+/* ============================================
+   STYLES POUR LE MENU-6 (FINNHUB NEWS)
+   ============================================ */
+.finnhub-news-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  padding: 10px;
+  box-sizing: border-box;
+  color: white;
+  scrollbar-width: thin;
+  scrollbar-color: #888 #333;
+}
+
+.finnhub-news-container::-webkit-scrollbar {
+  width: 5px;
+}
+.finnhub-news-container::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 5px;
+}
+.finnhub-news-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 5px;
+}
+.finnhub-news-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.finnhub-news-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  margin-bottom: 15px;
+  overflow: hidden;
+  transition: background 0.2s;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.finnhub-news-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.finnhub-news-item a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.finnhub-news-image {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+  background-color: #1e1f23;
+}
+
+.finnhub-news-content {
+  padding: 12px;
+}
+
+.finnhub-news-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+  margin-bottom: 5px;
+}
+
+.finnhub-news-source {
+  font-size: 11px;
+  color: #aaa;
+  text-transform: uppercase;
+}
+
+.finnhub-news-loading,
+.finnhub-news-error {
+  color: #ccc;
+  text-align: center;
+  padding: 20px;
+  font-size: 14px;
+}

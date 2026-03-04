@@ -25,12 +25,14 @@
   border-radius: 50%;
   margin-left: 5px;
   display: inline-block;
+
 }
 
 .status-text {
-  color: white;
-  font-size: 18px;
-  font-family: 'Lobster', cursive;
+        font-weight: bold; 
+        letter-spacing: 0.5px; 
+        font-size: 12px;
+        text-transform: uppercase;
 }
 
 .info-content {

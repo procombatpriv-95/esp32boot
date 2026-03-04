@@ -542,3 +542,87 @@ tv-ticker-tape {
   height: 120% !important;
   display: block;
 }
+
+/* ============================================
+   STYLES POUR LE MENU-6 (FINNHUB NEWS)
+   ============================================ */
+.finnhub-news-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  padding: 10px;
+  box-sizing: border-box;
+  color: white;
+  scrollbar-width: thin;
+  scrollbar-color: #888 #333;
+}
+
+.finnhub-news-container::-webkit-scrollbar {
+  width: 5px;
+}
+.finnhub-news-container::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 5px;
+}
+.finnhub-news-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 5px;
+}
+.finnhub-news-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.finnhub-news-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  margin-bottom: 15px;
+  overflow: hidden;
+  transition: background 0.2s;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.finnhub-news-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.finnhub-news-item a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.finnhub-news-image {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+  background-color: #1e1f23;
+}
+
+.finnhub-news-content {
+  padding: 12px;
+}
+
+.finnhub-news-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+  margin-bottom: 5px;
+}
+
+.finnhub-news-source {
+  font-size: 11px;
+  color: #aaa;
+  text-transform: uppercase;
+}
+
+.finnhub-news-loading,
+.finnhub-news-error {
+  color: #ccc;
+  text-align: center;
+  padding: 20px;
+  font-size: 14px;
+}

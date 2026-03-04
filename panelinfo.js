@@ -1,7 +1,3 @@
-// ============================================
-// VARIABLES GLOBALES
-// ============================================
-
 let resultPanelData = {
   currentPeriod: 'monthly',
   monthlyGoal: 0,
@@ -21,6 +17,9 @@ let lastTransactionHash = '';
 let lastGoalHash = '';
 let lastSavingsHash = '';
 let autoUpdateInterval = null;
+
+// Cache pour les actualités Finnhub (menu 6)
+window.finnhubNewsCache = null;
 
 // ============================================
 // FONCTIONS FINANCIÈRES
@@ -801,7 +800,7 @@ function scheduleDailyBirthdayCheck() {
 }
 
 // ============================================
-// FONCTIONS POUR LES NEWS (30 articles)
+// FONCTIONS POUR LES NEWS (30 articles) - MENU 1
 // ============================================
 function escapeHTML(text) {
     if (!text) return '';
@@ -1024,6 +1023,79 @@ function loadMenu1Widgets() {
 }
 
 // ============================================
+// CHARGEMENT DU MENU-6 (FINNHUB NEWS)
+// ============================================
+const FINNHUB_API_KEY = 'd2kt291r01qqq9qsetn0d2kt291r01qqq9qsetng';
+
+async function loadMenu6Widgets() {
+    const kinfopaneltousContent = document.getElementById('kinfopaneltousContent');
+    if (!kinfopaneltousContent) return;
+
+    // Nettoyer le contenu
+    kinfopaneltousContent.innerHTML = '';
+
+    // Créer le conteneur principal
+    const container = document.createElement('div');
+    container.className = 'finnhub-news-container';
+
+    // Afficher un message de chargement si pas de cache
+    if (!window.finnhubNewsCache) {
+        container.innerHTML = '<div class="finnhub-news-loading">Chargement des actualités financières...</div>';
+        kinfopaneltousContent.appendChild(container);
+
+        try {
+            const response = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_API_KEY}`);
+            const data = await response.json();
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="finnhub-news-error">Aucune actualité trouvée.</div>';
+                return;
+            }
+
+            // Mise en cache
+            window.finnhubNewsCache = data;
+
+            // Afficher les articles
+            renderFinnhubNews(container, data);
+        } catch (error) {
+            console.error('Erreur Finnhub:', error);
+            container.innerHTML = '<div class="finnhub-news-error">Erreur de chargement des actualités.</div>';
+        }
+    } else {
+        // Utiliser le cache
+        renderFinnhubNews(container, window.finnhubNewsCache);
+        kinfopaneltousContent.appendChild(container);
+    }
+}
+
+function renderFinnhubNews(container, articles) {
+    container.innerHTML = ''; // Vider le conteneur
+
+    articles.forEach(article => {
+        // Vérifier et nettoyer l'URL de l'image
+        let imageUrl = article.image && article.image.trim() !== '' ? article.image : 'https://placehold.co/250x140/1e1f23/aaaaaa?text=Finance+News';
+        // Échapper les caractères HTML dans le titre
+        const title = escapeHTML(article.headline || 'Sans titre');
+        const source = escapeHTML(article.source || 'Source inconnue');
+
+        const item = document.createElement('div');
+        item.className = 'finnhub-news-item';
+        item.innerHTML = `
+            <a href="${article.url}" target="_blank" rel="noopener noreferrer">
+                <img src="${imageUrl}" class="finnhub-news-image" alt="Illustration" loading="lazy" onerror="this.src='https://placehold.co/250x140/1e1f23/aaaaaa?text=Image+non+disponible'">
+                <div class="finnhub-news-content">
+                    <div class="finnhub-news-title">${title}</div>
+                    <div class="finnhub-news-source">${source}</div>
+                </div>
+            </a>
+        `;
+        container.appendChild(item);
+    });
+
+    // Ajouter le conteneur au DOM (déjà fait dans loadMenu6Widgets)
+}
+
+// ============================================
 // GESTION DES MENUS
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -1059,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 5 - Contenu à définir</div>';
                 break;
             case 'menu-6':
-                kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 6 - Contenu à définir</div>';
+                loadMenu6Widgets();
                 break;
             case 'menu-7':
                 kinfopaneltousContent.innerHTML = '<div class="info-message">Menu 7 - Contenu à définir</div>';

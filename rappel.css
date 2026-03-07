@@ -1,6 +1,6 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 
-body{background:#07070e;min-height:100vh;font-family:'IBM Plex Mono',monospace;color:#dde0f0;overflow:hidden;}
+
 
 #widget1{
   position:fixed;left:0px;top:calc(100vh - 58px);z-index:9999;

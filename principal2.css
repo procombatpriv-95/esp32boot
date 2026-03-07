@@ -722,11 +722,13 @@ body, html {
 
 
 
-.container .menu-1 {
-.container .panelinfo
+.container .menu-1, 
+.container .panelinfo {
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
 }
 
+
+    }
 
 
 
@@ -745,14 +747,4 @@ body, html {
   background: transparent; 
 }
 
- @media screen and (min-width: 1920px) {
-    .mega {
-        width: 1300px;
-    }
-}
 
-@media screen and (min-width: 2560px) {
-    .mega {
-        width: 1400px;
-    }
-}
